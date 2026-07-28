@@ -1,0 +1,11 @@
+bin/
+obj/
+.git/
+*.mdf
+*.ldf
+*.db
+*.db-shm
+*.db-wal
+.vs/
+*.user
+infra/

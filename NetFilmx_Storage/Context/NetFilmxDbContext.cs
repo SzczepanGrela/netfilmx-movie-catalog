@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 using NetFilmx_Storage.Entities;
@@ -111,8 +111,7 @@ namespace NetFilmx_Storage.Context
                     .AddJsonFile("appsettings.json")
                     .Build();
 
-                optionsBuilder.UseSqlServer(configuration.GetConnectionString("DefaultConnection"),
-                    x => x.MigrationsHistoryTable("__EFMigrationsHistory", "NetFilmx"));
+                optionsBuilder.UseSqlite(configuration.GetConnectionString("DefaultConnection"));
             }
         }
 
@@ -130,8 +129,7 @@ namespace NetFilmx_Storage.Context
                 .Build();
 
             var optionsBuilder = new DbContextOptionsBuilder<NetFilmxDbContext>();
-            optionsBuilder.UseSqlServer(configuration.GetConnectionString("DefaultConnection"),
-                x => x.MigrationsHistoryTable("__EFMigrationsHistory", "NetFilmx"));
+            optionsBuilder.UseSqlite(configuration.GetConnectionString("DefaultConnection"));
 
 
 
