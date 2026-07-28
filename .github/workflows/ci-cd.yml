@@ -141,3 +141,9 @@ jobs:
           ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
             bash /home/${{ secrets.SSH_USER }}/deploy-launcher.sh
+
+      - name: Health check
+        run: |
+          ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            'for i in {1..3}; do if docker run --network netfilmx-network --rm curlimages/curl -fsS --max-time 5 http://netfilmx:8080 >/dev/null 2>&1; then echo "Health check OK"; exit 0; fi; echo "Attempt $i failed, retrying in 5s..."; sleep 5; done; echo "Health check failed"; exit 1'
