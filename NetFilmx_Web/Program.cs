@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Localization;
+using Microsoft.EntityFrameworkCore;
 using NetFilmx_Storage.Context;
 using NetFilmx_Web.Extensions;
 using System.Globalization;
@@ -30,6 +31,13 @@ builder.Services.AddDbContext<NetFilmxDbContext>();
 
 
 var app = builder.Build();
+
+// Migrate DB on startup
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<NetFilmxDbContext>();
+    db.Database.Migrate();
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
