@@ -11,7 +11,7 @@ using NetFilmx_Storage.Context;
 namespace NetFilmx_Storage.Migrations
 {
     [DbContext(typeof(NetFilmxDbContext))]
-    [Migration("20260728105943_InitialSqlite")]
+    [Migration("20260728210152_InitialSqlite")]
     partial class InitialSqlite
     {
         /// <inheritdoc />
@@ -37,7 +37,7 @@ namespace NetFilmx_Storage.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories", "NetFilmx");
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("NetFilmx_Storage.Entities.Comment", b =>
@@ -69,7 +69,7 @@ namespace NetFilmx_Storage.Migrations
 
                     b.HasIndex("VideoId");
 
-                    b.ToTable("Comments", "NetFilmx");
+                    b.ToTable("Comments");
                 });
 
             modelBuilder.Entity("NetFilmx_Storage.Entities.Like", b =>
@@ -93,7 +93,7 @@ namespace NetFilmx_Storage.Migrations
 
                     b.HasIndex("VideoId");
 
-                    b.ToTable("Likes", "NetFilmx");
+                    b.ToTable("Likes");
                 });
 
             modelBuilder.Entity("NetFilmx_Storage.Entities.Series", b =>
@@ -122,7 +122,7 @@ namespace NetFilmx_Storage.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Series", "NetFilmx");
+                    b.ToTable("Series");
                 });
 
             modelBuilder.Entity("NetFilmx_Storage.Entities.SeriesPurchase", b =>
@@ -146,7 +146,7 @@ namespace NetFilmx_Storage.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("SeriesPurchases", "NetFilmx");
+                    b.ToTable("SeriesPurchases");
                 });
 
             modelBuilder.Entity("NetFilmx_Storage.Entities.Tag", b =>
@@ -162,7 +162,7 @@ namespace NetFilmx_Storage.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Tags", "NetFilmx");
+                    b.ToTable("Tags");
                 });
 
             modelBuilder.Entity("NetFilmx_Storage.Entities.User", b =>
@@ -194,7 +194,7 @@ namespace NetFilmx_Storage.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users", "NetFilmx");
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("NetFilmx_Storage.Entities.Video", b =>
@@ -234,7 +234,7 @@ namespace NetFilmx_Storage.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Videos", "NetFilmx");
+                    b.ToTable("Videos");
                 });
 
             modelBuilder.Entity("NetFilmx_Storage.Entities.VideoPurchase", b =>
@@ -258,7 +258,7 @@ namespace NetFilmx_Storage.Migrations
 
                     b.HasIndex("VideoId");
 
-                    b.ToTable("VideoPurchases", "NetFilmx");
+                    b.ToTable("VideoPurchases");
                 });
 
             modelBuilder.Entity("VideoCategory", b =>
@@ -273,7 +273,7 @@ namespace NetFilmx_Storage.Migrations
 
                     b.HasIndex("VideoId");
 
-                    b.ToTable("VideoCategory", "NetFilmx");
+                    b.ToTable("VideoCategory");
                 });
 
             modelBuilder.Entity("VideoSeries", b =>
@@ -288,7 +288,7 @@ namespace NetFilmx_Storage.Migrations
 
                     b.HasIndex("VideoId");
 
-                    b.ToTable("VideoSeries", "NetFilmx");
+                    b.ToTable("VideoSeries");
                 });
 
             modelBuilder.Entity("VideoTag", b =>
@@ -303,7 +303,7 @@ namespace NetFilmx_Storage.Migrations
 
                     b.HasIndex("VideoId");
 
-                    b.ToTable("VideoTag", "NetFilmx");
+                    b.ToTable("VideoTag");
                 });
 
             modelBuilder.Entity("NetFilmx_Storage.Entities.Comment", b =>

@@ -11,8 +11,6 @@ namespace NetFilmx_Storage.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            
-
             migrationBuilder.CreateTable(
                 name: "Categories",
                 columns: table => new
@@ -110,14 +108,12 @@ namespace NetFilmx_Storage.Migrations
                     table.ForeignKey(
                         name: "FK_SeriesPurchases_Series_SeriesId",
                         column: x => x.SeriesId,
-                        principalSchema: "NetFilmx",
                         principalTable: "Series",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_SeriesPurchases_Users_UserId",
                         column: x => x.UserId,
-                        principalSchema: "NetFilmx",
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -141,14 +137,12 @@ namespace NetFilmx_Storage.Migrations
                     table.ForeignKey(
                         name: "FK_Comments_Users_UserId",
                         column: x => x.UserId,
-                        principalSchema: "NetFilmx",
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Comments_Videos_VideoId",
                         column: x => x.VideoId,
-                        principalSchema: "NetFilmx",
                         principalTable: "Videos",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -170,14 +164,12 @@ namespace NetFilmx_Storage.Migrations
                     table.ForeignKey(
                         name: "FK_Likes_Users_UserId",
                         column: x => x.UserId,
-                        principalSchema: "NetFilmx",
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Likes_Videos_VideoId",
                         column: x => x.VideoId,
-                        principalSchema: "NetFilmx",
                         principalTable: "Videos",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -196,14 +188,12 @@ namespace NetFilmx_Storage.Migrations
                     table.ForeignKey(
                         name: "FK_VideoCategory_Categories_CategoryId",
                         column: x => x.CategoryId,
-                        principalSchema: "NetFilmx",
                         principalTable: "Categories",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_VideoCategory_Videos_VideoId",
                         column: x => x.VideoId,
-                        principalSchema: "NetFilmx",
                         principalTable: "Videos",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -225,14 +215,12 @@ namespace NetFilmx_Storage.Migrations
                     table.ForeignKey(
                         name: "FK_VideoPurchases_Users_UserId",
                         column: x => x.UserId,
-                        principalSchema: "NetFilmx",
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_VideoPurchases_Videos_VideoId",
                         column: x => x.VideoId,
-                        principalSchema: "NetFilmx",
                         principalTable: "Videos",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -251,14 +239,12 @@ namespace NetFilmx_Storage.Migrations
                     table.ForeignKey(
                         name: "FK_VideoSeries_Series_SeriesId",
                         column: x => x.SeriesId,
-                        principalSchema: "NetFilmx",
                         principalTable: "Series",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_VideoSeries_Videos_VideoId",
                         column: x => x.VideoId,
-                        principalSchema: "NetFilmx",
                         principalTable: "Videos",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -277,14 +263,12 @@ namespace NetFilmx_Storage.Migrations
                     table.ForeignKey(
                         name: "FK_VideoTag_Tags_TagId",
                         column: x => x.TagId,
-                        principalSchema: "NetFilmx",
                         principalTable: "Tags",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_VideoTag_Videos_VideoId",
                         column: x => x.VideoId,
-                        principalSchema: "NetFilmx",
                         principalTable: "Videos",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -350,52 +334,40 @@ namespace NetFilmx_Storage.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Comments",
-                schema: "NetFilmx");
+                name: "Comments");
 
             migrationBuilder.DropTable(
-                name: "Likes",
-                schema: "NetFilmx");
+                name: "Likes");
 
             migrationBuilder.DropTable(
-                name: "SeriesPurchases",
-                schema: "NetFilmx");
+                name: "SeriesPurchases");
 
             migrationBuilder.DropTable(
-                name: "VideoCategory",
-                schema: "NetFilmx");
+                name: "VideoCategory");
 
             migrationBuilder.DropTable(
-                name: "VideoPurchases",
-                schema: "NetFilmx");
+                name: "VideoPurchases");
 
             migrationBuilder.DropTable(
-                name: "VideoSeries",
-                schema: "NetFilmx");
+                name: "VideoSeries");
 
             migrationBuilder.DropTable(
-                name: "VideoTag",
-                schema: "NetFilmx");
+                name: "VideoTag");
 
             migrationBuilder.DropTable(
-                name: "Categories",
-                schema: "NetFilmx");
+                name: "Categories");
 
             migrationBuilder.DropTable(
-                name: "Users",
-                schema: "NetFilmx");
+                name: "Users");
 
             migrationBuilder.DropTable(
-                name: "Series",
-                schema: "NetFilmx");
+                name: "Series");
 
             migrationBuilder.DropTable(
-                name: "Tags",
-                schema: "NetFilmx");
+                name: "Tags");
 
             migrationBuilder.DropTable(
-                name: "Videos",
-                schema: "NetFilmx");
+                name: "Videos");
         }
     }
 }
