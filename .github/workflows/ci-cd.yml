@@ -1,0 +1,143 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  changes:
+    name: Detect path changes
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+      infra: ${{ steps.filter.outputs.infra }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find last successful run as path-filter base
+        id: find-base
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHA=$(gh run list \
+            --workflow ci-cd.yml \
+            --branch ${{ github.ref_name }} \
+            --status success \
+            --event push \
+            --limit 1 \
+            --json headSha \
+            --jq '.[0].headSha // ""')
+          if [ -z "$SHA" ]; then
+            SHA="${{ github.event.before }}"
+            echo "No previous successful run found, falling back to event.before: $SHA"
+          else
+            echo "Using last green run SHA as base: $SHA"
+          fi
+          echo "base=$SHA" >> "$GITHUB_OUTPUT"
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          base: ${{ steps.find-base.outputs.base }}
+          filters: |
+            app:
+              - 'NetFilmx_Web/**'
+              - 'NetFilmx_Service/**'
+              - 'NetFilmx_Storage/**'
+              - 'NetFilmx_Common/**'
+              - 'ST2 NetFilmx.sln'
+              - '.github/workflows/ci-cd.yml'
+            infra:
+              - 'infra/**'
+              - '.dockerignore'
+
+  build-and-test:
+    name: Build & Test (.NET 8)
+    needs: [changes]
+    if: |
+      (github.event_name == 'workflow_dispatch') ||
+      (needs.changes.outputs.app == 'true') ||
+      (needs.changes.outputs.infra == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', 'ST2 NetFilmx.sln') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: dotnet restore "ST2 NetFilmx.sln"
+
+      - name: Build (Release)
+        run: dotnet build "ST2 NetFilmx.sln" --no-restore -c Release
+
+  build-docker-image:
+    name: Build Docker Image
+    needs: [build-and-test, changes]
+    if: |
+      (github.event_name == 'workflow_dispatch') ||
+      (needs.changes.outputs.app == 'true') ||
+      (needs.changes.outputs.infra == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image
+        run: docker build -f infra/Dockerfile -t netfilmx-movie-catalog:test .
+
+  deploy:
+    name: Deploy to VPS
+    needs: [build-and-test, build-docker-image]
+    if: |
+      always() &&
+      (needs.build-and-test.result == 'success' && needs.build-docker-image.result == 'success') &&
+      github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_CLIENT_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:ci-vps
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy and verify
+        run: |
+          ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            bash /home/${{ secrets.SSH_USER }}/deploy-launcher.sh
