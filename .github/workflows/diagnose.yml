@@ -1,0 +1,23 @@
+name: Diagnose VPS
+on: workflow_dispatch
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_CLIENT_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:ci-vps
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+      - name: Run Diagnostics
+        run: |
+          ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            'echo "=== DOCKER PS ==="; docker ps -a | grep netfilmx; echo "=== DOCKER LOGS ==="; docker logs netfilmx --tail 100; echo "=== NPM NETWORK ==="; docker network inspect netfilmx-network; echo "=== CURL TEST ==="; docker run --network netfilmx-network --rm curlimages/curl -v http://netfilmx:8080 || true'
