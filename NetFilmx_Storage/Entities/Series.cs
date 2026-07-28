@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace NetFilmx_Storage.Entities
 {
-    [Table("Series", Schema = "NetFilmx")]
+    [Table("Series")]
     public class Series : BaseEntity
     {
         internal Series()

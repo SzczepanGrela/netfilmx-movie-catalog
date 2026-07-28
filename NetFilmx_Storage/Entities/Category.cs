@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace NetFilmx_Storage.Entities
 {
-    [Table("Categories", Schema = "NetFilmx")]
+    [Table("Categories")]
     public class Category : BaseEntity
     {
         internal Category()

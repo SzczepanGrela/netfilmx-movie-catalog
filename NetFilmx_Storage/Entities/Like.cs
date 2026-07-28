@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace NetFilmx_Storage.Entities
 {
-    [Table("Likes", Schema = "NetFilmx")]
+    [Table("Likes")]
     public class Like : BaseEntity
     {
         internal Like() 

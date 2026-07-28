@@ -11,12 +11,10 @@ namespace NetFilmx_Storage.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.EnsureSchema(
-                name: "NetFilmx");
+            
 
             migrationBuilder.CreateTable(
                 name: "Categories",
-                schema: "NetFilmx",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -31,7 +29,6 @@ namespace NetFilmx_Storage.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Series",
-                schema: "NetFilmx",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -49,7 +46,6 @@ namespace NetFilmx_Storage.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Tags",
-                schema: "NetFilmx",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -63,7 +59,6 @@ namespace NetFilmx_Storage.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Users",
-                schema: "NetFilmx",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -81,7 +76,6 @@ namespace NetFilmx_Storage.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Videos",
-                schema: "NetFilmx",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -102,7 +96,6 @@ namespace NetFilmx_Storage.Migrations
 
             migrationBuilder.CreateTable(
                 name: "SeriesPurchases",
-                schema: "NetFilmx",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -132,7 +125,6 @@ namespace NetFilmx_Storage.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Comments",
-                schema: "NetFilmx",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -164,7 +156,6 @@ namespace NetFilmx_Storage.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Likes",
-                schema: "NetFilmx",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -194,7 +185,6 @@ namespace NetFilmx_Storage.Migrations
 
             migrationBuilder.CreateTable(
                 name: "VideoCategory",
-                schema: "NetFilmx",
                 columns: table => new
                 {
                     CategoryId = table.Column<int>(type: "INTEGER", nullable: false),
@@ -221,7 +211,6 @@ namespace NetFilmx_Storage.Migrations
 
             migrationBuilder.CreateTable(
                 name: "VideoPurchases",
-                schema: "NetFilmx",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -251,7 +240,6 @@ namespace NetFilmx_Storage.Migrations
 
             migrationBuilder.CreateTable(
                 name: "VideoSeries",
-                schema: "NetFilmx",
                 columns: table => new
                 {
                     SeriesId = table.Column<int>(type: "INTEGER", nullable: false),
@@ -278,7 +266,6 @@ namespace NetFilmx_Storage.Migrations
 
             migrationBuilder.CreateTable(
                 name: "VideoTag",
-                schema: "NetFilmx",
                 columns: table => new
                 {
                     TagId = table.Column<int>(type: "INTEGER", nullable: false),
@@ -305,67 +292,56 @@ namespace NetFilmx_Storage.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_Comments_UserId",
-                schema: "NetFilmx",
                 table: "Comments",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Comments_VideoId",
-                schema: "NetFilmx",
                 table: "Comments",
                 column: "VideoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Likes_UserId",
-                schema: "NetFilmx",
                 table: "Likes",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Likes_VideoId",
-                schema: "NetFilmx",
                 table: "Likes",
                 column: "VideoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SeriesPurchases_SeriesId",
-                schema: "NetFilmx",
                 table: "SeriesPurchases",
                 column: "SeriesId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SeriesPurchases_UserId",
-                schema: "NetFilmx",
                 table: "SeriesPurchases",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_VideoCategory_VideoId",
-                schema: "NetFilmx",
                 table: "VideoCategory",
                 column: "VideoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_VideoPurchases_UserId",
-                schema: "NetFilmx",
                 table: "VideoPurchases",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_VideoPurchases_VideoId",
-                schema: "NetFilmx",
                 table: "VideoPurchases",
                 column: "VideoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_VideoSeries_VideoId",
-                schema: "NetFilmx",
                 table: "VideoSeries",
                 column: "VideoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_VideoTag_VideoId",
-                schema: "NetFilmx",
                 table: "VideoTag",
                 column: "VideoId");
         }

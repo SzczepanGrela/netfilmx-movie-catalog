@@ -19,6 +19,10 @@ docker network connect "$NETWORK_NAME" "$NPM_CONTAINER" 2>/dev/null || true
 docker stop "$CONTAINER_NAME" 2>/dev/null || true
 docker rm "$CONTAINER_NAME" 2>/dev/null || true
 
+# Ensure data directory exists and has permissions
+mkdir -p "$APP_DIR/data"
+chmod 777 "$APP_DIR/data"
+
 # Run new container on dedicated network
 docker run -d \
   --name "$CONTAINER_NAME" \
