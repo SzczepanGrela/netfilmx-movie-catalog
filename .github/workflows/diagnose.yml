@@ -3,6 +3,9 @@ on: workflow_dispatch
 jobs:
   diagnose:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Connect to Tailscale
         uses: tailscale/github-action@v4
