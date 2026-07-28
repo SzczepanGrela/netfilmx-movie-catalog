@@ -37,6 +37,17 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<NetFilmxDbContext>();
     db.Database.Migrate();
+    
+    // Seed DB if empty
+    if (!db.Users.Any())
+    {
+        var sqlFile = Path.Combine(AppContext.BaseDirectory, "InsertNetFilmxDb_SQLite.sql");
+        if (File.Exists(sqlFile))
+        {
+            var sql = File.ReadAllText(sqlFile);
+            db.Database.ExecuteSqlRaw(sql);
+        }
+    }
 }
 
 // Configure the HTTP request pipeline.

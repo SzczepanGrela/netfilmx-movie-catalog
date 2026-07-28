@@ -7,8 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-
     <Content Remove="wwwroot\js\validateUsername.js" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Content Include="..\SQL\InsertNetFilmxDb_SQLite.sql" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
