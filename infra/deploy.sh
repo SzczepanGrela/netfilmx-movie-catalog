@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_NAME="netfilmx-movie-catalog"
-CONTAINER_NAME="netfilmx-app"
+CONTAINER_NAME="netfilmx"
 NETWORK_NAME="netfilmx-network"
 NPM_CONTAINER="nginx-proxy-manager"
 IMAGE_TAG="${APP_NAME}:latest"
