@@ -6,7 +6,7 @@ CONTAINER_NAME="netfilmx-app"
 NETWORK_NAME="netfilmx-network"
 NPM_CONTAINER="nginx-proxy-manager"
 IMAGE_TAG="${APP_NAME}:latest"
-APP_DIR="/home/netfilmx-app/app"
+APP_DIR="/home/netfilmx/app"
 
 # Build image
 docker build -t "$IMAGE_TAG" -f "$APP_DIR/infra/Dockerfile" "$APP_DIR"
