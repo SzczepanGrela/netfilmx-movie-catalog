@@ -27,7 +27,8 @@ builder.Services.AddCommandHandlers();
 builder.Services.AddAutoMapProfiles();
 
 
-builder.Services.AddDbContext<NetFilmxDbContext>();
+builder.Services.AddDbContext<NetFilmxDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 
 var app = builder.Build();

@@ -1,4 +1,4 @@
-﻿using NetFilmx_Storage.Context;
+using NetFilmx_Storage.Context;
 using NetFilmx_Storage.Repositories;
 
 namespace NetFilmx_Web.Extensions
@@ -19,8 +19,7 @@ namespace NetFilmx_Web.Extensions
             serviceCollection.AddTransient<ISeriesPurchaseRepository, SeriesPurchaseRepository>();
 
 
-            serviceCollection.AddDbContext<NetFilmxDbContext>();
-
+// DbContext is configured in Program.cs
             /*  serviceCollection.AddDbContext<NetFilmxDbContext>(options =>
           options.UseSqlServer("Server=ACER_NITRO_5;Database=NetFilmxDb_projekt_test;Trusted_Connection=True;TrustServerCertificate=True",
               x => x.MigrationsHistoryTable("__EFMigrationsHistory", "NetFilmx")).UseLazyLoadingProxies(), ServiceLifetime.Scoped);
