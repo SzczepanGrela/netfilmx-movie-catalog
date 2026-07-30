@@ -17,6 +17,8 @@ namespace NetFilmx_Web.Extensions
             serviceCollection.AddTransient<ILikeRepository, LikeRepository>();
             serviceCollection.AddTransient<IVideoPurchaseRepository, VideoPurchaseRepository>();
             serviceCollection.AddTransient<ISeriesPurchaseRepository, SeriesPurchaseRepository>();
+            serviceCollection.AddTransient<IUserSessionRepository, UserSessionRepository>();
+            serviceCollection.AddTransient<IWalletTransactionRepository, WalletTransactionRepository>();
 
 
 // DbContext is configured in Program.cs

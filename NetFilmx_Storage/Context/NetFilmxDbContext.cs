@@ -21,6 +21,8 @@ namespace NetFilmx_Storage.Context
         public DbSet<Series> Series { get; set; }
         public DbSet<VideoPurchase> VideoPurchases { get; set; }
         public DbSet<SeriesPurchase> SeriesPurchases { get; set; }
+        public DbSet<UserSession> UserSessions { get; set; }
+        public DbSet<WalletTransaction> WalletTransactions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -98,6 +100,18 @@ namespace NetFilmx_Storage.Context
                 .HasForeignKey(usp => usp.SeriesId);
 
 
+
+            // UserSession relationships
+            modelBuilder.Entity<UserSession>()
+                .HasOne(s => s.User)
+                .WithMany(u => u.Sessions)
+                .HasForeignKey(s => s.UserId);
+
+            // WalletTransaction relationships
+            modelBuilder.Entity<WalletTransaction>()
+                .HasOne(wt => wt.User)
+                .WithMany(u => u.WalletTransactions)
+                .HasForeignKey(wt => wt.UserId);
 
            // DataSeeder.SeedData(modelBuilder);
         }

@@ -1,4 +1,4 @@
-﻿using NetFilmx_Storage.Entities;
+using NetFilmx_Storage.Entities;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -13,13 +13,16 @@ namespace NetFilmx_Storage.Entities
             Likes = new List<Like>();
             VideoPurchases = new List<VideoPurchase>();
             SeriesPurchases = new List<SeriesPurchase>();
+            Sessions = new List<UserSession>();
+            WalletTransactions = new List<WalletTransaction>();
         }
 
-        public User(string username, string email, string password) : this()
+        public User(string username, string email, string password, UserRole role = UserRole.User) : this()
         {
             Username = username;
             Email = email;
             SetPassword(password);
+            Role = role;
             CreatedAt = DateTime.Now;
             UpdatedAt = DateTime.Now;
         }
@@ -44,6 +47,16 @@ namespace NetFilmx_Storage.Entities
         [Required]
         public DateTime UpdatedAt { get; set; }
 
+        [Required]
+        public UserRole Role { get; set; } = UserRole.User;
+
+        [Required]
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal Balance { get; set; } = 0;
+
+        [MaxLength(512)]
+        public string? AvatarUrl { get; set; }
+
 
         public virtual ICollection<Comment> Comments { get; set; }
 
@@ -55,6 +68,10 @@ namespace NetFilmx_Storage.Entities
 
 
         public virtual ICollection<SeriesPurchase> SeriesPurchases { get; set; }
+
+        public virtual ICollection<UserSession> Sessions { get; set; }
+
+        public virtual ICollection<WalletTransaction> WalletTransactions { get; set; }
 
         [NotMapped]
         public IEnumerable<Video> CommentedVideos => Comments.Select(c => c.Video);
