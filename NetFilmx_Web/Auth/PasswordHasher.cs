@@ -2,6 +2,8 @@ using System.Security.Cryptography;
 using Konscious.Security.Cryptography;
 using System.Text;
 
+using NetFilmx_Service.Security;
+
 namespace NetFilmx_Web.Auth
 {
     public class PasswordHasher : IPasswordHasher

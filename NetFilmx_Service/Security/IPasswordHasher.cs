@@ -1,4 +1,4 @@
-namespace NetFilmx_Web.Auth
+namespace NetFilmx_Service.Security
 {
     public interface IPasswordHasher
     {

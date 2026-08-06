@@ -1,4 +1,4 @@
-﻿using NetFilmx_Storage.Entities;
+using NetFilmx_Storage.Entities;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -11,6 +11,7 @@ namespace NetFilmx_Storage.Entities
         {
             Videos = new List<Video>();
             SeriesPurchases = new List<SeriesPurchase>();
+            Bundles = new List<Bundle>();
         }
 
         public Series(string name, decimal price, string? description) : this()
@@ -35,6 +36,41 @@ namespace NetFilmx_Storage.Entities
 
         public string? Description { get; set; }
 
+        // --- Premium UI: Media Assets ---
+
+        [MaxLength(500)]
+        public string? PosterUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? BackdropUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? LogoUrl { get; set; }
+
+        [MaxLength(500)]
+        public string? TrailerUrl { get; set; }
+
+        // --- Premium UI: Metadata ---
+
+        public int? ReleaseYear { get; set; }
+
+        [MaxLength(200)]
+        public string? Director { get; set; }
+
+        [MaxLength(500)]
+        public string? Cast { get; set; }
+
+        // --- Premium UI: Badges & Classification ---
+
+        [MaxLength(10)]
+        public string? AgeRating { get; set; }
+
+        [MaxLength(20)]
+        public string? QualityBadge { get; set; }
+
+        [MaxLength(200)]
+        public string? MaturityWarning { get; set; }
+
         [Required]
         public DateTime CreatedAt { get; set; }
 
@@ -47,5 +83,7 @@ namespace NetFilmx_Storage.Entities
 
    
         public virtual ICollection<SeriesPurchase> SeriesPurchases { get; set; }
+
+        public virtual ICollection<Bundle> Bundles { get; set; }
     }
 }

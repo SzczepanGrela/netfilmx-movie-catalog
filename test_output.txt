@@ -1,0 +1,43 @@
+Test run for /home/szcze/projects/netfilmx-movie-catalog/NetFilmx_Tests/bin/Release/net8.0/NetFilmx_Tests.dll (.NETCoreApp,Version=v8.0)
+VSTest version 17.11.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+/home/szcze/projects/netfilmx-movie-catalog/NetFilmx_Tests/bin/Release/net8.0/NetFilmx_Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.5.3.1+6b60a9e56a (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.04]   Discovering: NetFilmx_Tests
+[xUnit.net 00:00:00.05]   Discovered:  NetFilmx_Tests
+[xUnit.net 00:00:00.06]   Starting:    NetFilmx_Tests
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 2 entities to in-memory store.
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+[xUnit.net 00:00:01.17]       Expected meResponse.StatusCode to be HttpStatusCode.OK {value: 200}, but found HttpStatusCode.Unauthorized {value: 401}.
+[xUnit.net 00:00:01.17]       Stack Trace:
+[xUnit.net 00:00:01.17]            at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+[xUnit.net 00:00:01.17]            at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)
+[xUnit.net 00:00:01.17]            at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+[xUnit.net 00:00:01.17]            at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+[xUnit.net 00:00:01.17]            at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+[xUnit.net 00:00:01.17]            at FluentAssertions.Execution.AssertionScope.FailWith(String message, Object[] args)
+[xUnit.net 00:00:01.17]            at FluentAssertions.Primitives.EnumAssertions`2.Be(TEnum expected, String because, Object[] becauseArgs)
+[xUnit.net 00:00:01.17]         /home/szcze/projects/netfilmx-movie-catalog/NetFilmx_Tests/Integration/AuthFlowTests.cs(50,0): at NetFilmx_Tests.Integration.AuthFlowTests.CompleteAuthFlow_ShouldSucceed()
+[xUnit.net 00:00:01.17]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.17]   Finished:    NetFilmx_Tests
+  Failed NetFilmx_Tests.Integration.AuthFlowTests.CompleteAuthFlow_ShouldSucceed [1 s]
+  Error Message:
+   Expected meResponse.StatusCode to be HttpStatusCode.OK {value: 200}, but found HttpStatusCode.Unauthorized {value: 401}.
+  Stack Trace:
+     at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(String message, Object[] args)
+   at FluentAssertions.Primitives.EnumAssertions`2.Be(TEnum expected, String because, Object[] becauseArgs)
+   at NetFilmx_Tests.Integration.AuthFlowTests.CompleteAuthFlow_ShouldSucceed() in /home/szcze/projects/netfilmx-movie-catalog/NetFilmx_Tests/Integration/AuthFlowTests.cs:line 50
+--- End of stack trace from previous location ---
+
+Total tests: 1
+     Failed: 1
+ Total time: 1.4348 Seconds

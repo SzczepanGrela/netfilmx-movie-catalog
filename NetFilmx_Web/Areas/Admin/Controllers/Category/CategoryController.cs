@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using NetFilmx_Service.Command.Category;
@@ -7,8 +8,10 @@ using NetFilmx_Service.Dtos.Video;
 using NetFilmx_Service.Query.Category;
 using NetFilmx_Service.Query.Video;
 
-namespace NetFilmx_Web.Controllers
+namespace NetFilmx_Web.Areas.Admin.Controllers
 {
+    [Area("Admin")]
+    [Authorize(Roles = "Admin")]
     public class CategoryController : Controller
     {
         private readonly IMediator _mediator;
@@ -24,8 +27,9 @@ namespace NetFilmx_Web.Controllers
             var result = await _mediator.Send(query);
             if (result.IsFailure)
             {
-                return RedirectToAction("Error", "Home", new
-                { errorMessage = result.Message, errors = result.Errors });
+                TempData["ErrorMessage"] = result.Message;
+                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                return RedirectToAction("Error", "Home", new { area = "" });
 
             }
             return View(result.Data);
@@ -45,7 +49,9 @@ namespace NetFilmx_Web.Controllers
             var result = await _mediator.Send(command);
             if (result.IsFailure)
             {
-                return RedirectToAction("Error", "Home", new { errorMessage = result.Message, errors = result.Errors });
+                TempData["ErrorMessage"] = result.Message;
+                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                return RedirectToAction("Error", "Home", new { area = "" });
             }
             ViewBag.Steps = 2;
 
@@ -59,7 +65,9 @@ namespace NetFilmx_Web.Controllers
             var result = await _mediator.Send(command);
             if (result.IsFailure)
             {
-                return RedirectToAction("Error", "Home", new { errorMessage = result.Message, errors = result.Errors });
+                TempData["ErrorMessage"] = result.Message;
+                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                return RedirectToAction("Error", "Home", new { area = "" });
             }
 
 
@@ -74,7 +82,9 @@ namespace NetFilmx_Web.Controllers
             var result = await _mediator.Send(query);
             if (result.IsFailure)
             {
-                return RedirectToAction("Error", "Home", new { errorMessage = result.Message, errors = result.Errors });
+                TempData["ErrorMessage"] = result.Message;
+                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                return RedirectToAction("Error", "Home", new { area = "" });
             }
 
             return View(result.Data);
@@ -86,7 +96,9 @@ namespace NetFilmx_Web.Controllers
             var result = await _mediator.Send(query);
             if (result.IsFailure)
             {
-                return RedirectToAction("Error", "Home", new { errorMessage = result.Message, errors = result.Errors });
+                TempData["ErrorMessage"] = result.Message;
+                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                return RedirectToAction("Error", "Home", new { area = "" });
             }
 
             return View(result.Data);
@@ -99,7 +111,9 @@ namespace NetFilmx_Web.Controllers
             var result = await _mediator.Send(command);
             if (result.IsFailure)
             {
-                return RedirectToAction("Error", "Home", new { errorMessage = result.Message, errors = result.Errors });
+                TempData["ErrorMessage"] = result.Message;
+                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                return RedirectToAction("Error", "Home", new { area = "" });
             }
 
 
@@ -116,7 +130,9 @@ namespace NetFilmx_Web.Controllers
             var result = await _mediator.Send(query);
             if (result.IsFailure)
             {
-                return RedirectToAction("Error", "Home", new { errorMessage = result.Message, errors = result.Errors });
+                TempData["ErrorMessage"] = result.Message;
+                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                return RedirectToAction("Error", "Home", new { area = "" });
             }
             return View(result.Data);
         }
@@ -129,7 +145,9 @@ namespace NetFilmx_Web.Controllers
             var result = await _mediator.Send(query);
             if (result.IsFailure)
             {
-                return RedirectToAction("Error", "Home", new { errorMessage = result.Message, errors = result.Errors });
+                TempData["ErrorMessage"] = result.Message;
+                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                return RedirectToAction("Error", "Home", new { area = "" });
             }
             return View(result.Data);
         }
@@ -143,7 +161,9 @@ namespace NetFilmx_Web.Controllers
                 var result = await _mediator.Send(command);
                 if (result.IsFailure)
                 {
-                    return RedirectToAction("Error", "Home", new { errorMessage = result.Message, errors = result.Errors });
+                    TempData["ErrorMessage"] = result.Message;
+                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                return RedirectToAction("Error", "Home", new { area = "" });
                 }
             }
             ViewBag.Steps = 2;
@@ -159,7 +179,9 @@ namespace NetFilmx_Web.Controllers
             var result = await _mediator.Send(query);
             if (result.IsFailure)
             {
-                return RedirectToAction("Error", "Home", new { errorMessage = result.Message, errors = result.Errors });
+                TempData["ErrorMessage"] = result.Message;
+                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                return RedirectToAction("Error", "Home", new { area = "" });
             }
             return View(result.Data);
         }
@@ -173,7 +195,9 @@ namespace NetFilmx_Web.Controllers
                 var result = await _mediator.Send(command);
                 if (result.IsFailure)
                 {
-                    return RedirectToAction("Error", "Home", new { errorMessage = result.Message, errors = result.Errors });
+                    TempData["ErrorMessage"] = result.Message;
+                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                return RedirectToAction("Error", "Home", new { area = "" });
                 }
             }
             ViewBag.Steps = 2;

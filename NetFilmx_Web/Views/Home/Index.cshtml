@@ -1,32 +1,101 @@
-﻿@{
-    ViewData["Title"] = "Main Page";
+@model NetFilmx_Web.ViewModels.HomePageViewModel
+@{
+    ViewData["Title"] = "Strona główna";
 }
 
-<!DOCTYPE html>
-<html lang="pl">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - NetFilmx_Web</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-</head>
-<body>
-    <div class="container mt-5">
-        <div class="card">
-            <div class="card-header">
-                <h1>Main Page</h1>
+@if (Model.FeaturedVideo != null)
+{
+    var hero = Model.FeaturedVideo;
+    var duration = hero.DurationMinutes.HasValue ? $"{hero.DurationMinutes.Value / 60}hr {hero.DurationMinutes.Value % 60}min" : "";
+    
+    <div class="nfx-hero" style="background-image: url('@(hero.BackdropUrl ?? hero.ThumbnailUrl)');">
+        <div class="nfx-hero-overlay"></div>
+        <div class="nfx-hero-content">
+            <h1 class="nfx-hero-title">@hero.Title</h1>
+            
+            <div class="nfx-hero-meta">
+                @if (!string.IsNullOrEmpty(hero.AgeRating))
+                {
+                    <span class="nfx-badge">@hero.AgeRating</span>
+                }
+                @if (!string.IsNullOrEmpty(hero.QualityBadge))
+                {
+                    <span class="nfx-badge">@hero.QualityBadge</span>
+                }
+                @if (hero.ReleaseYear.HasValue)
+                {
+                    <span>@hero.ReleaseYear.Value</span>
+                }
+                @if (!string.IsNullOrEmpty(duration))
+                {
+                    <span>@duration</span>
+                }
             </div>
-            <div class="card-body">
-                <div class="list-group">
-                    <a href="@Url.Action("Index", "Video")" class="list-group-item list-group-item-action bg-primary text-white">Videos</a>
-                    <a href="@Url.Action("Index", "Category")" class="list-group-item list-group-item-action bg-success text-white">Categories</a>
-                    <a href="@Url.Action("Index", "Series")" class="list-group-item list-group-item-action bg-info text-white">Series</a>
-                    <a href="@Url.Action("Index", "Tag")" class="list-group-item list-group-item-action bg-warning text-dark">Tags</a>
-                    <a href="@Url.Action("Index", "Comment")" class="list-group-item list-group-item-action bg-danger text-white">Comments</a>
-                    <a href="@Url.Action("Index", "User")" class="list-group-item list-group-item-action bg-secondary text-white">Users</a>
-                </div>
+
+            <p class="nfx-hero-desc">@hero.Description</p>
+            
+            <div class="nfx-hero-cast">
+                @if (!string.IsNullOrEmpty(hero.Director))
+                {
+                    <div><span>Reżyser:</span> @hero.Director</div>
+                }
+                @if (!string.IsNullOrEmpty(hero.Cast))
+                {
+                    <div><span>Obsada:</span> @hero.Cast</div>
+                }
+            </div>
+
+            <div class="nfx-hero-buttons">
+                <a href="/Home/Watch/@hero.Id" class="nfx-btn nfx-btn-primary">▶ Odtwórz</a>
+                <a href="#" class="nfx-btn nfx-btn-secondary">ℹ Więcej informacji</a>
             </div>
         </div>
     </div>
-</body>
-</html>
+}
+
+<div class="nfx-section">
+    <h2 class="nfx-section-title">Wszystkie filmy</h2>
+    <div class="nfx-carousel">
+        @if (Model.AllVideos != null && Model.AllVideos.Any())
+        {
+            foreach (var video in Model.AllVideos)
+            {
+                var imgUrl = video.ThumbnailUrl ?? "https://netfilmx-assets.grela.dev/placeholder.jpg";
+                <a href="/Home/Watch/@video.Id" class="nfx-card">
+                    <img src="@imgUrl" alt="@video.Title" class="nfx-card-img" loading="lazy" />
+                    <div class="nfx-card-overlay">
+                        <span class="nfx-card-title">@video.Title</span>
+                    </div>
+                </a>
+            }
+        }
+    </div>
+</div>
+
+<div class="nfx-section" style="margin-top: 2rem;">
+    <h2 class="nfx-section-title">Serie</h2>
+    <div class="nfx-carousel">
+        @if (Model.AllSeries != null && Model.AllSeries.Any())
+        {
+            foreach (var series in Model.AllSeries)
+            {
+                var imgUrl = series.PosterUrl ?? "https://netfilmx-assets.grela.dev/placeholder.jpg";
+                <a href="#" class="nfx-card">
+                    <img src="@imgUrl" alt="@series.Name" class="nfx-card-img" loading="lazy" />
+                    <div class="nfx-card-overlay">
+                        <span class="nfx-card-title">@series.Name</span>
+                    </div>
+                </a>
+            }
+        }
+    </div>
+</div>
+@if (Model.FeaturedVideo == null && (Model.AllVideos == null || !Model.AllVideos.Any()))
+{
+    <div class="nfx-hero" style="background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-base) 100%); display: flex; align-items: center; justify-content: center; height: 100vh;">
+        <div style="text-align: center; z-index: 10;">
+            <h1 class="nfx-hero-title">Katalog jest pusty</h1>
+            <p class="nfx-hero-desc" style="max-width: 600px; margin: 0 auto 2rem;">Wygląda na to, że baza danych nie zawiera jeszcze żadnych filmów. Zaloguj się do panelu administratora, aby dodać pierwsze pozycje.</p>
+        </div>
+    </div>
+}

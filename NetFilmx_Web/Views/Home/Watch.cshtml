@@ -1,0 +1,33 @@
+@model NetFilmx_Service.Dtos.Video.VideoCardDto
+@{
+    Layout = null; // No layout for watch page
+}
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Oglądaj @Model.Title — NetFilmx</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    
+    <!-- Vidstack -->
+    <link rel="stylesheet" href="https://cdn.vidstack.io/player/theme.css" />
+    <link rel="stylesheet" href="https://cdn.vidstack.io/player/video.css" />
+    <script type="module" src="https://cdn.vidstack.io/player"></script>
+</head>
+<body class="nfx-watch-page">
+    <div class="nfx-watch-header">
+        <a href="/" class="nfx-back-btn">🡐</a>
+        <h1 class="nfx-watch-title">@Model.Title</h1>
+    </div>
+    
+    <div class="nfx-player-container">
+        <media-player src="@Model.VideoUrl" title="@Model.Title" autoplay controls>
+            <media-provider></media-provider>
+        </media-player>
+    </div>
+</body>
+</html>

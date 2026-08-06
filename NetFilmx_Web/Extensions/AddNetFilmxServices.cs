@@ -1,5 +1,7 @@
 using NetFilmx_Storage.Context;
 using NetFilmx_Storage.Repositories;
+using NetFilmx_Service.Security;
+using NetFilmx_Web.Auth;
 
 namespace NetFilmx_Web.Extensions
 {
@@ -19,6 +21,10 @@ namespace NetFilmx_Web.Extensions
             serviceCollection.AddTransient<ISeriesPurchaseRepository, SeriesPurchaseRepository>();
             serviceCollection.AddTransient<IUserSessionRepository, UserSessionRepository>();
             serviceCollection.AddTransient<IWalletTransactionRepository, WalletTransactionRepository>();
+
+            serviceCollection.AddTransient<IPasswordHasher, PasswordHasher>();
+            serviceCollection.AddTransient<IJwtTokenService, JwtTokenService>();
+            serviceCollection.AddTransient<ISessionService, SessionService>();
 
 
 // DbContext is configured in Program.cs

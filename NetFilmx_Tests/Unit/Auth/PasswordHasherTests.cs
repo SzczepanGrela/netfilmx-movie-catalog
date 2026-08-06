@@ -1,4 +1,5 @@
 using FluentAssertions;
+using NetFilmx_Service.Security;
 using NetFilmx_Web.Auth;
 
 namespace NetFilmx_Tests.Unit.Auth

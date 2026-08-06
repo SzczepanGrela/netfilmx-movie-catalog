@@ -20,50 +20,50 @@ VALUES
 ('Sad');
 
 -- Wstawianie rekordów do tabeli series
-INSERT INTO Series (Name, Price, Description, CreatedAt, UpdatedAt)
+INSERT INTO Series (Name, Price, Description, CreatedAt, UpdatedAt, AgeRating, QualityBadge, PosterUrl, BackdropUrl, Director, Cast, ReleaseYear)
 VALUES 
-('Series 1', 19.99, 'First series', datetime('now'), datetime('now')),
-('Series 2', 24.99, 'Second series', datetime('now'), datetime('now')),
-('Series 3', 29.99, 'Third series', datetime('now'), datetime('now'));
+('Caminandes', 9.99, 'Seria krótkometrażowych animacji opowiadających o przygodach lamy Koro w Patagonii.', datetime('now'), datetime('now'), '7+', 'HD', 'https://netfilmx-assets.grela.dev/posters/caminandes-llamigos_poster.jpg', 'https://netfilmx-assets.grela.dev/backdrops/caminandes-llamigos_backdrop.jpg', 'Pablo Vazquez', 'Koro, Oti', 2013),
+('Blender Open Movies', 19.99, 'Kolekcja kultowych filmów krótkometrażowych stworzonych całkowicie za pomocą darmowego oprogramowania Blender.', datetime('now'), datetime('now'), '13+', '4K', 'https://netfilmx-assets.grela.dev/posters/sintel_poster.jpg', 'https://netfilmx-assets.grela.dev/backdrops/sintel_backdrop.png', 'Colin Levy, Ian Hubert', 'Halina Reijn, Thom Hoffman', 2010),
+('Spring', 14.99, 'Baśniowa opowieść o pasterce i jej psie, którzy stawiają czoła starożytnym mocom.', datetime('now'), datetime('now'), '7+', '4K HDR', 'https://netfilmx-assets.grela.dev/posters/big-buck-bunny_poster.jpg', 'https://netfilmx-assets.grela.dev/backdrops/big-buck-bunny_backdrop.png', 'Andy Goralczyk', 'N/A', 2019);
 
 -- Wstawianie rekordów do tabeli videos
-INSERT INTO Videos (Title, Description, Price, VideoUrl, ThumbnailUrl, Views, CreatedAt, UpdatedAt)
+INSERT INTO Videos (Title, Description, Price, VideoUrl, ThumbnailUrl, Views, CreatedAt, UpdatedAt, AgeRating, QualityBadge, BackdropUrl, DurationMinutes, ReleaseYear, Director, Cast)
 VALUES 
-('Video 1', 'First video description', 4.99, 'https://www.youtube.com/watch?v=5kozt0uDa4c', 'https://i.ytimg.com/vi/5kozt0uDa4c/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG\u0026rs=AOn4CLCY6jwMkYEkVikHjNGKdocMX6RFJg', 100, datetime('now'), datetime('now')),
-('Video 2', 'Second video description', 5.99, 'https://www.youtube.com/watch?v=Zv11L-ZfrSg', 'https://i.ytimg.com/vi/Zv11L-ZfrSg/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG\u0026rs=AOn4CLB0dDN2i9Pfn-M4oJsvZWmuRxumUA', 200, datetime('now'), datetime('now')),
-('Video 3', 'Third video description', 6.99, 'https://www.youtube.com/watch?v=oRDRfikj2z8', 'https://i.ytimg.com/vi/oRDRfikj2z8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG\u0026rs=AOn4CLBHPvBaFuF4cioIuImk6WumMXetWQ', 300, datetime('now'), datetime('now'));
+('Sintel', 'Samotna wojowniczka Sintel wyrusza w niebezpieczną podróż, by odnaleźć porwanego smoka - swojego jedynego przyjaciela.', 14.99, 'https://netfilmx-assets.grela.dev/videos/sintel.mp4', 'https://netfilmx-assets.grela.dev/posters/sintel_poster.jpg', 1500, datetime('now'), datetime('now'), '13+', '4K', 'https://netfilmx-assets.grela.dev/backdrops/sintel_backdrop.png', 15, 2010, 'Colin Levy', 'Halina Reijn, Thom Hoffman'),
+('Tears of Steel', 'Grupa wojowników i naukowców w starym kościele w Amsterdamie próbuje zapobiec apokalipsie ze strony niszczycielskich robotów.', 15.99, 'https://netfilmx-assets.grela.dev/videos/tears-of-steel.mp4', 'https://netfilmx-assets.grela.dev/posters/tears-of-steel_poster.png', 2100, datetime('now'), datetime('now'), '13+', '4K', 'https://netfilmx-assets.grela.dev/backdrops/tears-of-steel_backdrop.jpg', 12, 2012, 'Ian Hubert', 'Derek de Lint, Sergio Hasselbaink'),
+('Charge', 'W dystopijnej przyszłości starszy mężczyzna walczy z uzbrojonymi strażnikami o baterię zasilającą.', 9.99, 'https://netfilmx-assets.grela.dev/videos/charge.webm', 'https://netfilmx-assets.grela.dev/posters/charge_poster.jpg', 3200, datetime('now'), datetime('now'), '16+', '4K HDR', 'https://netfilmx-assets.grela.dev/backdrops/charge_backdrop.jpg', 4, 2022, 'Hjalti Hjalmarsson', 'Joram van Gink');
 
 -- Wstawianie rekordów do tabeli video_tags
 INSERT INTO VideoTag (TagId, VideoId)
 VALUES 
-((SELECT id FROM Tags WHERE name = 'Exciting'), (SELECT id FROM Videos WHERE title = 'Video 1')),
-((SELECT id FROM Tags WHERE name = 'Funny'), (SELECT id FROM Videos WHERE title = 'Video 2')),
-((SELECT id FROM Tags WHERE name = 'Sad'), (SELECT id FROM Videos WHERE title = 'Video 3'));
+((SELECT id FROM Tags WHERE name = 'Exciting'), (SELECT id FROM Videos WHERE title = 'Sintel')),
+((SELECT id FROM Tags WHERE name = 'Funny'), (SELECT id FROM Videos WHERE title = 'Tears of Steel')),
+((SELECT id FROM Tags WHERE name = 'Sad'), (SELECT id FROM Videos WHERE title = 'Charge'));
 
 -- Wstawianie rekordów do tabeli video_series
 INSERT INTO VideoSeries (SeriesId, VideoId)
 VALUES 
-((SELECT id FROM Series WHERE name = 'Series 1'), (SELECT id FROM Videos WHERE title = 'Video 1')),
-((SELECT id FROM Series WHERE name = 'Series 2'), (SELECT id FROM Videos WHERE title = 'Video 2')),
-((SELECT id FROM Series WHERE name = 'Series 3'), (SELECT id FROM Videos WHERE title = 'Video 3'));
+((SELECT id FROM Series WHERE name = 'Blender Open Movies'), (SELECT id FROM Videos WHERE title = 'Sintel')),
+((SELECT id FROM Series WHERE name = 'Blender Open Movies'), (SELECT id FROM Videos WHERE title = 'Tears of Steel')),
+((SELECT id FROM Series WHERE name = 'Blender Open Movies'), (SELECT id FROM Videos WHERE title = 'Charge'));
 
 -- Wstawianie rekordów do tabeli video_categories
 INSERT INTO VideoCategory (VideoId, CategoryId)
 VALUES 
-((SELECT id FROM Videos WHERE title = 'Video 1'), (SELECT id FROM Categories WHERE name = 'Action')),
-((SELECT id FROM Videos WHERE title = 'Video 2'), (SELECT id FROM Categories WHERE name = 'Comedy')),
-((SELECT id FROM Videos WHERE title = 'Video 3'), (SELECT id FROM Categories WHERE name = 'Drama'));
+((SELECT id FROM Videos WHERE title = 'Sintel'), (SELECT id FROM Categories WHERE name = 'Action')),
+((SELECT id FROM Videos WHERE title = 'Tears of Steel'), (SELECT id FROM Categories WHERE name = 'Action')),
+((SELECT id FROM Videos WHERE title = 'Charge'), (SELECT id FROM Categories WHERE name = 'Action'));
 
 -- Wstawianie rekordów do tabeli comments
 INSERT INTO Comments (VideoId, UserId, Content, CreatedAt, UpdatedAt)
 VALUES 
-((SELECT id FROM Videos WHERE title = 'Video 1'), (SELECT id FROM Users WHERE username = 'john_doe'), 'Great video!', datetime('now'), datetime('now')),
-((SELECT id FROM Videos WHERE title = 'Video 2'), (SELECT id FROM Users WHERE username = 'jane_smith'), 'Very funny!', datetime('now'), datetime('now')),
-((SELECT id FROM Videos WHERE title = 'Video 3'), (SELECT id FROM Users WHERE username = 'alice_wonder'), 'So sad!', datetime('now'), datetime('now'));
+((SELECT id FROM Videos WHERE title = 'Sintel'), (SELECT id FROM Users WHERE username = 'john_doe'), 'Great video!', datetime('now'), datetime('now')),
+((SELECT id FROM Videos WHERE title = 'Tears of Steel'), (SELECT id FROM Users WHERE username = 'jane_smith'), 'Very funny!', datetime('now'), datetime('now')),
+((SELECT id FROM Videos WHERE title = 'Charge'), (SELECT id FROM Users WHERE username = 'alice_wonder'), 'So sad!', datetime('now'), datetime('now'));
 
 -- Wstawianie rekordów do tabeli likes
 INSERT INTO Likes (VideoId, UserId, CreatedAt)
 VALUES 
-((SELECT id FROM Videos WHERE title = 'Video 1'), (SELECT id FROM Users WHERE username = 'john_doe'), datetime('now')),
-((SELECT id FROM Videos WHERE title = 'Video 2'), (SELECT id FROM Users WHERE username = 'jane_smith'), datetime('now')),
-((SELECT id FROM Videos WHERE title = 'Video 3'), (SELECT id FROM Users WHERE username = 'alice_wonder'), datetime('now'));
+((SELECT id FROM Videos WHERE title = 'Sintel'), (SELECT id FROM Users WHERE username = 'john_doe'), datetime('now')),
+((SELECT id FROM Videos WHERE title = 'Tears of Steel'), (SELECT id FROM Users WHERE username = 'jane_smith'), datetime('now')),
+((SELECT id FROM Videos WHERE title = 'Charge'), (SELECT id FROM Users WHERE username = 'alice_wonder'), datetime('now'));

@@ -15,6 +15,7 @@ namespace NetFilmx_Storage.Entities
             SeriesPurchases = new List<SeriesPurchase>();
             Sessions = new List<UserSession>();
             WalletTransactions = new List<WalletTransaction>();
+            BundlePurchases = new List<BundlePurchase>();
         }
 
         public User(string username, string email, string password, UserRole role = UserRole.User) : this()
@@ -72,6 +73,8 @@ namespace NetFilmx_Storage.Entities
         public virtual ICollection<UserSession> Sessions { get; set; }
 
         public virtual ICollection<WalletTransaction> WalletTransactions { get; set; }
+
+        public virtual ICollection<BundlePurchase> BundlePurchases { get; set; }
 
         [NotMapped]
         public IEnumerable<Video> CommentedVideos => Comments.Select(c => c.Video);

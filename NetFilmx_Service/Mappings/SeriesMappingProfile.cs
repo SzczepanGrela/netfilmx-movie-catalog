@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using NetFilmx_Service.Command.Series;
 using NetFilmx_Service.Dtos.Series;
 using NetFilmx_Storage.Entities;
@@ -11,6 +11,7 @@ namespace NetFilmx_Service.Mappings
         public SeriesMappingProfile()
         {
 
+            CreateMap<Series, SeriesCardDto>();
             CreateMap<Series, SeriesDetailsDto>();
             CreateMap<Series, SeriesListDto>();
             CreateMap<Series, SeriesEditDto>();

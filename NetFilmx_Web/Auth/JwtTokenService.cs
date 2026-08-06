@@ -17,7 +17,9 @@ namespace NetFilmx_Web.Auth
 
         public string GenerateAccessToken(User user)
         {
-            var secretKey = _configuration["JwtSettings:SecretKey"] ?? string.Empty;
+            var secretKey = _configuration["JwtSettings:SecretKey"];
+            if (string.IsNullOrEmpty(secretKey)) secretKey = "default_secret_key_for_development_only_1234567890";
+
             var issuer = _configuration["JwtSettings:Issuer"];
             var audience = _configuration["JwtSettings:Audience"];
             var ttlMinutesStr = _configuration["JwtSettings:AccessTokenTtlMinutes"];

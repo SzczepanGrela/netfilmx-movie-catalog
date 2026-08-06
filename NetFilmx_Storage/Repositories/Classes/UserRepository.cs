@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NetFilmx_Storage.Context;
 using NetFilmx_Storage.Entities;
 
@@ -110,7 +110,7 @@ namespace NetFilmx_Storage.Repositories
             {
                 throw new ArgumentNullException(nameof(user), "User cannot be null");
             }
-            if (await IsUsernameAvailableAsync(user.Username))
+            if (!await IsUsernameAvailableAsync(user.Username))
             {
                 throw new InvalidOperationException("A user with this username already exists");
             }

@@ -23,6 +23,8 @@ namespace NetFilmx_Storage.Context
         public DbSet<SeriesPurchase> SeriesPurchases { get; set; }
         public DbSet<UserSession> UserSessions { get; set; }
         public DbSet<WalletTransaction> WalletTransactions { get; set; }
+        public DbSet<Bundle> Bundles { get; set; }
+        public DbSet<BundlePurchase> BundlePurchases { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -56,6 +58,24 @@ namespace NetFilmx_Storage.Context
                     j => j.HasOne<Series>().WithMany().HasForeignKey("SeriesId"),
                     j => j.HasOne<Video>().WithMany().HasForeignKey("VideoId"),
                     j => j.HasKey("SeriesId", "VideoId"));
+
+            modelBuilder.Entity<Bundle>()
+                .HasMany(b => b.Videos)
+                .WithMany(v => v.Bundles)
+                .UsingEntity<Dictionary<string, object>>(
+                    "BundleVideo",
+                    j => j.HasOne<Video>().WithMany().HasForeignKey("VideoId"),
+                    j => j.HasOne<Bundle>().WithMany().HasForeignKey("BundleId"),
+                    j => j.HasKey("BundleId", "VideoId"));
+
+            modelBuilder.Entity<Bundle>()
+                .HasMany(b => b.Series)
+                .WithMany(s => s.Bundles)
+                .UsingEntity<Dictionary<string, object>>(
+                    "BundleSeries",
+                    j => j.HasOne<Series>().WithMany().HasForeignKey("SeriesId"),
+                    j => j.HasOne<Bundle>().WithMany().HasForeignKey("BundleId"),
+                    j => j.HasKey("BundleId", "SeriesId"));
 
             // One-to-Many relationships
             modelBuilder.Entity<Like>()
@@ -98,6 +118,16 @@ namespace NetFilmx_Storage.Context
                 .HasOne(usp => usp.Series)
                 .WithMany(s => s.SeriesPurchases)
                 .HasForeignKey(usp => usp.SeriesId);
+
+            modelBuilder.Entity<BundlePurchase>()
+                .HasOne(bp => bp.User)
+                .WithMany(u => u.BundlePurchases)
+                .HasForeignKey(bp => bp.UserId);
+
+            modelBuilder.Entity<BundlePurchase>()
+                .HasOne(bp => bp.Bundle)
+                .WithMany(b => b.BundlePurchases)
+                .HasForeignKey(bp => bp.BundleId);
 
 
 
