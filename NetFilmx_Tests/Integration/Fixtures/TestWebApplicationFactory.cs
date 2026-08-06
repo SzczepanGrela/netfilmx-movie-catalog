@@ -23,7 +23,8 @@ namespace NetFilmx_Tests.Integration.Fixtures
                     {"JwtSettings:Audience", "Test"},
                     {"JwtSettings:AccessTokenTtlMinutes", "15"},
                     {"JwtSettings:RefreshTokenTtlDays", "7"},
-                    {"WalletSettings:RegistrationBonus", "100.00"}
+                    {"WalletSettings:RegistrationBonus", "100.00"},
+                    {"ConnectionStrings:DefaultConnection", "Data Source=test_hangfire.db"}
                 });
             });
 

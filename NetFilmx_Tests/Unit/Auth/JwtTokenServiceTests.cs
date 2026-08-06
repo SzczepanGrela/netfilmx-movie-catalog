@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using NetFilmx_Storage.Entities;
-using NetFilmx_Web.Auth;
+using NetFilmx_Service.Security;
 
 namespace NetFilmx_Tests.Unit.Auth
 {

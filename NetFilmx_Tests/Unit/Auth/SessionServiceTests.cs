@@ -2,7 +2,7 @@ using FluentAssertions;
 using Moq;
 using NetFilmx_Storage.Entities;
 using NetFilmx_Storage.Repositories;
-using NetFilmx_Web.Auth;
+using NetFilmx_Service.Security;
 using Microsoft.Extensions.Configuration;
 
 namespace NetFilmx_Tests.Unit.Auth

@@ -1,4 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
+using Hangfire;
+using Microsoft.AspNetCore.Http;
+using System.IO;
+using System.ComponentModel.DataAnnotations;
+using NetFilmx_Service.Storage;
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using NetFilmx_Service.Command.Comment;
@@ -24,10 +29,12 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
     public class VideoController : Controller
     {
         private readonly IMediator _mediator;
+        private readonly ICloudStorageService _storageService;
 
-        public VideoController(IMediator mediator)
+        public VideoController(IMediator mediator, ICloudStorageService storageService)
         {
             _mediator = mediator;
+            _storageService = storageService;
         }
 
         public async Task<IActionResult> Index()
@@ -64,9 +71,41 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> Add(VideoAddDto dto)
+        public async Task<IActionResult> Add(UploadVideoViewModel model)
         {
-            var command = new AddVideoCommand(dto.Title, dto.Description, dto.Price, dto.VideoUrl, dto.ThumbnailUrl);
+            if (model.VideoFile == null && string.IsNullOrWhiteSpace(model.VideoUrl))
+            {
+                ModelState.AddModelError("VideoFile", "Musisz podać plik wideo lub link z YouTube.");
+                ModelState.AddModelError("VideoUrl", "Musisz podać plik wideo lub link z YouTube.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                // Zwrócenie błędów walidacji
+                return View(model);
+            }
+
+            // Upload plakatu (ThumbnailFile) synchronicznie, ponieważ to mały obrazek
+            string thumbnailUrl = model.ThumbnailUrl ?? "";
+            if (model.ThumbnailFile != null && model.ThumbnailFile.Length > 0)
+            {
+                string tempThumbPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}_{model.ThumbnailFile.FileName}");
+                using (var stream = new FileStream(tempThumbPath, FileMode.Create))
+                {
+                    await model.ThumbnailFile.CopyToAsync(stream);
+                }
+                
+                string objectKey = $"thumbnails/{Guid.NewGuid()}{Path.GetExtension(model.ThumbnailFile.FileName)}";
+                thumbnailUrl = await _storageService.UploadFileAsync(tempThumbPath, objectKey, model.ThumbnailFile.ContentType);
+                
+                if (System.IO.File.Exists(tempThumbPath))
+                    System.IO.File.Delete(tempThumbPath);
+            }
+
+            // Set placeholder if file is provided
+            string videoUrl = model.VideoFile != null ? "PROCESSING" : model.VideoUrl ?? "";
+
+            var command = new AddVideoCommand(model.Title, model.Description, model.Price, videoUrl, thumbnailUrl);
             var result = await _mediator.Send(command);
             if (result.IsFailure)
             {
@@ -74,9 +113,50 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
                 return RedirectToAction("Error", "Home", new { area = "" });
             }
+
+            // Trigger background job if file was uploaded
+            if (model.VideoFile != null && model.VideoFile.Length > 0)
+            {
+                int videoId = result.Data;
+                string uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+                if (!Directory.Exists(uploadsDir))
+                    Directory.CreateDirectory(uploadsDir);
+
+                string filePath = Path.Combine(uploadsDir, $"{Guid.NewGuid()}_{model.VideoFile.FileName}");
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await model.VideoFile.CopyToAsync(stream);
+                }
+
+                BackgroundJob.Enqueue<NetFilmx_Service.Processing.VideoProcessingJob>(
+                    job => job.ProcessVideoAsync(videoId, filePath));
+            }
+
             ViewBag.Steps = 2;
 
             return View("~/Views/Shared/RedirectBack.cshtml");
+        }
+
+        public class UploadVideoViewModel
+        {
+            [Required(ErrorMessage = "Tytuł jest wymagany")]
+            [MaxLength(100, ErrorMessage = "Tytuł nie może przekraczać 100 znaków")]
+            public string Title { get; set; }
+
+            [Required(ErrorMessage = "Opis jest wymagany")]
+            public string? Description { get; set; }
+
+            [Required(ErrorMessage = "Cena jest wymagana")]
+            [Range(0, 10000, ErrorMessage = "Cena musi być większa od 0")]
+            public decimal Price { get; set; }
+
+            public string? VideoUrl { get; set; }
+            public string? ThumbnailUrl { get; set; }
+            
+            public IFormFile? VideoFile { get; set; }
+            
+            [Required(ErrorMessage = "Plakat jest wymagany")]
+            public IFormFile? ThumbnailFile { get; set; }
         }
 
         public async Task<IActionResult> Edit(int videoId)

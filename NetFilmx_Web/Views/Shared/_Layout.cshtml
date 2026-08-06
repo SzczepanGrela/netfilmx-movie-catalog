@@ -19,6 +19,20 @@
                 <a href="#" class="nfx-nav-link">Filmy</a>
                 <a href="#" class="nfx-nav-link">Serie</a>
             </div>
+            <div class="ms-auto d-flex align-items-center gap-3">
+                @if (User.Identity != null && User.Identity.IsAuthenticated)
+                {
+                    <span class="text-white">Witaj, @User.Identity.Name!</span>
+                    <form asp-controller="Auth" asp-action="Logout" method="post" class="m-0">
+                        <button type="submit" class="btn btn-outline-light rounded-pill btn-sm">Wyloguj</button>
+                    </form>
+                }
+                else
+                {
+                    <a asp-controller="Auth" asp-action="Login" class="btn btn-outline-light rounded-pill btn-sm">Zaloguj</a>
+                    <a asp-controller="Auth" asp-action="Register" class="btn btn-primary rounded-pill btn-sm fw-bold" style="background: linear-gradient(90deg, var(--neon-purple), var(--neon-blue)); border: none;">Rejestracja</a>
+                }
+            </div>
         </div>
     </nav>
 

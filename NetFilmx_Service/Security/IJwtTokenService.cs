@@ -1,6 +1,6 @@
 using NetFilmx_Storage.Entities;
 
-namespace NetFilmx_Web.Auth
+namespace NetFilmx_Service.Security
 {
     public interface IJwtTokenService
     {

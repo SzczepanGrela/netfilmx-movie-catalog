@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Admin Panel</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+    <!-- Custom Admin CSS -->
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+</head>
+<body class="admin-body">
+    <div class="admin-wrapper">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="admin-sidebar">
+            <div class="sidebar-header">
+                <h3>NetFilmx Admin</h3>
+            </div>
+            <ul class="list-unstyled components">
+                <li>
+                    <a href="/admin"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                </li>
+                <li>
+                    <a href="/admin/video"><i class="fas fa-video"></i> Wideo</a>
+                </li>
+                <li>
+                    <a href="/admin/category"><i class="fas fa-list"></i> Kategorie</a>
+                </li>
+                <li>
+                    <a href="/admin/series"><i class="fas fa-film"></i> Serie</a>
+                </li>
+                <li>
+                    <a href="/admin/tag"><i class="fas fa-tags"></i> Tagi</a>
+                </li>
+                <li>
+                    <a href="/admin/user"><i class="fas fa-users"></i> Użytkownicy</a>
+                </li>
+                <li>
+                    <a href="/admin/comment"><i class="fas fa-comments"></i> Komentarze</a>
+                </li>
+                <li>
+                    <a href="/admin/jobs" target="_blank"><i class="fas fa-cogs"></i> Hangfire Jobs</a>
+                </li>
+            </ul>
+            <div class="sidebar-footer">
+                <a href="/" class="btn btn-outline-light w-100"><i class="fas fa-arrow-left"></i> Wróć do serwisu</a>
+            </div>
+        </nav>
+
+        <!-- Page Content -->
+        <div id="content" class="admin-content">
+            <nav class="navbar navbar-expand-lg admin-navbar">
+                <div class="container-fluid">
+                    <span class="navbar-text">
+                        Zalogowano jako: <strong>@User.Identity?.Name</strong>
+                    </span>
+                    <form asp-controller="Auth" asp-action="Logout" asp-area="" method="post" class="form-inline ml-auto">
+                        <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-sign-out-alt"></i> Wyloguj</button>
+                    </form>
+                </div>
+            </nav>
+
+            <main class="container-fluid pt-4">
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+                }
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+                }
+
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

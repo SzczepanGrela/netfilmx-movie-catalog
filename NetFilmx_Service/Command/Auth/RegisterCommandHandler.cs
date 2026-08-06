@@ -29,9 +29,8 @@ namespace NetFilmx_Service.Command.Auth
             if (!await _userRepository.IsUsernameAvailableAsync(request.Username))
                 return CResult.Fail("Username already exists");
 
-            // No IsEmailAvailableAsync in repository, assuming we should just try
-            var user = new EntityUser(request.Username, request.Email, "temporary");
-            user.PasswordHash = _passwordHasher.HashPassword(request.Password);
+            var passwordHash = _passwordHasher.HashPassword(request.Password);
+            var user = new EntityUser(request.Username, request.Email, passwordHash);
             user.Role = UserRole.User;
 
             var bonusStr = _configuration["WalletSettings:RegistrationBonus"] ?? "100.00";

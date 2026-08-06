@@ -1,11 +1,11 @@
-﻿using MediatR;
+using MediatR;
 using NetFilmx_Service.Result;
 using NetFilmx_Storage.Repositories;
 using System.Text.RegularExpressions;
 
 namespace NetFilmx_Service.Command.Video
 {
-    public sealed class AddVideoCommandHandler : IRequestHandler<AddVideoCommand, CResult>
+    public sealed class AddVideoCommandHandler : IRequestHandler<AddVideoCommand, QResult<int>>
     {
         private readonly IVideoRepository _repository;
 
@@ -14,42 +14,42 @@ namespace NetFilmx_Service.Command.Video
             _repository = repository;
         }
 
-        public async Task<CResult> Handle(AddVideoCommand command, CancellationToken cancellationToken)
+        public async Task<QResult<int>> Handle(AddVideoCommand command, CancellationToken cancellationToken)
         {
             if (command == null)
             {
-                return CResult.Fail("Command is null");
+                return QResult<int>.Fail("Command is null");
             }
 
             var validation = new AddVideoCommandValidator().Validate(command);
             if (!validation.IsValid)
             {
-                return CResult.Fail(validation);
+                return QResult<int>.Fail(validation);
             }
 
-
-            string ytVideoId = ExtractYouTubeVideoId(command.VideoUrl);
-            if (string.IsNullOrEmpty(ytVideoId))
+            string videoUrl = command.VideoUrl;
+            
+            // Legacy YouTube support
+            if (videoUrl.Contains("youtube.com") || videoUrl.Contains("youtu.be"))
             {
-                return CResult.Fail("Invalid YouTube URL");
+                string ytVideoId = ExtractYouTubeVideoId(videoUrl);
+                if (!string.IsNullOrEmpty(ytVideoId))
+                {
+                    videoUrl = ytVideoId;
+                }
             }
 
-
-
-            var video = new NetFilmx_Storage.Entities.Video(command.Title, command.Description, command.Price, ytVideoId, command.ThumbnailUrl);
+            var video = new NetFilmx_Storage.Entities.Video(command.Title, command.Description, command.Price, videoUrl, command.ThumbnailUrl);
 
             try
             {
                 await _repository.AddVideoAsync(video);
-                return CResult.Ok();
+                return QResult<int>.Ok(video.Id);
             }
             catch (Exception ex)
             {
-                return CResult.Fail(ex.Message);
+                return QResult<int>.Fail(ex.Message);
             }
-
-
-
         }
 
         public string ExtractYouTubeVideoId(string url)

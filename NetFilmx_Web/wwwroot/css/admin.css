@@ -1,0 +1,203 @@
+/* Glassmorphism Admin Theme */
+:root {
+    --admin-bg: #0f172a;
+    --admin-sidebar-bg: rgba(30, 41, 59, 0.7);
+    --admin-card-bg: rgba(30, 41, 59, 0.6);
+    --admin-border: rgba(255, 255, 255, 0.1);
+    --admin-text: #f8fafc;
+    --admin-muted: #94a3b8;
+    --admin-accent: #8b5cf6;
+    --admin-accent-hover: #7c3aed;
+}
+
+body.admin-body {
+    background: var(--admin-bg);
+    background-image: radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.15), transparent 25%),
+                      radial-gradient(circle at 85% 30%, rgba(56, 189, 248, 0.15), transparent 25%);
+    background-attachment: fixed;
+    color: var(--admin-text);
+    font-family: 'Outfit', sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+.admin-wrapper {
+    display: flex;
+    width: 100%;
+    align-items: stretch;
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.admin-sidebar {
+    min-width: 250px;
+    max-width: 250px;
+    background: var(--admin-sidebar-bg);
+    backdrop-filter: blur(12px);
+    border-right: 1px solid var(--admin-border);
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.sidebar-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #a78bfa 0%, #38bdf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.admin-sidebar ul.components {
+    padding: 20px 0;
+    flex-grow: 1;
+}
+
+.admin-sidebar ul li a {
+    padding: 12px 20px;
+    font-size: 1.1em;
+    display: block;
+    color: var(--admin-muted);
+    text-decoration: none;
+    transition: 0.2s ease-in-out;
+}
+
+.admin-sidebar ul li a:hover {
+    color: var(--admin-text);
+    background: rgba(255, 255, 255, 0.05);
+    border-left: 4px solid var(--admin-accent);
+}
+
+.admin-sidebar ul li a i {
+    width: 25px;
+}
+
+.sidebar-footer {
+    padding: 20px;
+    border-top: 1px solid var(--admin-border);
+}
+
+/* Page Content */
+.admin-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.admin-navbar {
+    background: var(--admin-sidebar-bg);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--admin-border);
+    padding: 15px 30px;
+}
+
+/* Dashboard Cards */
+.admin-stat-card {
+    background: var(--admin-card-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+
+.admin-stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.admin-stat-icon {
+    font-size: 3rem;
+    color: var(--admin-accent);
+    margin-right: 20px;
+}
+
+.admin-stat-details h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--admin-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.admin-stat-details h2 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+/* Standard Panels */
+.admin-panel-card {
+    background: var(--admin-card-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    margin-bottom: 30px;
+    overflow: hidden;
+}
+
+.admin-panel-header {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-panel-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 500;
+}
+
+.admin-panel-body {
+    padding: 20px;
+}
+
+/* Tables in Admin */
+.admin-panel-body table {
+    color: var(--admin-text);
+}
+
+.admin-panel-body .table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.admin-panel-body .table td, .admin-panel-body .table th {
+    border-top: 1px solid var(--admin-border);
+}
+
+.admin-panel-body .table thead th {
+    border-bottom: 2px solid var(--admin-border);
+    color: var(--admin-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+}
+
+/* Forms in Admin */
+.admin-panel-body .form-control {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--admin-border);
+    color: var(--admin-text);
+}
+
+.admin-panel-body .form-control:focus {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: var(--admin-accent);
+    box-shadow: 0 0 0 0.2rem rgba(139, 92, 246, 0.25);
+}
+
+.admin-panel-body .form-group label {
+    font-weight: 500;
+    color: var(--admin-muted);
+}

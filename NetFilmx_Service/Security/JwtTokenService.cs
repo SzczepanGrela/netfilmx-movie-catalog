@@ -3,8 +3,9 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using NetFilmx_Storage.Entities;
+using Microsoft.Extensions.Configuration;
 
-namespace NetFilmx_Web.Auth
+namespace NetFilmx_Service.Security
 {
     public class JwtTokenService : IJwtTokenService
     {

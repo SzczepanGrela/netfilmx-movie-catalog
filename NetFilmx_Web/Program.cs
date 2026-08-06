@@ -4,6 +4,8 @@ using NetFilmx_Storage.Context;
 using NetFilmx_Web.Extensions;
 using System.Globalization;
 using System.Reflection;
+using Hangfire;
+using Hangfire.Storage.SQLite;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -46,6 +48,22 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
                 if (context.Request.Cookies.ContainsKey("access_token"))
                 {
                     context.Token = context.Request.Cookies["access_token"];
+                }
+                return Task.CompletedTask;
+            },
+            OnChallenge = context =>
+            {
+                // If the request is for an API endpoint, return 401. Otherwise, redirect to Login.
+                if (context.Request.Path.StartsWithSegments("/api"))
+                {
+                    context.HandleResponse();
+                    context.Response.StatusCode = 401;
+                }
+                else
+                {
+                    context.HandleResponse();
+                    var returnUrl = context.Request.Path + context.Request.QueryString;
+                    context.Response.Redirect($"/auth/login?returnUrl={Uri.EscapeDataString(returnUrl)}");
                 }
                 return Task.CompletedTask;
             }
@@ -117,6 +135,16 @@ foreach (var handler in closedGenericHandlers)
 builder.Services.AddDbContext<NetFilmxDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Configure Hangfire
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSQLiteStorage(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=NetFilmxDb.sqlite"));
+
+// Add the processing server as IHostedService
+builder.Services.AddHangfireServer();
+
 
 var app = builder.Build();
 
@@ -166,6 +194,11 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseHangfireDashboard("/admin/jobs", new DashboardOptions
+{
+    Authorization = new[] { new NetFilmx_Web.Filters.HangfireAuthorizationFilter() }
+});
 
 app.MapControllerRoute(
     name: "areas",

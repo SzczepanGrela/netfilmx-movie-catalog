@@ -1,9 +1,6 @@
 -- Wstawianie rekordów do tabeli users
-INSERT INTO Users (Username, Email, PasswordHash, CreatedAt, UpdatedAt)
-VALUES 
-('john_doe', 'john@example.com', 'hashedpassword123', datetime('now'), datetime('now')),
-('jane_smith', 'jane@example.com', 'hashedpassword456', datetime('now'), datetime('now')),
-('alice_wonder', 'alice@example.com', 'hashedpassword789', datetime('now'), datetime('now'));
+-- Użytkownicy zostali usunięci z seeda, ponieważ używamy nowego formatu Argon2id.
+-- Zarejestruj się ręcznie przez interfejs użytkownika!
 
 -- Wstawianie rekordów do tabeli categories
 INSERT INTO Categories (Name, Description)
@@ -54,16 +51,4 @@ VALUES
 ((SELECT id FROM Videos WHERE title = 'Tears of Steel'), (SELECT id FROM Categories WHERE name = 'Action')),
 ((SELECT id FROM Videos WHERE title = 'Charge'), (SELECT id FROM Categories WHERE name = 'Action'));
 
--- Wstawianie rekordów do tabeli comments
-INSERT INTO Comments (VideoId, UserId, Content, CreatedAt, UpdatedAt)
-VALUES 
-((SELECT id FROM Videos WHERE title = 'Sintel'), (SELECT id FROM Users WHERE username = 'john_doe'), 'Great video!', datetime('now'), datetime('now')),
-((SELECT id FROM Videos WHERE title = 'Tears of Steel'), (SELECT id FROM Users WHERE username = 'jane_smith'), 'Very funny!', datetime('now'), datetime('now')),
-((SELECT id FROM Videos WHERE title = 'Charge'), (SELECT id FROM Users WHERE username = 'alice_wonder'), 'So sad!', datetime('now'), datetime('now'));
 
--- Wstawianie rekordów do tabeli likes
-INSERT INTO Likes (VideoId, UserId, CreatedAt)
-VALUES 
-((SELECT id FROM Videos WHERE title = 'Sintel'), (SELECT id FROM Users WHERE username = 'john_doe'), datetime('now')),
-((SELECT id FROM Videos WHERE title = 'Tears of Steel'), (SELECT id FROM Users WHERE username = 'jane_smith'), datetime('now')),
-((SELECT id FROM Videos WHERE title = 'Charge'), (SELECT id FROM Users WHERE username = 'alice_wonder'), datetime('now'));

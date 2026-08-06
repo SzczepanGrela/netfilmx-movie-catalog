@@ -4,7 +4,7 @@ using Microsoft.Extensions.Configuration;
 using NetFilmx_Storage.Entities;
 using NetFilmx_Storage.Repositories;
 
-namespace NetFilmx_Web.Auth
+namespace NetFilmx_Service.Security
 {
     public class SessionService : ISessionService
     {
