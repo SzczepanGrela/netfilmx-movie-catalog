@@ -1,7 +1,7 @@
--- Wstawianie rekordów do tabeli users
--- Użytkownicy zostali usunięci z seeda, ponieważ używamy nowego formatu Argon2id.
--- Zarejestruj się ręcznie przez interfejs użytkownika!
-
+-- Wstawianie rekordów do tabeli users (dodane konta Admin i User, zaszyfrowane Argon2id)
+INSERT INTO Users (Id, Username, Email, PasswordHash, Role, CreatedAt, UpdatedAt, Balance) VALUES 
+(1, 'Admin', 'admin@netfilmx.pl', '$argon2id$v=19$m=131072,t=4,p=8$bU6pyAC6bLUqvG2PoPZlEA==$toTuazRwhHzVf9uXC8cxKFFo823X4vz1x1qv/xkZxCQ=', 1, datetime('now'), datetime('now'), 0.0),
+(2, 'User', 'user@netfilmx.pl', '$argon2id$v=19$m=131072,t=4,p=8$vS9lXQHm4yERia89MaHh+A==$du5OA68CWWu66WayByFV4qUvQGrTkNryYBAqzuuvuhE=', 0, datetime('now'), datetime('now'), 0.0);
 -- Wstawianie rekordów do tabeli categories
 INSERT INTO Categories (Name, Description)
 VALUES 
