@@ -140,7 +140,7 @@ builder.Services.AddHangfire(configuration => configuration
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
     .UseSimpleAssemblyNameTypeSerializer()
     .UseRecommendedSerializerSettings()
-    .UseSQLiteStorage(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=NetFilmxDb.sqlite"));
+    .UseSQLiteStorage("data/netfilmx.db"));
 
 // Add the processing server as IHostedService
 builder.Services.AddHangfireServer();
