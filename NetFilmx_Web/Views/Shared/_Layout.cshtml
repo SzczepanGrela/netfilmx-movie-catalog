@@ -14,24 +14,38 @@
     <nav class="nfx-navbar" id="main-nav">
         <div class="nfx-navbar-inner">
             <a class="nfx-logo" href="/">NetFilm<span class="nfx-logo-accent">x</span></a>
-            <div class="nfx-nav-links">
-                <a href="/" class="nfx-nav-link">Strona główna</a>
-                <a href="#" class="nfx-nav-link">Filmy</a>
-                <a href="#" class="nfx-nav-link">Serie</a>
-            </div>
-            <div class="ms-auto d-flex align-items-center gap-3">
-                @if (User.Identity != null && User.Identity.IsAuthenticated)
-                {
-                    <span class="text-white">Witaj, @User.Identity.Name!</span>
-                    <form asp-controller="Auth" asp-action="Logout" method="post" class="m-0">
-                        <button type="submit" class="btn btn-outline-light rounded-pill btn-sm">Wyloguj</button>
-                    </form>
-                }
-                else
-                {
-                    <a asp-controller="Auth" asp-action="Login" class="btn btn-outline-light rounded-pill btn-sm">Zaloguj</a>
-                    <a asp-controller="Auth" asp-action="Register" class="btn btn-primary rounded-pill btn-sm fw-bold" style="background: linear-gradient(90deg, var(--neon-purple), var(--neon-blue)); border: none;">Rejestracja</a>
-                }
+            
+            <!-- Hamburger Icon -->
+            <button class="nfx-menu-toggle" id="menu-toggle" aria-label="Toggle navigation">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+
+            <div class="nfx-nav-menu" id="nav-menu">
+                <div class="nfx-nav-links">
+                    <a href="/" class="nfx-nav-link">Strona główna</a>
+                    <a asp-controller="Home" asp-action="Movies" class="nfx-nav-link">Filmy</a>
+                    <a asp-controller="Home" asp-action="Series" class="nfx-nav-link">Serie</a>
+                </div>
+                <div class="nfx-nav-auth">
+                    @if (User.Identity != null && User.Identity.IsAuthenticated)
+                    {
+                        <span class="nfx-user-greeting">Witaj, @User.Identity.Name!</span>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="nfx-btn nfx-btn-primary" style="margin-right: 0.5rem;">Panel Admina</a>
+                        }
+                        <form asp-controller="Auth" asp-action="Logout" method="post" style="margin: 0;">
+                            <button type="submit" class="nfx-btn nfx-btn-secondary">Wyloguj</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <a asp-controller="Auth" asp-action="Login" class="nfx-btn nfx-btn-secondary">Zaloguj</a>
+                        <a asp-controller="Auth" asp-action="Register" class="nfx-btn nfx-btn-primary">Rejestracja</a>
+                    }
+                </div>
             </div>
         </div>
     </nav>
@@ -49,6 +63,14 @@
         const nav = document.getElementById('main-nav');
         window.addEventListener('scroll', () => {
             nav.classList.toggle('nfx-navbar-scrolled', window.scrollY > 50);
+        });
+
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        const navMenu = document.getElementById('nav-menu');
+        menuToggle.addEventListener('click', () => {
+            navMenu.classList.toggle('active');
+            menuToggle.classList.toggle('active');
         });
     </script>
 

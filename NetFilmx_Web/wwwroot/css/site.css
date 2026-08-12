@@ -382,7 +382,39 @@ a {
     .nfx-hero-title { font-size: 2.5rem; }
     .nfx-hero-desc { font-size: 1rem; }
     .nfx-card { flex: 0 0 calc(100% / 3 - 1rem); }
-    .nfx-navbar-inner { padding: 1rem; }
+    .nfx-navbar-inner { padding: 1rem; justify-content: space-between; }
+    
+    .nfx-nav-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background-color: var(--color-base);
+        flex-direction: column;
+        padding: 1rem;
+        border-bottom: 1px solid rgba(123, 44, 191, 0.2);
+    }
+    
+    .nfx-nav-menu.active {
+        display: flex;
+    }
+    
+    .nfx-nav-links {
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .nfx-nav-auth {
+        flex-direction: column;
+        align-items: stretch;
+        margin-left: 0;
+    }
+    
+    .nfx-menu-toggle {
+        display: flex;
+    }
 }
 
 @media (max-width: 576px) {
@@ -390,4 +422,89 @@ a {
     .nfx-card { flex: 0 0 calc(100% / 2 - 1rem); }
     .nfx-hero-buttons { flex-direction: column; }
     .nfx-btn { width: 100%; }
+}
+
+/* Nav Menu Default (Desktop) */
+.nfx-nav-menu {
+    display: flex;
+    flex-grow: 1;
+    align-items: center;
+}
+
+.nfx-nav-auth {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-left: auto;
+}
+
+.nfx-user-greeting {
+    color: var(--color-text-primary);
+    font-weight: 500;
+}
+
+/* Hamburger Button */
+.nfx-menu-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 30px;
+    height: 21px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 10;
+}
+
+.nfx-menu-toggle span {
+    width: 100%;
+    height: 3px;
+    background-color: var(--color-text-primary);
+    border-radius: 10px;
+    transition: all 0.3s linear;
+}
+
+.nfx-menu-toggle.active span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 6px);
+}
+
+.nfx-menu-toggle.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.nfx-menu-toggle.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(6px, -8px);
+}
+
+/* Global Forms & Inputs */
+.form-control, input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]), textarea, select {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    background: rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: var(--border-radius);
+    color: #ffffff !important;
+    font-family: var(--font-family);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    outline: none;
+    display: block;
+}
+
+.form-control:focus, input:focus, textarea:focus, select:focus {
+    background: rgba(0, 0, 0, 0.5) !important;
+    border-color: var(--color-accent) !important;
+    box-shadow: 0 0 0 2px rgba(123, 44, 191, 0.2) !important;
+}
+
+.form-control::placeholder, input::placeholder, textarea::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--color-text-secondary);
+    font-weight: 500;
 }

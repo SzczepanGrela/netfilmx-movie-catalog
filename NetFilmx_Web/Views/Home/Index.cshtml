@@ -46,8 +46,8 @@
             </div>
 
             <div class="nfx-hero-buttons">
-                <a href="/Home/Watch/@hero.Id" class="nfx-btn nfx-btn-primary">▶ Odtwórz</a>
-                <a href="#" class="nfx-btn nfx-btn-secondary">ℹ Więcej informacji</a>
+                <a asp-controller="Home" asp-action="Watch" asp-route-id="@hero.Id" class="nfx-btn nfx-btn-primary">▶ Odtwórz</a>
+                <a asp-controller="Home" asp-action="Details" asp-route-id="@hero.Id" class="nfx-btn nfx-btn-secondary">ℹ Więcej informacji</a>
             </div>
         </div>
     </div>
@@ -61,7 +61,7 @@
             foreach (var video in Model.AllVideos)
             {
                 var imgUrl = video.ThumbnailUrl ?? "https://netfilmx-assets.grela.dev/placeholder.jpg";
-                <a href="/Home/Watch/@video.Id" class="nfx-card">
+                <a asp-controller="Home" asp-action="Watch" asp-route-id="@video.Id" class="nfx-card">
                     <img src="@imgUrl" alt="@video.Title" class="nfx-card-img" loading="lazy" />
                     <div class="nfx-card-overlay">
                         <span class="nfx-card-title">@video.Title</span>
@@ -80,7 +80,7 @@
             foreach (var series in Model.AllSeries)
             {
                 var imgUrl = series.PosterUrl ?? "https://netfilmx-assets.grela.dev/placeholder.jpg";
-                <a href="#" class="nfx-card">
+                <a asp-controller="Home" asp-action="SeriesDetails" asp-route-id="@series.Id" class="nfx-card">
                     <img src="@imgUrl" alt="@series.Name" class="nfx-card-img" loading="lazy" />
                     <div class="nfx-card-overlay">
                         <span class="nfx-card-title">@series.Name</span>
