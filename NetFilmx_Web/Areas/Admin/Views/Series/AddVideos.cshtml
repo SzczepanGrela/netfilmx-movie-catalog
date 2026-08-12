@@ -1,19 +1,14 @@
-﻿@model IEnumerable<NetFilmx_Service.Dtos.Video.VideoListDto>
+@model IEnumerable<NetFilmx_Service.Dtos.Video.VideoListDto>
 
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <title>Add Videos to Series</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-</head>
-<body>
-    <div class="container mt-5">
-        <h1 class="mb-4">Add Videos to Series: @ViewBag.SeriesName</h1>
-
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h1 class="mb-0">Dodaj filmy do serii: @ViewBag.SeriesName</h1>
+        </div>
+        <div class="card-body">
         @if (!Model.Any())
         {
-            <p>No Videos Outside of @ViewBag.SeriesName Series Found</p>
+            <p>Nie znaleziono filmów spoza tej serii.</p>
         }
         else
         {
@@ -28,9 +23,9 @@
                         </label>
                     }
                 </div>
-                <button type="submit" class="btn btn-primary mt-3">Add Selected Videos</button>
+                <button type="submit" class="nfx-btn nfx-btn-primary mt-3">Dodaj wybrane filmy</button>
             </form>
         }
+        </div>
     </div>
-</body>
-</html>
+</div>

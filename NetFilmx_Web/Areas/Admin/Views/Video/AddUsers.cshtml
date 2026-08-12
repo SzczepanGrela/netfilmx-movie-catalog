@@ -1,36 +1,31 @@
-﻿@model IEnumerable<NetFilmx_Service.Dtos.User.UserListDto>
+@model IEnumerable<NetFilmx_Service.Dtos.User.UserListDto>
 
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <title>Add Users to Video</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-</head>
-<body>
-    <div class="container mt-5">
-        <h1 class="mb-4">Add Users to Video: @ViewBag.VideoName</h1>
-
-        @if (!Model.Any())
-        {
-            <p>No Users To Be Added</p>
-        }
-        else
-        {
-            <form asp-action="AddUsers" method="post">
-                <input type="hidden" name="videoId" value="@ViewBag.VideoId" />
-                <div class="list-group">
-                    @foreach (var user in Model)
-                    {
-                        <label class="list-group-item">
-                            <input type="checkbox" name="userIds" value="@user.Id" />
-                            @user.Username
-                        </label>
-                    }
-                </div>
-                <button type="submit" class="btn btn-primary mt-3">Add Selected Users</button>
-            </form>
-        }
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h1 class="mb-0">Dodaj użytkowników do filmu: @ViewBag.VideoName</h1>
+        </div>
+        <div class="card-body">
+            @if (!Model.Any())
+            {
+                <p>Brak użytkowników do dodania</p>
+            }
+            else
+            {
+                <form asp-action="AddUsers" method="post">
+                    <input type="hidden" name="videoId" value="@ViewBag.VideoId" />
+                    <div class="list-group">
+                        @foreach (var user in Model)
+                        {
+                            <label class="list-group-item admin-label">
+                                <input type="checkbox" name="userIds" value="@user.Id" />
+                                @user.Username
+                            </label>
+                        }
+                    </div>
+                    <button type="submit" class="nfx-btn nfx-btn-primary mt-3">Dodaj wybranych użytkowników</button>
+                </form>
+            }
+        </div>
     </div>
-</body>
-</html>
+</div>

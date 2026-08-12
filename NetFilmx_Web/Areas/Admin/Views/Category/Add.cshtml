@@ -1,41 +1,31 @@
-﻿@model NetFilmx_Service.Dtos.Category.CategoryAddDto
+@model NetFilmx_Service.Dtos.Category.CategoryAddDto
 
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <title>Add Category</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-</head>
-<body>
-    <div class="container mt-5">
-        <div class="card">
-            <div class="card-header">
-                <h1>Add New Category</h1>
-            </div>
-            <div class="card-body">
-                <form method="post">
-                    <div class="form-group">
-                        <label asp-for="Name"></label>
-                        <input asp-for="Name" class="form-control" />
-                        <span asp-validation-for="Name" class="text-danger"></span>
-                    </div>
-                    <div class="form-group">
-                        <label asp-for="Description"></label>
-                        <textarea asp-for="Description" class="form-control"></textarea>
-                        <span asp-validation-for="Description" class="text-danger"></span>
-                    </div>
-                 
-                    <button type="submit" class="btn btn-primary">Add Category</button>
-                </form>
-            </div>
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h1>Dodaj nową kategorię</h1>
+        </div>
+        <div class="card-body">
+            <form method="post" asp-action="Add">
+                <div class="form-group">
+                    <label asp-for="Name" class="admin-label"></label>
+                    <input asp-for="Name" class="admin-input" />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Description" class="admin-label"></label>
+                    <textarea asp-for="Description" class="admin-input"></textarea>
+                    <span asp-validation-for="Description" class="text-danger"></span>
+                </div>
+             
+                <button type="submit" class="nfx-btn nfx-btn-primary">Dodaj Kategorię</button>
+            </form>
         </div>
     </div>
-    @section Scripts {
-        @{
-            await Html.RenderPartialAsync("_ValidationScriptsPartial");
-        }
-    }
+</div>
 
-</body>
-</html>
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

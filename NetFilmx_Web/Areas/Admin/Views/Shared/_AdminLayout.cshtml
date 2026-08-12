@@ -3,88 +3,351 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Admin Panel</title>
+    <title>@ViewData["Title"] — NetFilmx Admin</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- FontAwesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-    <!-- Custom Admin CSS -->
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+    <style>
+        body {
+            margin: 0;
+            font-family: var(--font-family);
+            background-color: var(--color-base);
+            color: var(--color-text-primary);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .admin-sidebar {
+            width: 250px;
+            background: rgba(10, 17, 40, 0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-right: 1px solid rgba(123, 44, 191, 0.2);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-header h3 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 1.5rem;
+            background: linear-gradient(90deg, var(--color-accent), var(--color-accent-hover));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 1rem 0;
+            margin: 0;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .sidebar-menu li {
+            padding: 0 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem 1rem;
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            border-radius: var(--border-radius);
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-menu a i {
+            width: 24px;
+            margin-right: 10px;
+            font-size: 1.1rem;
+        }
+
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background: rgba(123, 44, 191, 0.15);
+            color: var(--color-text-primary);
+        }
+
+        .sidebar-footer {
+            padding: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Content Area */
+        .admin-content {
+            flex-grow: 1;
+            margin-left: 250px; /* Width of sidebar */
+            display: flex;
+            flex-direction: column;
+            background: radial-gradient(circle at top right, rgba(123, 44, 191, 0.05), transparent 40%);
+            min-height: 100vh;
+        }
+
+        .admin-navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: rgba(10, 17, 40, 0.4);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .admin-main {
+            padding: 2rem;
+            flex-grow: 1;
+        }
+
+        /* Glass Cards for Admin Content */
+        .admin-card {
+            background: rgba(10, 17, 40, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(123, 44, 191, 0.2);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .admin-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 1rem;
+        }
+
+        .admin-card-header h4 {
+            margin: 0;
+            font-weight: 600;
+        }
+
+        /* Tables */
+        .admin-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .admin-table th, .admin-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .admin-table th {
+            color: var(--color-text-secondary);
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .admin-table tbody tr {
+            transition: background 0.3s ease;
+        }
+
+        .admin-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+            list-style: none;
+            padding: 0;
+        }
+
+        .pagination a, .pagination span {
+            padding: 0.5rem 1rem;
+            background: rgba(10, 17, 40, 0.6);
+            border: 1px solid rgba(123, 44, 191, 0.2);
+            border-radius: 6px;
+            color: var(--color-text-primary);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .pagination a:hover {
+            background: rgba(123, 44, 191, 0.3);
+            border-color: var(--color-accent);
+        }
+
+        .pagination .active span {
+            background: var(--color-accent);
+            border-color: var(--color-accent);
+            color: white;
+            font-weight: 600;
+        }
+
+        .pagination .disabled span {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Search Bar */
+        .search-bar {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .search-bar input {
+            padding: 0.5rem 1rem;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(123, 44, 191, 0.3);
+            border-radius: 6px;
+            color: white;
+            font-family: var(--font-family);
+            outline: none;
+            min-width: 250px;
+        }
+
+        .search-bar input:focus {
+            border-color: var(--color-accent);
+        }
+
+        /* Forms */
+        .admin-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--color-text-secondary);
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .admin-input {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-family: var(--font-family);
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .admin-input:focus {
+            border-color: var(--color-accent);
+            background: rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 0 2px rgba(123, 44, 191, 0.2);
+        }
+
+        /* Alerts */
+        .admin-alert {
+            padding: 1rem 1.5rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .admin-alert-success {
+            background: rgba(40, 167, 69, 0.1);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            color: #28a745;
+        }
+
+        .admin-alert-danger {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid rgba(220, 53, 69, 0.3);
+            color: #dc3545;
+        }
+    </style>
 </head>
-<body class="admin-body">
-    <div class="admin-wrapper">
-        <!-- Sidebar -->
-        <nav id="sidebar" class="admin-sidebar">
-            <div class="sidebar-header">
-                <h3>NetFilmx Admin</h3>
+<body>
+    <!-- Sidebar -->
+    <nav class="admin-sidebar">
+        <div class="sidebar-header">
+            <h3>NetFilmx</h3>
+        </div>
+        <ul class="sidebar-menu">
+            <li>
+                <a href="/Admin/Dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            </li>
+            <li>
+                <a href="/Admin/Video"><i class="fas fa-video"></i> Wideo</a>
+            </li>
+            <li>
+                <a href="/Admin/Category"><i class="fas fa-list"></i> Kategorie</a>
+            </li>
+            <li>
+                <a href="/Admin/Series"><i class="fas fa-film"></i> Serie</a>
+            </li>
+            <li>
+                <a href="/Admin/Tag"><i class="fas fa-tags"></i> Tagi</a>
+            </li>
+            <li>
+                <a href="/Admin/User"><i class="fas fa-users"></i> Użytkownicy</a>
+            </li>
+            <li>
+                <a href="/Admin/Comment"><i class="fas fa-comments"></i> Komentarze</a>
+            </li>
+            <li>
+                <a href="/admin/jobs" target="_blank"><i class="fas fa-cogs"></i> Hangfire Jobs</a>
+            </li>
+        </ul>
+        <div class="sidebar-footer">
+            <a href="/" class="nfx-btn nfx-btn-secondary" style="width: 100%; text-align: center; display: block;"><i class="fas fa-arrow-left"></i> Wróć do serwisu</a>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="admin-content">
+        <nav class="admin-navbar">
+            <div>
+                <span style="color: var(--color-text-secondary); margin-right: 0.5rem;">Zalogowano jako:</span>
+                <strong style="color: var(--color-text-primary);">@User.Identity?.Name</strong>
             </div>
-            <ul class="list-unstyled components">
-                <li>
-                    <a href="/admin"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-                </li>
-                <li>
-                    <a href="/admin/video"><i class="fas fa-video"></i> Wideo</a>
-                </li>
-                <li>
-                    <a href="/admin/category"><i class="fas fa-list"></i> Kategorie</a>
-                </li>
-                <li>
-                    <a href="/admin/series"><i class="fas fa-film"></i> Serie</a>
-                </li>
-                <li>
-                    <a href="/admin/tag"><i class="fas fa-tags"></i> Tagi</a>
-                </li>
-                <li>
-                    <a href="/admin/user"><i class="fas fa-users"></i> Użytkownicy</a>
-                </li>
-                <li>
-                    <a href="/admin/comment"><i class="fas fa-comments"></i> Komentarze</a>
-                </li>
-                <li>
-                    <a href="/admin/jobs" target="_blank"><i class="fas fa-cogs"></i> Hangfire Jobs</a>
-                </li>
-            </ul>
-            <div class="sidebar-footer">
-                <a href="/" class="btn btn-outline-light w-100"><i class="fas fa-arrow-left"></i> Wróć do serwisu</a>
-            </div>
+            <form asp-controller="Auth" asp-action="Logout" asp-area="" method="post" style="margin: 0;">
+                <button type="submit" class="nfx-btn nfx-btn-secondary" style="padding: 0.4rem 1rem; font-size: 0.85rem;"><i class="fas fa-sign-out-alt"></i> Wyloguj</button>
+            </form>
         </nav>
 
-        <!-- Page Content -->
-        <div id="content" class="admin-content">
-            <nav class="navbar navbar-expand-lg admin-navbar">
-                <div class="container-fluid">
-                    <span class="navbar-text">
-                        Zalogowano jako: <strong>@User.Identity?.Name</strong>
-                    </span>
-                    <form asp-controller="Auth" asp-action="Logout" asp-area="" method="post" class="form-inline ml-auto">
-                        <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-sign-out-alt"></i> Wyloguj</button>
-                    </form>
-                </div>
-            </nav>
+        <main class="admin-main">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="admin-alert admin-alert-success"><i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]</div>
+            }
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="admin-alert admin-alert-danger"><i class="fas fa-exclamation-triangle"></i> @TempData["ErrorMessage"]</div>
+            }
 
-            <main class="container-fluid pt-4">
-                @if (TempData["SuccessMessage"] != null)
-                {
-                    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
-                }
-                @if (TempData["ErrorMessage"] != null)
-                {
-                    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
-                }
-
-                @RenderBody()
-            </main>
-        </div>
+            @RenderBody()
+        </main>
     </div>
 
-    <!-- Scripts -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

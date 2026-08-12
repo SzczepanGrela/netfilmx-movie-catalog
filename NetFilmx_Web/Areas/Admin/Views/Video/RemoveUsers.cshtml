@@ -1,36 +1,31 @@
-﻿@model IEnumerable<NetFilmx_Service.Dtos.User.UserListDto>
+@model IEnumerable<NetFilmx_Service.Dtos.User.UserListDto>
 
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <title>Remove Users from Video</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-</head>
-<body>
-    <div class="container mt-5">
-        <h1 class="mb-4">Remove Users from Video: @ViewBag.VideoName</h1>
-
-        @if (!Model.Any())
-        {
-            <p>No Users Found For @ViewBag.VideoName</p>
-        }
-        else
-        {
-            <form asp-action="RemoveUsers" method="post">
-                <input type="hidden" name="videoId" value="@ViewBag.VideoId" />
-                <div class="list-group">
-                    @foreach (var user in Model)
-                    {
-                        <label class="list-group-item">
-                            <input type="checkbox" name="userIds" value="@user.Id" />
-                            @user.Username
-                        </label>
-                    }
-                </div>
-                <button type="submit" class="btn btn-danger mt-3">Remove Selected Users</button>
-            </form>
-        }
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h1>Usuń użytkowników z filmu: @ViewBag.VideoName</h1>
+        </div>
+        <div class="card-body">
+            @if (!Model.Any())
+            {
+                <p>Brak użytkowników do usunięcia</p>
+            }
+            else
+            {
+                <form asp-action="RemoveUsers" method="post">
+                    <input type="hidden" name="videoId" value="@ViewBag.VideoId" />
+                    <div class="list-group">
+                        @foreach (var user in Model)
+                        {
+                            <label class="list-group-item admin-label">
+                                <input type="checkbox" name="userIds" value="@user.Id" />
+                                @user.Username
+                            </label>
+                        }
+                    </div>
+                    <button type="submit" class="nfx-btn nfx-btn-secondary mt-3" style="background: rgba(220, 53, 69, 0.2); color: #ff6b6b; border-color: rgba(220, 53, 69, 0.3);">Usuń wybranych użytkowników</button>
+                </form>
+            }
+        </div>
     </div>
-</body>
-</html>
+</div>

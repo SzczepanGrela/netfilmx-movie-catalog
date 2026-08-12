@@ -1,39 +1,88 @@
-﻿@model IEnumerable<NetFilmx_Service.Dtos.Series.SeriesListDto>
+@model NetFilmx_Service.Result.PaginatedList<NetFilmx_Service.Dtos.Series.SeriesListDto>
 
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <title>Series</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-</head>
-<body>
-    <div class="container mt-5">
-        <h1>Series</h1>
-        <a asp-action="Add" class="btn btn-primary">Add New Series</a>
+@{
+    ViewData["Title"] = "Lista Serii";
+    string currentSearch = Context.Request.Query["search"].ToString();
+}
 
-        @if (!Model.Any())
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h4 style="margin: 0;">Zarządzanie Seriami</h4>
+        <a asp-action="Add" class="nfx-btn nfx-btn-primary"><i class="fas fa-plus"></i> Dodaj nową serię</a>
+    </div>
+
+    <form method="get" class="search-bar" style="margin-bottom: 1.5rem;">
+        <input type="text" name="search" value="@currentSearch" placeholder="Szukaj po nazwie..." />
+        <button type="submit" class="nfx-btn nfx-btn-secondary"><i class="fas fa-search"></i> Szukaj</button>
+        @if (!string.IsNullOrEmpty(currentSearch))
         {
-            <p>No Series Found</p>
+            <a href="/Admin/Series" class="nfx-btn nfx-btn-secondary">Wyczyść</a>
         }
-        else
+    </form>
+
+    @if (Model == null || !Model.Items.Any())
+    {
+        <div style="text-align: center; padding: 3rem; color: var(--color-text-secondary);">
+            <i class="fas fa-film" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+            <p>Brak serii do wyświetlenia.</p>
+        </div>
+    }
+    else
+    {
+        <div style="overflow-x: auto;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Nazwa</th>
+                        <th>Cena</th>
+                        <th style="text-align: right;">Akcje</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var series in Model.Items)
+                    {
+                        <tr>
+                            <td style="font-weight: 500;">@series.Name</td>
+                            <td>@series.Price.ToString("C")</td>
+                            <td style="text-align: right; display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                <a asp-action="Details" asp-route-seriesId="@series.Id" class="nfx-btn nfx-btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"><i class="fas fa-eye"></i></a>
+                                <a asp-action="Edit" asp-route-seriesId="@series.Id" class="nfx-btn nfx-btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"><i class="fas fa-edit"></i></a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.TotalPages > 1)
         {
-            <ul class="list-group mt-3">
-                @foreach (var series in Model)
-                {
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>
-                            <a asp-action="Details" asp-route-seriesId="@series.Id">@series.Name</a> - @series.Price
-                        </span>
-                        <span>
-                            <a asp-action="Edit" asp-route-seriesId="@series.Id" class="btn btn-warning btn-sm">Edit</a>
-                            <a asp-action="Videos" asp-route-seriesId="@series.Id" class="btn btn-info btn-sm">Videos</a>
-                            <a asp-action="Users" asp-route-seriesId="@series.Id" class="btn btn-secondary btn-sm">Users</a>
-                        </span>
-                    </li>
-                }
+            <ul class="pagination">
+                <li class="@(!Model.HasPreviousPage ? "disabled" : "")">
+                    @if (Model.HasPreviousPage)
+                    {
+                        <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex - 1)" asp-route-search="@currentSearch">Poprzednia</a>
+                    }
+                    else
+                    {
+                        <span>Poprzednia</span>
+                    }
+                </li>
+                
+                <li class="active">
+                    <span>@Model.PageIndex z @Model.TotalPages</span>
+                </li>
+
+                <li class="@(!Model.HasNextPage ? "disabled" : "")">
+                    @if (Model.HasNextPage)
+                    {
+                        <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex + 1)" asp-route-search="@currentSearch">Następna</a>
+                    }
+                    else
+                    {
+                        <span>Następna</span>
+                    }
+                </li>
             </ul>
         }
-    </div>
-</body>
-</html>
+    }
+</div>

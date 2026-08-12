@@ -1,69 +1,59 @@
-﻿@model NetFilmx_Service.Dtos.User.UserAddDto
+@model NetFilmx_Service.Dtos.User.UserAddDto
 
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <title>Add User</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="~/js/validateUsername.js"></script>
-    <script src="~/js/validatePassword.js"></script>
-    <script src="~/js/validateEmail.js"></script>
-</head>
-<body>
+<div style="max-width: 800px; margin: 0 auto;">
     <div class="container mt-5">
-        <div class="card">
-            <div class="card-header">
-                <h1>Add New User</h1>
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h1>Dodaj nowego użytkownika</h1>
             </div>
             <div class="card-body">
-                <form method="post" id="userForm">
+                <form method="post" id="userForm" asp-action="Add">
                     <div class="form-group">
-                        <label asp-for="Username"></label>
-                        <input asp-for="Username" class="form-control" id="Username" onblur="validateUsername()" />
+                        <label asp-for="Username" class="admin-label"></label>
+                        <input asp-for="Username" class="admin-input" id="Username" onblur="validateUsername()" />
                         <span asp-validation-for="Username" class="text-danger" id="username-error"></span>
                     </div>
                     <div class="form-group">
-                        <label asp-for="Password"></label>
-                        <input asp-for="Password" class="form-control" id="Password" onblur="validatePassword()" />
+                        <label asp-for="Password" class="admin-label"></label>
+                        <input asp-for="Password" class="admin-input" id="Password" onblur="validatePassword()" />
                         <span asp-validation-for="Password" class="text-danger" id="password-error"></span>
                     </div>
                     <div class="form-group">
-                        <label asp-for="Email"></label>
-                        <input asp-for="Email" class="form-control" id="Email" onblur="validateEmail()"/>
+                        <label asp-for="Email" class="admin-label"></label>
+                        <input asp-for="Email" class="admin-input" id="Email" onblur="validateEmail()"/>
                         <span asp-validation-for="Email" class="text-danger" id="email-error"></span>
                     </div>
 
-                    <button type="submit" class="btn btn-primary">Add User</button>
+                    <button type="submit" class="nfx-btn nfx-btn-primary">Dodaj Użytkownika</button>
                 </form>
             </div>
         </div>
     </div>
+</div>
 
-    @section Scripts {
-        @{
-            await Html.RenderPartialAsync("_ValidationScriptsPartial");
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="~/js/validateUsername.js"></script>
+    <script src="~/js/validatePassword.js"></script>
+    <script src="~/js/validateEmail.js"></script>
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
 
-        }
-
-        <script>   // prevent sending form if validation fails
-           
-            $(document).ready(function () {
-                $('#userForm').on('submit', function (e) {
-                    validateUsername();
-                    validatePassword();
-                    validateEmail();
-
-                    if (!isUsernameValid || !isPasswordValid || !isEmailValid) {
-                        e.preventDefault();
-                        alert('Please fix the errors in the form before submitting.');
-                    }
-                });
-            });
-        </script>
-
-      
     }
-</body>
-</html>
+
+    <script>   // prevent sending form if validation fails
+       
+        $(document).ready(function () {
+            $('#userForm').on('submit', function (e) {
+                validateUsername();
+                validatePassword();
+                validateEmail();
+
+                if (!isUsernameValid || !isPasswordValid || !isEmailValid) {
+                    e.preventDefault();
+                    alert('Popraw błędy w formularzu przed wysłaniem.');
+                }
+            });
+        });
+    </script>
+}

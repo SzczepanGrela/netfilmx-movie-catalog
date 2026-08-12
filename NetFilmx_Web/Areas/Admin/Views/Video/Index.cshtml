@@ -1,40 +1,202 @@
-﻿@model IEnumerable<NetFilmx_Service.Dtos.Video.VideoListDto>
+@model NetFilmx_Service.Result.PaginatedList<NetFilmx_Service.Dtos.Video.VideoListDto>
 
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <title>Videos List</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+@{
+    ViewData["Title"] = "Lista Wideo";
+    string currentSearch = Context.Request.Query["search"].ToString();
+}
 
-</head>
-<body>
-    <div class="container mt-5">
-        <h1>Videos</h1>
-        <a asp-action="Add" class="btn btn-primary">Add New Video</a>
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h4 style="margin: 0;">Zarządzanie Wideo</h4>
+        <a asp-action="Add" class="nfx-btn nfx-btn-primary"><i class="fas fa-plus"></i> Dodaj nowe</a>
+    </div>
 
-        @if (!Model.Any())
+    <form method="get" class="search-bar" style="margin-bottom: 1.5rem;">
+        <input type="text" name="search" value="@currentSearch" placeholder="Szukaj po tytule..." />
+        <button type="submit" class="nfx-btn nfx-btn-secondary"><i class="fas fa-search"></i> Szukaj</button>
+        @if (!string.IsNullOrEmpty(currentSearch))
         {
-            <p>No Videos Found</p>
+            <a href="/Admin/Video" class="nfx-btn nfx-btn-secondary">Wyczyść</a>
         }
-        else
+    </form>
+
+    @if (Model == null || !Model.Items.Any())
+    {
+        <div style="text-align: center; padding: 3rem; color: var(--color-text-secondary);">
+            <i class="fas fa-video-slash" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+            <p>Brak filmów do wyświetlenia.</p>
+        </div>
+    }
+    else
+    {
+        <div style="overflow-x: auto;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Miniatura</th>
+                        <th>Tytuł</th>
+                        <th>Cena</th>
+                        <th style="text-align: right;">Akcje</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var video in Model.Items)
+                    {
+                        <tr>
+                            <td>
+                                <img src="@video.ThumbnailUrl" alt="Miniatura" style="height: 60px; border-radius: 8px; object-fit: cover;" onerror="this.src='https://placehold.co/100x60?text=Brak'" />
+                            </td>
+                            <td style="font-weight: 500;">@video.Title</td>
+                            <td>@video.Price.ToString("C")</td>
+                            <td style="text-align: right; display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                <a asp-action="Details" asp-route-videoId="@video.Id" class="nfx-btn nfx-btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"><i class="fas fa-eye"></i></a>
+                                <a asp-action="Edit" asp-route-videoId="@video.Id" class="nfx-btn nfx-btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"><i class="fas fa-edit"></i></a>
+                                <form asp-action="Delete" method="post" style="margin: 0;" class="delete-video-form" data-title="@video.Title">
+                                    <input type="hidden" name="videoId" value="@video.Id" />
+                                    <button type="button" class="nfx-btn nfx-btn-secondary delete-btn" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; background: rgba(220, 53, 69, 0.2); color: #ff6b6b; border-color: rgba(220, 53, 69, 0.3);"><i class="fas fa-trash"></i></button>
+                                </form>
+                                <a asp-action="Comments" asp-route-videoId="@video.Id" class="nfx-btn nfx-btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"><i class="fas fa-comments"></i></a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.TotalPages > 1)
         {
-            <ul class="list-group mt-3">
-                @foreach (var video in Model)
-                {
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <a asp-action="Details" asp-route-videoId="@video.Id" class="d-flex align-items-center">
-                            <img src="@video.ThumbnailUrl" alt="Thumbnail" class="img-fluid" style="height: 2cm; margin-right: 10px;" />
-                            <span>@video.Title</span>
-                        </a>
-                        <span>
-                            <a asp-action="Edit" asp-route-videoId="@video.Id" class="btn btn-warning btn-sm">Edit</a>
-                            <a asp-action="Comments" asp-route-videoId="@video.Id" class="btn btn-info btn-sm">Comments</a>
-                        </span>
-                    </li>
-                }
+            <ul class="pagination">
+                <li class="@(!Model.HasPreviousPage ? "disabled" : "")">
+                    @if (Model.HasPreviousPage)
+                    {
+                        <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex - 1)" asp-route-search="@currentSearch">Poprzednia</a>
+                    }
+                    else
+                    {
+                        <span>Poprzednia</span>
+                    }
+                </li>
+                
+                <li class="active">
+                    <span>@Model.PageIndex z @Model.TotalPages</span>
+                </li>
+
+                <li class="@(!Model.HasNextPage ? "disabled" : "")">
+                    @if (Model.HasNextPage)
+                    {
+                        <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex + 1)" asp-route-search="@currentSearch">Następna</a>
+                    }
+                    else
+                    {
+                        <span>Następna</span>
+                    }
+                </li>
             </ul>
         }
+    }
+</div>
+
+<style>
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+        z-index: 1000;
+    }
+
+    .custom-modal {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(10, 17, 40, 0.95);
+        border: 1px solid rgba(123, 44, 191, 0.3);
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        width: 100%;
+        max-width: 500px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+</style>
+
+<!-- Custom Delete Modal -->
+<div id="deleteModal" class="modal-overlay">
+    <div class="custom-modal">
+        <h3 style="margin-top: 0; color: #ff6b6b; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem; margin-bottom: 1.5rem;">Potwierdź usunięcie</h3>
+        <p style="color: var(--color-text-secondary); margin-bottom: 1.5rem;">
+            <strong style="color: #ff6b6b;">UWAGA:</strong> Ta operacja usunie film z bazy danych oraz bezpowrotnie skasuje wszystkie pliki powiązane z nim w usłudze Cloudflare R2!
+        </p>
+        <p style="margin-bottom: 0.5rem; font-size: 0.9rem;">Aby potwierdzić, przepisz dokładnie tytuł wideo:</p>
+        <div id="modalVideoTitle" style="background: rgba(0,0,0,0.5); padding: 0.8rem; text-align: center; border-radius: 6px; font-weight: 700; margin-bottom: 1rem; letter-spacing: 1px; user-select: none;">
+            TITLE_PLACEHOLDER
+        </div>
+        
+        <input type="text" id="deleteConfirmInput" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: white; outline: none; margin-bottom: 2rem;" placeholder="Wpisz tytuł..." autocomplete="off" onpaste="return false;" oncopy="return false;" />
+        
+        <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+            <button type="button" id="closeDeleteModal" class="nfx-btn nfx-btn-secondary">Anuluj</button>
+            <button type="button" class="nfx-btn nfx-btn-secondary" id="deleteConfirmBtn" disabled>Usuń bezpowrotnie</button>
+        </div>
     </div>
-</body>
-</html>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var input = document.getElementById('deleteConfirmInput');
+            var btn = document.getElementById('deleteConfirmBtn');
+            var modal = document.getElementById('deleteModal');
+            var closeBtn = document.getElementById('closeDeleteModal');
+            var titleDisplay = document.getElementById('modalVideoTitle');
+            
+            var currentFormToSubmit = null;
+            var currentTitleToMatch = "";
+
+            document.querySelectorAll('.delete-btn').forEach(deleteBtn => {
+                deleteBtn.addEventListener('click', function() {
+                    currentFormToSubmit = this.closest('form');
+                    currentTitleToMatch = currentFormToSubmit.getAttribute('data-title');
+                    
+                    titleDisplay.textContent = currentTitleToMatch;
+                    input.value = "";
+                    input.dispatchEvent(new Event('input')); // trigger logic to disable btn
+                    
+                    modal.style.display = 'block';
+                    input.focus();
+                });
+            });
+
+            closeBtn.addEventListener('click', function() {
+                modal.style.display = 'none';
+                currentFormToSubmit = null;
+            });
+
+            input.addEventListener('input', function() {
+                if (this.value === currentTitleToMatch) {
+                    btn.disabled = false;
+                    btn.classList.remove('nfx-btn-secondary');
+                    btn.classList.add('nfx-btn-primary');
+                    btn.style.background = '#dc3545';
+                    btn.style.borderColor = '#dc3545';
+                } else {
+                    btn.disabled = true;
+                    btn.classList.add('nfx-btn-secondary');
+                    btn.classList.remove('nfx-btn-primary');
+                    btn.style.background = '';
+                    btn.style.borderColor = '';
+                }
+            });
+
+            btn.addEventListener('click', function() {
+                if (currentFormToSubmit && !btn.disabled) {
+                    currentFormToSubmit.submit();
+                }
+            });
+        });
+    </script>
+}

@@ -1,45 +1,40 @@
-﻿@model IEnumerable<NetFilmx_Service.Dtos.Series.SeriesListDto>
+@model IEnumerable<NetFilmx_Service.Dtos.Series.SeriesListDto>
 
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <title>Series in Library</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-</head>
-<body>
-    <div class="container mt-5">
-        <h1 class="mb-4">Series in @ViewBag.UserUsername's Library</h1>
-
-        <div class="mb-3">
-            <form asp-action="AddSeries" method="get" class="d-inline">
-                <input type="hidden" name="userId" value="@ViewBag.userId" />
-                <input type="hidden" name="userUsername" value="@ViewBag.userUsername" />
-                <button type="submit" class="btn btn-primary btn-sm mb-2">Add Series</button>
-            </form>
-
-            <form asp-action="RemoveSeries" method="get" class="d-inline">
-                <input type="hidden" name="userId" value="@ViewBag.userId" />
-                <input type="hidden" name="userUsername" value="@ViewBag.userUsername" />
-                <button type="submit" class="btn btn-danger btn-sm mb-2">Remove Series</button>
-            </form>
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h1 class="mb-0">Serie użytkownika: @ViewBag.UserUsername</h1>
         </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <form asp-action="AddSeries" method="get" class="d-inline">
+                    <input type="hidden" name="userId" value="@ViewBag.userId" />
+                    <input type="hidden" name="userUsername" value="@ViewBag.userUsername" />
+                    <button type="submit" class="nfx-btn nfx-btn-primary mb-2">Dodaj serie</button>
+                </form>
 
-        @if (!Model.Any())
-        {
-            <p>No Series Found in @ViewBag.UserUsername's Library</p>
-        }
-        else
-        {
-            <ul class="list-group">
-                @foreach (var series in Model)
-                {
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <a href="@Url.Action("Details", "Series", new { seriesId = series.Id })">@series.Name</a>
-                    </li>
-                }
-            </ul>
-        }
+                <form asp-action="RemoveSeries" method="get" class="d-inline">
+                    <input type="hidden" name="userId" value="@ViewBag.userId" />
+                    <input type="hidden" name="userUsername" value="@ViewBag.userUsername" />
+                    <button type="submit" class="nfx-btn nfx-btn-secondary mb-2" style="background: rgba(220, 53, 69, 0.2); color: #ff6b6b; border-color: rgba(220, 53, 69, 0.3);">Usuń serie</button>
+                </form>
+            </div>
+
+            @if (!Model.Any())
+            {
+                <p>Nie znaleziono serii</p>
+            }
+            else
+            {
+                <ul class="list-group">
+                    @foreach (var series in Model)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <a href="@Url.Action("Details", "Series", new { seriesId = series.Id })">@series.Name</a>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
     </div>
-</body>
-</html>
+</div>

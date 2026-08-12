@@ -201,3 +201,121 @@ body.admin-body {
     font-weight: 500;
     color: var(--admin-muted);
 }
+
+/* Mobile Responsiveness for Admin */
+@media (max-width: 768px) {
+    .admin-wrapper {
+        flex-direction: column;
+    }
+    .admin-sidebar {
+        min-width: 100%;
+        max-width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--admin-border);
+    }
+    .admin-sidebar ul.components {
+        display: flex;
+        flex-wrap: wrap;
+        padding: 10px;
+    }
+    .admin-sidebar ul li {
+        flex: 1 1 50%;
+    }
+    .admin-sidebar ul li a {
+        padding: 10px;
+        font-size: 0.9em;
+        text-align: center;
+        border-left: none;
+        border-bottom: 2px solid transparent;
+    }
+    .admin-sidebar ul li a:hover {
+        border-left: none;
+        border-bottom: 2px solid var(--admin-accent);
+    }
+    .admin-navbar {
+        padding: 10px;
+    }
+    .admin-stat-card {
+        margin-bottom: 15px;
+    }
+}
+
+/* Glassmorphism Components for Admin */
+.admin-card {
+    background: var(--admin-card-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    margin-bottom: 30px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.admin-card-header {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--admin-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.admin-card-header h4 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 500;
+}
+
+.admin-label {
+    display: block;
+    font-weight: 500;
+    color: var(--admin-muted);
+    margin-bottom: 0.5rem;
+}
+
+.admin-input {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    color: var(--admin-text);
+    font-family: inherit;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.admin-input:focus {
+    background: rgba(0, 0, 0, 0.4);
+    border-color: var(--admin-accent);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--admin-text);
+}
+
+.admin-table th, .admin-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--admin-border);
+    text-align: left;
+}
+
+.admin-table th {
+    font-weight: 600;
+    color: var(--admin-muted);
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+}
+
+.admin-table tbody tr {
+    transition: background-color 0.2s;
+}
+
+.admin-table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}

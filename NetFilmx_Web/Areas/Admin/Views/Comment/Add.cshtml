@@ -1,45 +1,36 @@
-﻿@model NetFilmx_Service.Dtos.Comment.CommentAddDto
+@model NetFilmx_Service.Dtos.Comment.CommentAddDto
 
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <title>Add Comment</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-</head>
-<body>
+<div style="max-width: 800px; margin: 0 auto;">
     <div class="container mt-5">
-        <div class="card">
-            <div class="card-header">
-                <h1>Add New Comment</h1>
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h1>Dodaj nowy komentarz</h1>
             </div>
             <div class="card-body">
                 <form method="post">
                     <div class="form-group">
-                        <label asp-for="UserId"></label>
-                        <select asp-for="UserId" class="form-control" asp-items="ViewBag.Users"></select>
+                        <label asp-for="UserId" class="admin-label"></label>
+                        <select asp-for="UserId" class="admin-input" asp-items="ViewBag.Users"></select>
                         <span asp-validation-for="UserId" class="text-danger"></span>
                     </div>
                     <div class="form-group">
-                        <label asp-for="VideoId"></label>
-                        <select asp-for="VideoId" class="form-control" asp-items="ViewBag.Videos"></select>
+                        <label asp-for="VideoId" class="admin-label"></label>
+                        <select asp-for="VideoId" class="admin-input" asp-items="ViewBag.Videos"></select>
                         <span asp-validation-for="VideoId" class="text-danger"></span>
                     </div>
                     <div class="form-group">
-                        <label asp-for="Content"></label>
-                        <textarea asp-for="Content" class="form-control"></textarea>
+                        <label asp-for="Content" class="admin-label"></label>
+                        <textarea asp-for="Content" class="admin-input"></textarea>
                         <span asp-validation-for="Content" class="text-danger"></span>
                     </div>
-                    <button type="submit" class="btn btn-primary">Add Comment</button>
+                    <button type="submit" class="nfx-btn nfx-btn-primary">Dodaj Komentarz</button>
                 </form>
             </div>
         </div>
     </div>
-    @section Scripts {
-        @{
-            await Html.RenderPartialAsync("_ValidationScriptsPartial");
-        }
+</div>
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
-
-</body>
-</html>
+}

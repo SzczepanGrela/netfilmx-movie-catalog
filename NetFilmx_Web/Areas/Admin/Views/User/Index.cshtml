@@ -1,41 +1,87 @@
-﻿@model IEnumerable<NetFilmx_Service.Dtos.User.UserListDto>
+@model NetFilmx_Service.Result.PaginatedList<NetFilmx_Service.Dtos.User.UserListDto>
 
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <title>Users</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-</head>
-<body>
-    <div class="container mt-5">
-        <h1>Users</h1>
-        <a asp-action="Add" class="btn btn-primary">Add New User</a>
+@{
+    ViewData["Title"] = "Lista Użytkowników";
+    string currentSearch = Context.Request.Query["search"].ToString();
+}
 
-        @if (!Model.Any())
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h4 style="margin: 0;">Zarządzanie Użytkownikami</h4>
+    </div>
+
+    <form method="get" class="search-bar" style="margin-bottom: 1.5rem;">
+        <input type="text" name="search" value="@currentSearch" placeholder="Szukaj po nazwie użytkownika lub emailu..." />
+        <button type="submit" class="nfx-btn nfx-btn-secondary"><i class="fas fa-search"></i> Szukaj</button>
+        @if (!string.IsNullOrEmpty(currentSearch))
         {
-            <p>No Users Found</p>
+            <a href="/Admin/User" class="nfx-btn nfx-btn-secondary">Wyczyść</a>
         }
-        else
+    </form>
+
+    @if (Model == null || !Model.Items.Any())
+    {
+        <div style="text-align: center; padding: 3rem; color: var(--color-text-secondary);">
+            <i class="fas fa-users" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+            <p>Brak użytkowników do wyświetlenia.</p>
+        </div>
+    }
+    else
+    {
+        <div style="overflow-x: auto;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Nazwa Użytkownika</th>
+                        <th>Email</th>
+                        <th style="text-align: right;">Akcje</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in Model.Items)
+                    {
+                        <tr>
+                            <td style="font-weight: 500;">@user.Username</td>
+                            <td>@user.Email</td>
+                            <td style="text-align: right; display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                <a asp-action="Details" asp-route-userId="@user.Id" class="nfx-btn nfx-btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"><i class="fas fa-eye"></i></a>
+                                <a asp-action="Edit" asp-route-userId="@user.Id" class="nfx-btn nfx-btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"><i class="fas fa-edit"></i></a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.TotalPages > 1)
         {
-            <ul class="list-group mt-3">
-                @foreach (var user in Model)
-                {
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>
-                            <a asp-action="Details" asp-route-userId="@user.Id">@user.Username</a>
-                        </span>
-                        <span>
-                            <form asp-action="Edit" method="get" style="display:inline;">
-                                <input type="hidden" name="userId" value="@user.Id" />
-                                <input type="hidden" name="userUsername" value="@user.Username" />
-                                <button type="submit" class="btn btn-warning btn-sm">Edit</button>
-                            </form>
-                        </span>
-                    </li>
-                }
+            <ul class="pagination">
+                <li class="@(!Model.HasPreviousPage ? "disabled" : "")">
+                    @if (Model.HasPreviousPage)
+                    {
+                        <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex - 1)" asp-route-search="@currentSearch">Poprzednia</a>
+                    }
+                    else
+                    {
+                        <span>Poprzednia</span>
+                    }
+                </li>
+                
+                <li class="active">
+                    <span>@Model.PageIndex z @Model.TotalPages</span>
+                </li>
+
+                <li class="@(!Model.HasNextPage ? "disabled" : "")">
+                    @if (Model.HasNextPage)
+                    {
+                        <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex + 1)" asp-route-search="@currentSearch">Następna</a>
+                    }
+                    else
+                    {
+                        <span>Następna</span>
+                    }
+                </li>
             </ul>
         }
-    </div>
-</body>
-</html>
+    }
+</div>

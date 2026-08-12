@@ -1,36 +1,25 @@
-﻿@model NetFilmx_Service.Dtos.Tag.TagAddDto
+@model NetFilmx_Service.Dtos.Tag.TagAddDto
 
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <title>Add Tag</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-</head>
-<body>
-    <div class="container mt-5">
-        <div class="card">
-            <div class="card-header">
-                <h1>Add New Tag</h1>
-            </div>
-            <div class="card-body">
-                <form method="post">
-                    <div class="form-group">
-                        <label asp-for="Name"></label>
-                        <input asp-for="Name" class="form-control" />
-                        <span asp-validation-for="Name" class="text-danger"></span>
-                    </div>                
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h1>Dodaj nowy tag</h1>
+        </div>
+        <div class="card-body">
+            <form method="post" asp-action="Add">
+                <div class="form-group">
+                    <label asp-for="Name" class="admin-label"></label>
+                    <input asp-for="Name" class="admin-input" />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                </div>                
 
-                    <button type="submit" class="btn btn-primary">Add Tag</button>
-                </form>
-            </div>
+                <button type="submit" class="nfx-btn nfx-btn-primary">Dodaj Tag</button>
+            </form>
         </div>
     </div>
-    @section Scripts {
-        @{
-            await Html.RenderPartialAsync("_ValidationScriptsPartial");
-        }
+</div>
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
-
-</body>
-</html>
+}

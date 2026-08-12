@@ -1,19 +1,14 @@
-﻿@model IEnumerable<NetFilmx_Service.Dtos.Video.VideoListDto>
+@model IEnumerable<NetFilmx_Service.Dtos.Video.VideoListDto>
 
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <title>Remove Videos from Library</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-</head>
-<body>
-    <div class="container mt-5">
-        <h1 class="mb-4">Remove Videos from User: @ViewBag.UserUsername's Library</h1>
-
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h1 class="mb-0">Usuń filmy użytkownika: @ViewBag.UserUsername</h1>
+        </div>
+        <div class="card-body">
         @if (!Model.Any())
         {
-            <p>No Videos Found in @ViewBag.UserUsername's Library</p>
+            <p>Brak filmów w bibliotece użytkownika @ViewBag.UserUsername</p>
         }
         else
         {
@@ -29,9 +24,9 @@
                         </label>
                     }
                 </div>
-                <button type="submit" class="btn btn-danger mt-3">Remove Selected Videos</button>
+                <button type="submit" class="nfx-btn nfx-btn-secondary mt-3" style="background: rgba(220, 53, 69, 0.2); color: #ff6b6b; border-color: rgba(220, 53, 69, 0.3);">Usuń wybrane filmy</button>
             </form>
         }
+        </div>
     </div>
-</body>
-</html>
+</div>
