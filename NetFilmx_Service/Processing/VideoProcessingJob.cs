@@ -64,17 +64,24 @@ namespace NetFilmx_Service.Processing
                 await _dbContext.SaveChangesAsync();
 
                 _logger.LogInformation("Zakończono przetwarzanie wideo {VideoId}. HLS URL: {Url}", videoId, masterPlaylistUrl);
-            }
-            finally
-            {
-                // Clean up local files
-                if (Directory.Exists(outputDir))
-                {
-                    Directory.Delete(outputDir, true);
-                }
+
+                // Clean up original input file ONLY on success
                 if (File.Exists(inputFilePath))
                 {
                     File.Delete(inputFilePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Błąd krytyczny podczas przetwarzania wideo {VideoId}. Zadanie zostanie ponowione.", videoId);
+                throw; // Rethrow for Hangfire to catch and retry
+            }
+            finally
+            {
+                // Clean up local temp output directory
+                if (Directory.Exists(outputDir))
+                {
+                    Directory.Delete(outputDir, true);
                 }
             }
         }

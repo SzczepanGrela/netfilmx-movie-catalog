@@ -6,5 +6,7 @@ namespace NetFilmx_Service.Storage
     {
         Task<string> UploadFileAsync(string filePath, string objectKey, string contentType = "application/octet-stream");
         Task UploadDirectoryAsync(string directoryPath, string targetPrefix);
+        Task DeleteFileAsync(string objectKey);
+        Task DeleteDirectoryAsync(string targetPrefix);
     }
 }
