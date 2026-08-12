@@ -24,9 +24,10 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
             _mediator = mediator;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int pageNumber = 1, string search = null)
         {
-            var query = new GetAllSeriesQuery<SeriesListDto>();
+            ViewBag.SearchTerm = search;
+            var query = new GetPagedSeriesQuery<SeriesListDto>(pageNumber, 10, search);
             var result = await _mediator.Send(query);
             if (result.IsFailure)
             {
@@ -69,6 +70,10 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(SeriesEditDto dto)
         {
+            if (!ModelState.IsValid)
+            {
+                return View(dto);
+            }
             var command = new EditSeriesCommand(dto.Id, dto.Name, dto.Description, dto.Price);
             var result = await _mediator.Send(command);
             if (result.IsFailure)
@@ -273,6 +278,10 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> Add(SeriesAddDto dto)
         {
+            if (!ModelState.IsValid)
+            {
+                return View(dto);
+            }
             var command = new AddSeriesCommand(dto.Name, dto.Description, dto.Price);
             var result = await _mediator.Send(command);
             if (result.IsFailure)

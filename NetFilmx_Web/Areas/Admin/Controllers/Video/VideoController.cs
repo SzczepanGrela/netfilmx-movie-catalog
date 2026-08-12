@@ -37,9 +37,10 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
             _storageService = storageService;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int pageNumber = 1, string search = null)
         {
-            var query = new GetAllVideosQuery<VideoListDto>();
+            ViewBag.SearchTerm = search;
+            var query = new GetPagedVideosQuery<VideoListDto>(pageNumber, 10, search);
             var result = await _mediator.Send(query);
             if (result.IsFailure)
             {

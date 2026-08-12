@@ -47,9 +47,10 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
 
 
         // User Actions
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int pageNumber = 1, string search = null)
         {
-            var query = new GetAllUsersQuery<UserListDto>();
+            ViewBag.SearchTerm = search;
+            var query = new GetPagedUsersQuery<UserListDto>(pageNumber, 10, search);
             var result = await _mediator.Send(query);
             if (result.IsFailure)
             {
@@ -81,8 +82,10 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> Add(UserAddDto dto)
         {
-
-
+            if (!ModelState.IsValid)
+            {
+                return View(dto);
+            }
             var command = new AddUserCommand(dto.Username, dto.Email, dto.Password);
             var result = await _mediator.Send(command);
             if (result.IsFailure)
@@ -114,6 +117,10 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(UserEditDto dto)
         {
+            if (!ModelState.IsValid)
+            {
+                return View(dto);
+            }
             var command = new EditUserCommand(dto.Id, dto.Username, dto.Email);
             var result = await _mediator.Send(command);
             if (result.IsFailure)
@@ -139,6 +146,10 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> SetNewPassword(UserPasswordDto dto)
         {
+            if (!ModelState.IsValid)
+            {
+                return View(dto);
+            }
             var command = new NewPasswordCommand(dto.Id, dto.Password);
             var result = await _mediator.Send(command);
             if (result.IsFailure)

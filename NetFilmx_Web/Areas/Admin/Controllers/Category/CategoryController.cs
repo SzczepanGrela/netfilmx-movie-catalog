@@ -21,9 +21,9 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
             _mediator = mediator;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int pageNumber = 1, string search = "")
         {
-            var query = new GetAllCategoriesQuery<CategoryListDto>();
+            var query = new GetPagedCategoriesQuery<CategoryListDto>(pageNumber, 10, search);
             var result = await _mediator.Send(query);
             if (result.IsFailure)
             {
@@ -32,6 +32,7 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 return RedirectToAction("Error", "Home", new { area = "" });
 
             }
+            ViewBag.SearchTerm = search;
             return View(result.Data);
         }
 
@@ -45,6 +46,10 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> Add(CategoryAddDto dto)
         {
+            if (!ModelState.IsValid)
+            {
+                return View(dto);
+            }
             var command = new AddCategoryCommand(dto.Name, dto.Description);
             var result = await _mediator.Send(command);
             if (result.IsFailure)
@@ -107,6 +112,10 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(CategoryEditDto dto)
         {
+            if (!ModelState.IsValid)
+            {
+                return View(dto);
+            }
             var command = new EditCategoryCommand(dto.Id, dto.Name, dto.Description);
             var result = await _mediator.Send(command);
             if (result.IsFailure)

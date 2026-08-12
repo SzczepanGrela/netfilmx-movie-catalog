@@ -54,9 +54,9 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
 
 
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int pageNumber = 1, string search = "")
         {
-            var query = new GetAllCommentsQuery<CommentListDto>();
+            var query = new GetPagedCommentsQuery<CommentListDto>(pageNumber, 10, search);
             var result = await _mediator.Send(query);
             if (result.IsFailure)
             {
@@ -65,6 +65,7 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 return RedirectToAction("Error", "Home", new { area = "" });
             }
 
+            ViewBag.SearchTerm = search;
             return View(result.Data);
         }
 
@@ -110,6 +111,12 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> Add(CommentAddDto dto)
         {
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Users = new SelectList(GetUsers().Result, "Id", "Username");
+                ViewBag.Videos = new SelectList(GetVideos().Result, "Id", "Title");
+                return View(dto);
+            }
             var command = new AddCommentCommand(dto.UserId, dto.VideoId, dto.Content);
             var result = await _mediator.Send(command);
             if (result.IsFailure)
