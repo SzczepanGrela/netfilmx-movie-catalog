@@ -508,3 +508,49 @@ label {
     color: var(--color-text-secondary);
     font-weight: 500;
 }
+
+/* Language Switcher */
+.lang-selector {
+    display: inline-flex;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(123, 44, 191, 0.3);
+    border-radius: var(--border-radius-pill);
+    overflow: hidden;
+    margin-right: 1rem;
+}
+
+.btn-lang {
+    background: transparent;
+    border: none;
+    color: var(--color-text-secondary);
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-speed) ease;
+}
+
+.btn-lang:hover {
+    color: var(--color-text-primary);
+}
+
+.btn-lang.active {
+    background: var(--color-accent);
+    color: white;
+}
+
+/* Fix browser autofill styling for dark mode */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px rgba(10, 17, 40, 1) inset !important;
+    -webkit-text-fill-color: white !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Fix select options text color */
+select option {
+    background-color: var(--color-base);
+    color: var(--color-text-primary);
+}

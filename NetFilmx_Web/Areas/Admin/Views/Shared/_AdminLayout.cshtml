@@ -326,12 +326,20 @@
     <div class="admin-content">
         <nav class="admin-navbar">
             <div>
-                <span style="color: var(--color-text-secondary); margin-right: 0.5rem;">Zalogowano jako:</span>
+                <span style="color: var(--color-text-secondary); margin-right: 0.5rem;" data-i18n="t_zalogowano_jako_">Zalogowano jako:</span>
                 <strong style="color: var(--color-text-primary);">@User.Identity?.Name</strong>
             </div>
-            <form asp-controller="Auth" asp-action="Logout" asp-area="" method="post" style="margin: 0;">
-                <button type="submit" class="nfx-btn nfx-btn-secondary" style="padding: 0.4rem 1rem; font-size: 0.85rem;"><i class="fas fa-sign-out-alt"></i> Wyloguj</button>
-            </form>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <!-- i18n switcher -->
+                <div class="lang-selector">
+                    <button id="lang-pl-btn" class="btn-lang active">PL</button>
+                    <button id="lang-en-btn" class="btn-lang">EN</button>
+                </div>
+                
+                <form asp-controller="Auth" asp-action="Logout" asp-area="" method="post" style="margin: 0;">
+                    <button type="submit" class="nfx-btn nfx-btn-secondary" style="padding: 0.4rem 1rem; font-size: 0.85rem;" data-i18n="t_wyloguj"><i class="fas fa-sign-out-alt"></i> Wyloguj</button>
+                </form>
+            </div>
         </nav>
 
         <main class="admin-main">
@@ -348,6 +356,8 @@
         </main>
     </div>
 
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/js/i18n.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

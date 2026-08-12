@@ -119,7 +119,7 @@ namespace NetFilmx_Service.Storage
                     }
                     
                     request.ContinuationToken = response?.NextContinuationToken;
-                } while (response != null && response.IsTruncated);
+                } while (response != null && response.IsTruncated == true);
             }
             catch (Exception ex)
             {

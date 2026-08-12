@@ -37,24 +37,24 @@
             <div class="nfx-hero-cast">
                 @if (!string.IsNullOrEmpty(hero.Director))
                 {
-                    <div><span>Reżyser:</span> @hero.Director</div>
+                    <div><span data-i18n="t_rezyser">Reżyser:</span> @hero.Director</div>
                 }
                 @if (!string.IsNullOrEmpty(hero.Cast))
                 {
-                    <div><span>Obsada:</span> @hero.Cast</div>
+                    <div><span data-i18n="t_obsada">Obsada:</span> @hero.Cast</div>
                 }
             </div>
 
             <div class="nfx-hero-buttons">
-                <a asp-controller="Home" asp-action="Watch" asp-route-id="@hero.Id" class="nfx-btn nfx-btn-primary">▶ Odtwórz</a>
-                <a asp-controller="Home" asp-action="Details" asp-route-id="@hero.Id" class="nfx-btn nfx-btn-secondary">ℹ Więcej informacji</a>
+                <a asp-controller="Home" asp-action="Watch" asp-route-id="@hero.Id" class="nfx-btn nfx-btn-primary" data-i18n="t_odtworz">▶ Odtwórz</a>
+                <a asp-controller="Home" asp-action="Details" asp-route-id="@hero.Id" class="nfx-btn nfx-btn-secondary" data-i18n="t_wiecej_informacji">ℹ Więcej informacji</a>
             </div>
         </div>
     </div>
 }
 
 <div class="nfx-section">
-    <h2 class="nfx-section-title">Wszystkie filmy</h2>
+    <h2 class="nfx-section-title" data-i18n="t_wszystkie_filmy">Wszystkie filmy</h2>
     <div class="nfx-carousel">
         @if (Model.AllVideos != null && Model.AllVideos.Any())
         {
@@ -73,7 +73,7 @@
 </div>
 
 <div class="nfx-section" style="margin-top: 2rem;">
-    <h2 class="nfx-section-title">Serie</h2>
+    <h2 class="nfx-section-title" data-i18n="t_serie">Serie</h2>
     <div class="nfx-carousel">
         @if (Model.AllSeries != null && Model.AllSeries.Any())
         {
@@ -94,8 +94,8 @@
 {
     <div class="nfx-hero" style="background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-base) 100%); display: flex; align-items: center; justify-content: center; height: 100vh;">
         <div style="text-align: center; z-index: 10;">
-            <h1 class="nfx-hero-title">Katalog jest pusty</h1>
-            <p class="nfx-hero-desc" style="max-width: 600px; margin: 0 auto 2rem;">Wygląda na to, że baza danych nie zawiera jeszcze żadnych filmów. Zaloguj się do panelu administratora, aby dodać pierwsze pozycje.</p>
+            <h1 class="nfx-hero-title" data-i18n="t_katalog_jest_pusty">Katalog jest pusty</h1>
+            <p class="nfx-hero-desc" style="max-width: 600px; margin: 0 auto 2rem;" data-i18n="t_katalog_jest_pusty_opis">Wygląda na to, że baza danych nie zawiera jeszcze żadnych filmów. Zaloguj się do panelu administratora, aby dodać pierwsze pozycje.</p>
         </div>
     </div>
 }

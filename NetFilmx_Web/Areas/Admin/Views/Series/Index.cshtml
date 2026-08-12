@@ -16,7 +16,7 @@
         <button type="submit" class="nfx-btn nfx-btn-secondary"><i class="fas fa-search"></i> Szukaj</button>
         @if (!string.IsNullOrEmpty(currentSearch))
         {
-            <a href="/Admin/Series" class="nfx-btn nfx-btn-secondary">Wyczyść</a>
+            <a href="/Admin/Series" class="nfx-btn nfx-btn-secondary" data-i18n="t_wyczysc">Wyczyść</a>
         }
     </form>
 
@@ -60,11 +60,11 @@
                 <li class="@(!Model.HasPreviousPage ? "disabled" : "")">
                     @if (Model.HasPreviousPage)
                     {
-                        <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex - 1)" asp-route-search="@currentSearch">Poprzednia</a>
+                        <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex - 1)" asp-route-search="@currentSearch" data-i18n="t_poprzednia">Poprzednia</a>
                     }
                     else
                     {
-                        <span>Poprzednia</span>
+                        <span data-i18n="t_poprzednia">Poprzednia</span>
                     }
                 </li>
                 
@@ -75,11 +75,11 @@
                 <li class="@(!Model.HasNextPage ? "disabled" : "")">
                     @if (Model.HasNextPage)
                     {
-                        <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex + 1)" asp-route-search="@currentSearch">Następna</a>
+                        <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex + 1)" asp-route-search="@currentSearch" data-i18n="t_nastepna">Następna</a>
                     }
                     else
                     {
-                        <span>Następna</span>
+                        <span data-i18n="t_nastepna">Następna</span>
                     }
                 </li>
             </ul>

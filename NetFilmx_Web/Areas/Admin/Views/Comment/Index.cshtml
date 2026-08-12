@@ -67,7 +67,7 @@
         {
             <ul class="pagination">
                 <li class="@(Model.HasPreviousPage ? "" : "disabled")">
-                    <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex - 1)" asp-route-search="@ViewBag.SearchTerm">Poprzednia</a>
+                    <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex - 1)" asp-route-search="@ViewBag.SearchTerm" data-i18n="t_poprzednia">Poprzednia</a>
                 </li>
                 @for (int i = 1; i <= Model.TotalPages; i++)
                 {
@@ -76,7 +76,7 @@
                     </li>
                 }
                 <li class="@(Model.HasNextPage ? "" : "disabled")">
-                    <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex + 1)" asp-route-search="@ViewBag.SearchTerm">Następna</a>
+                    <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex + 1)" asp-route-search="@ViewBag.SearchTerm" data-i18n="t_nastepna">Następna</a>
                 </li>
             </ul>
         }
