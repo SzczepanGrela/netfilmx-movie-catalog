@@ -429,8 +429,8 @@ namespace NetFilmx_Storage.Context
             // Add some base users
             var users = new[]
             {
-                new User { Id = 1, Username = "Admin", Email = "admin@netfilmx.pl", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123"), CreatedAt = new DateTime(2025, 1, 1), UpdatedAt = new DateTime(2025, 1, 1) },
-                new User { Id = 2, Username = "User", Email = "user@netfilmx.pl", PasswordHash = BCrypt.Net.BCrypt.HashPassword("User123"), CreatedAt = new DateTime(2025, 1, 1), UpdatedAt = new DateTime(2025, 1, 1) },
+                new User { Id = 1, Username = "Admin", Email = "admin@netfilmx.pl", PasswordHash = "$argon2id$v=19$m=131072,t=4,p=8$bU6pyAC6bLUqvG2PoPZlEA==$toTuazRwhHzVf9uXC8cxKFFo823X4vz1x1qv/xkZxCQ=", Role = UserRole.Admin, CreatedAt = new DateTime(2025, 1, 1), UpdatedAt = new DateTime(2025, 1, 1) },
+                new User { Id = 2, Username = "User", Email = "user@netfilmx.pl", PasswordHash = "$argon2id$v=19$m=131072,t=4,p=8$vS9lXQHm4yERia89MaHh+A==$du5OA68CWWu66WayByFV4qUvQGrTkNryYBAqzuuvuhE=", Role = UserRole.User, CreatedAt = new DateTime(2025, 1, 1), UpdatedAt = new DateTime(2025, 1, 1) },
             };
             modelBuilder.Entity<User>().HasData(users);
         }
