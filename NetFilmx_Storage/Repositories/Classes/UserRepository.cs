@@ -18,6 +18,21 @@ namespace NetFilmx_Storage.Repositories
             return await _context.Users.ToListAsync();
         }
 
+        public async Task<(IEnumerable<User>, int totalCount)> GetPagedUsersAsync(int pageNumber, int pageSize, string searchTerm)
+        {
+            var query = _context.Users.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                query = query.Where(u => u.Username.Contains(searchTerm) || u.Email.Contains(searchTerm));
+            }
+
+            var count = await query.CountAsync();
+            var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            return (items, count);
+        }
+
         public async Task<List<User>> GetUsersByVideoIdAsync(int videoId)
         {
             return await _context.Users.Include(u => u.VideoPurchases).Where(u => u.VideoPurchases.Any(vp => vp.VideoId == videoId)).ToListAsync();

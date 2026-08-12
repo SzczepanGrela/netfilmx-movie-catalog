@@ -1,10 +1,11 @@
-﻿using NetFilmx_Storage.Entities;
+using NetFilmx_Storage.Entities;
 
 namespace NetFilmx_Storage.Repositories
 {
     public interface IUserRepository
     {
         Task<List<User>> GetAllUsersAsync();
+        Task<(IEnumerable<User>, int totalCount)> GetPagedUsersAsync(int pageNumber, int pageSize, string searchTerm);
         Task<List<User>> GetUsersByVideoIdAsync(int videoId);
         Task<List<User>> GetUsersBySeriesIdAsync(int seriesId);
 

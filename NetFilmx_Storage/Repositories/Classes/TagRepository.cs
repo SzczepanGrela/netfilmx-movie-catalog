@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NetFilmx_Storage.Context;
 using NetFilmx_Storage.Entities;
 
@@ -15,7 +15,27 @@ namespace NetFilmx_Storage.Repositories
 
         public async Task<List<Tag>> GetAllTagsAsync()
         {
-            return await _context.Tags.ToListAsync();
+            var tags = await _context.Tags.ToListAsync();
+            return tags;
+        }
+
+        public async Task<(IEnumerable<Tag>, int totalCount)> GetPagedTagsAsync(int pageNumber, int pageSize, string searchTerm)
+        {
+            var query = _context.Tags.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                query = query.Where(t => t.Name.ToLower().Contains(searchTerm.ToLower()));
+            }
+
+            var totalCount = await query.CountAsync();
+            var tags = await query
+                .OrderBy(t => t.Name)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (tags, totalCount);
         }
 
         public async Task<List<Tag>> GetTagsByVideoIdAsync(int videoId)
