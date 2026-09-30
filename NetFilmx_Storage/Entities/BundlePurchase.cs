@@ -15,7 +15,7 @@ namespace NetFilmx_Storage.Entities
             UserId = userId;
             BundleId = bundleId;
             Amount = amount;
-            PurchaseDate = DateTime.Now;
+            PurchaseDate = DateTime.UtcNow;
         }
 
         [Required]

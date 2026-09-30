@@ -25,8 +25,8 @@ namespace NetFilmx_Storage.Entities
             Price = price;
             VideoUrl = videoUrl ?? throw new ArgumentNullException(nameof(videoUrl));
             ThumbnailUrl = thumbnailUrl;
-            CreatedAt = DateTime.Now;
-            UpdatedAt = DateTime.Now;
+            CreatedAt = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         [Required]
@@ -87,10 +87,10 @@ namespace NetFilmx_Storage.Entities
         public string? MaturityWarning { get; set; }
 
         [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         [Required]
-        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
 
       

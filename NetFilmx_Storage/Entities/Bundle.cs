@@ -18,8 +18,8 @@ namespace NetFilmx_Storage.Entities
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Description = description;
             Price = price;
-            CreatedAt = DateTime.Now;
-            UpdatedAt = DateTime.Now;
+            CreatedAt = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         [Required]

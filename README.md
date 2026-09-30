@@ -1,5 +1,10 @@
 # NetFilmx - Premium VOD Platform
 
+> Trwają przygotowania do migracji na Coolify. Ta gałąź zawiera zachowaną lokalną
+> pracę oraz osobne migracje PostgreSQL. Nie jest jeszcze gotowym wydaniem
+> produkcyjnym. Aktualny zakres, testy i warunki zachowania mediów opisuje
+> [przewodnik baz danych](docs/database-baseline.md).
+
 NetFilmx to zaawansowana aplikacja webowa VOD (Video on Demand) w technologii ASP.NET Core 8 MVC. Głównym celem tego projektu jest zaprezentowanie pełnego, nowoczesnego ekosystemu streamingu wideo z zachowaniem dobrych praktyk architektonicznych.
 
 ## Główne Funkcjonalności
@@ -17,7 +22,8 @@ NetFilmx to zaawansowana aplikacja webowa VOD (Video on Demand) w technologii AS
 
 - **Framework**: .NET 8 (ASP.NET Core MVC)
 - **Architektura**: CQRS (MediatR), Clean Architecture (Storage / Service / Web)
-- **Baza Danych**: Entity Framework Core (SQLite / InMemory do testów)
+- **Baza Danych**: Entity Framework Core (osobne migracje SQLite i PostgreSQL;
+  testy InMemory oraz rzeczywistych baz)
 - **Background Jobs**: Hangfire
 - **Frontend**: HTML5, CSS3, Vidstack Player (HLS)
 - **Testy**: xUnit, Moq, FluentAssertions
@@ -30,20 +36,31 @@ NetFilmx to zaawansowana aplikacja webowa VOD (Video on Demand) w technologii AS
 git clone https://github.com/SzczepanGrela/netfilmx-movie-catalog.git
 cd netfilmx-movie-catalog
 
-# 2. Utworzenie bazy danych
-cd NetFilmx_Web
-dotnet ef database update
+# 2. Przywrócenie narzędzia EF Core zgodnego z projektem
+dotnet tool restore
 
-# 3. Uruchomienie
-dotnet run
+# 3. Po skonfigurowaniu połączenia i JWT — uruchomienie
+dotnet run --project NetFilmx_Web
 ```
 
-*Zalogowanie do panelu administratora (wymaga dodania testowego konta za pomocą dostępnych skryptów SQL).*
+Przed uruchomieniem ustaw `ConnectionStrings__DefaultConnection` oraz
+`JwtSettings__SecretKey`, `JwtSettings__Issuer` i `JwtSettings__Audience`
+przez zmienne środowiskowe albo .NET User Secrets. Użyj własnego klucza JWT.
+Nie zapisuj sekretów w repozytorium ani obrazie. W tej wersji aplikacja nadal
+wykonuje migracje przy starcie; jawny etap migracji jest częścią dalszych prac.
+Konta demonstracyjne można włączyć wyłącznie w środowisku `Development`,
+ustawiając `Database__SeedDemoData=true`. Szczegóły i ograniczenia opisuje
+[przewodnik baz danych](docs/database-baseline.md).
 
-## Architektura Wdrożenia (DevOps)
+## Dotychczasowe wdrożenie (do zastąpienia)
 
-Aplikacja jest wdrażana na produkcyjny VPS zgodnie z podejściem Zero-Trust:
+Repozytorium nadal zawiera starszy proces wdrożenia:
 1. Docker + Docker Compose.
 2. Ukrycie IP serwera przez Cloudflare (Orange Cloud).
 3. Reverse Proxy w postaci Nginx Proxy Manager.
 4. Deploy w ramach zamkniętej sieci Tailscale wyzwalany bezpośrednio z GitHub Actions.
+
+Docelowo: obraz budowany i testowany w CI, niezmienny digest GHCR, wdrożenie
+przez Coolify oraz ruch Cloudflare Tunnel → Traefik → sieć aplikacji.
+Nie należy uruchamiać ani przywracać Nginx Proxy Manager na podstawie
+powyższego opisu historycznego.

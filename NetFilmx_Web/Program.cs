@@ -140,14 +140,7 @@ bool isPostgreSql = connectionString.Contains("Host=", StringComparison.OrdinalI
 
 builder.Services.AddDbContext<NetFilmxDbContext>(options =>
 {
-    if (isPostgreSql)
-    {
-        options.UseNpgsql(connectionString);
-    }
-    else
-    {
-        options.UseSqlite(connectionString);
-    }
+    NetFilmxDatabaseOptions.Configure(options, connectionString);
 });
 
 // Configure Hangfire
@@ -185,6 +178,12 @@ builder.Services.AddHangfireServer();
 
 var app = builder.Build();
 
+var seedDemoData = builder.Configuration.GetValue<bool>("Database:SeedDemoData");
+if (seedDemoData && !app.Environment.IsDevelopment())
+{
+    throw new InvalidOperationException("Demo data may only be seeded in Development.");
+}
+
 // Migrate DB on startup
 using (var scope = app.Services.CreateScope())
 {
@@ -195,8 +194,8 @@ using (var scope = app.Services.CreateScope())
         {
             db.Database.Migrate();
             
-            // Seed DB if empty
-            if (!db.Users.Any())
+            // Demo accounts/catalogue are opt-in and never production bootstrap.
+            if (seedDemoData && !db.Users.Any())
             {
                 var sqlFileName = isPostgreSql ? "InsertNetFilmxDb_PostgreSQL.sql" : "InsertNetFilmxDb_SQLite.sql";
                 var sqlFile = Path.Combine(AppContext.BaseDirectory, sqlFileName);
@@ -216,6 +215,7 @@ using (var scope = app.Services.CreateScope())
         {
             var logger = scope.ServiceProvider.GetService<ILogger<Program>>();
             logger?.LogError(ex, "Błąd podczas automatycznej migracji bazy danych.");
+            throw;
         }
     }
 }

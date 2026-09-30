@@ -35,7 +35,7 @@ namespace NetFilmx_Service.Command.User
                 //var user = task.Result;
 
                 user.PasswordHash = _passwordHasher.HashPassword(command.Password);
-                user.UpdatedAt = DateTime.Now;
+                user.UpdatedAt = DateTime.UtcNow;
 
                 await _repository.UpdateUserAsync(user);
 

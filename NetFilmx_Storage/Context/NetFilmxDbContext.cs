@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.Extensions.Configuration;
 using NetFilmx_Storage.Entities;
 
 namespace NetFilmx_Storage.Context
@@ -201,25 +200,10 @@ namespace NetFilmx_Storage.Context
     {
         public NetFilmxDbContext CreateDbContext(string[] args)
         {
-            var configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: true)
-                .AddJsonFile("appsettings.Development.json", optional: true)
-                .Build();
-
-            var connectionString = configuration.GetConnectionString("DefaultConnection") 
-                ?? "Host=localhost;Port=5432;Database=netfilmx_db;Username=netfilmx_user;Password=netfilmx_pass";
-
+            // This assembly owns the legacy SQLite migration history. PostgreSQL
+            // scaffolding uses the factory in NetFilmx_Storage.PostgreSql.
             var optionsBuilder = new DbContextOptionsBuilder<NetFilmxDbContext>();
-            
-            if (connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase))
-            {
-                optionsBuilder.UseNpgsql(connectionString);
-            }
-            else
-            {
-                optionsBuilder.UseSqlite(connectionString);
-            }
+            optionsBuilder.UseSqlite("Data Source=netfilmx-design.db");
 
             return new NetFilmxDbContext(optionsBuilder.Options);
         }

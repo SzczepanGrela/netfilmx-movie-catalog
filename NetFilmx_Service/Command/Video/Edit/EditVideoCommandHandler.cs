@@ -45,7 +45,7 @@ namespace NetFilmx_Service.Command.Video
                 video.Description = command.Description;
                 video.VideoUrl = ytVideoId;
                 video.ThumbnailUrl = command.Thumbnail_url;
-                video.UpdatedAt = DateTime.Now;
+                video.UpdatedAt = DateTime.UtcNow;
 
                 await _repository.UpdateVideoAsync(video);
                 _searchEngine.IndexVideo(video);

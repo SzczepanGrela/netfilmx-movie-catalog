@@ -24,8 +24,8 @@ namespace NetFilmx_Storage.Entities
             Email = email;
             PasswordHash = passwordHash;
             Role = role;
-            CreatedAt = DateTime.Now;
-            UpdatedAt = DateTime.Now;
+            CreatedAt = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         [Required]

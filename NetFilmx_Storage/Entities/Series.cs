@@ -19,8 +19,8 @@ namespace NetFilmx_Storage.Entities
             Name = name;
             Price = price;
             Description = description;
-            CreatedAt = DateTime.Now;
-            UpdatedAt = DateTime.Now;
+            CreatedAt = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         [Required]

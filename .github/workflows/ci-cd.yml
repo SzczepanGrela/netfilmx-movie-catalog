@@ -54,6 +54,8 @@ jobs:
               - 'NetFilmx_Web/**'
               - 'NetFilmx_Service/**'
               - 'NetFilmx_Storage/**'
+              - 'NetFilmx_Storage.PostgreSql/**'
+              - '.config/dotnet-tools.json'
               - 'NetFilmx_Common/**'
               - 'NetFilmx_Tests/**'
               - 'ST2 NetFilmx.sln'
@@ -106,6 +108,8 @@ jobs:
         run: dotnet build "ST2 NetFilmx.sln" --no-restore -c Release
 
       - name: Run Tests
+        env:
+          NETFILMX_TEST_POSTGRES: Host=localhost;Port=5432;Database=netfilmx_db;Username=netfilmx_user;Password=netfilmx_pass
         run: dotnet test "ST2 NetFilmx.sln" --no-build -c Release --logger "trx;LogFileName=test-results.trx" --results-directory ./test-results
 
       - name: Upload Test Results
