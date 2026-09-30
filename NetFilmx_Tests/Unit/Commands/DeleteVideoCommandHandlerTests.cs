@@ -14,13 +14,15 @@ namespace NetFilmx_Tests.Unit.Commands
     {
         private readonly Mock<IVideoRepository> _mockRepository;
         private readonly Mock<ICloudStorageService> _mockCloudStorage;
+        private readonly Mock<NetFilmx_Service.Search.ISearchEngine> _mockSearchEngine;
         private readonly DeleteVideoCommandHandler _handler;
 
         public DeleteVideoCommandHandlerTests()
         {
             _mockRepository = new Mock<IVideoRepository>();
             _mockCloudStorage = new Mock<ICloudStorageService>();
-            _handler = new DeleteVideoCommandHandler(_mockRepository.Object, _mockCloudStorage.Object);
+            _mockSearchEngine = new Mock<NetFilmx_Service.Search.ISearchEngine>();
+            _handler = new DeleteVideoCommandHandler(_mockRepository.Object, _mockCloudStorage.Object, _mockSearchEngine.Object);
         }
 
         [Fact]
@@ -63,6 +65,29 @@ namespace NetFilmx_Tests.Unit.Commands
             result.IsSuccess.Should().BeTrue();
             _mockCloudStorage.Verify(c => c.DeleteFileAsync(It.IsAny<string>()), Times.Never);
             _mockCloudStorage.Verify(c => c.DeleteDirectoryAsync(It.IsAny<string>()), Times.Never);
+            _mockRepository.Verify(r => r.DeleteVideoAsync(videoId), Times.Once);
+        }
+
+        [Fact]
+        public async Task Handle_WhenStorageThrowsException_ShouldCatchAndStillDeleteFromRepository()
+        {
+            // Arrange - simulate Cloudflare R2 throwing an error (e.g. network failure or bad credentials)
+            int videoId = 5;
+            var command = new DeleteVideoCommand(videoId);
+            var video = new Video("Broken Storage Video", "Desc", 10m, "videos/5/hls/master.m3u8", "thumbnails/thumb.jpg");
+
+            _mockRepository.Setup(r => r.GetVideoByIdAsync(videoId)).ReturnsAsync((Video?)video);
+            _mockCloudStorage.Setup(c => c.DeleteFileAsync(It.IsAny<string>()))
+                .ThrowsAsync(new System.IO.IOException("R2 network error"));
+            _mockCloudStorage.Setup(c => c.DeleteDirectoryAsync(It.IsAny<string>()))
+                .ThrowsAsync(new System.IO.IOException("R2 network error"));
+            _mockRepository.Setup(r => r.DeleteVideoAsync(videoId)).Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _handler.Handle(command, CancellationToken.None);
+
+            // Assert - operation must still succeed and delete from database
+            result.IsSuccess.Should().BeTrue();
             _mockRepository.Verify(r => r.DeleteVideoAsync(videoId), Times.Once);
         }
     }

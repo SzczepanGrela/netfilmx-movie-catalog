@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
-﻿using MediatR;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using NetFilmx_Service.Command.Comment;
@@ -23,36 +23,19 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
             _mediator = mediator;
         }
 
-
         private async Task<List<UserListDto>> GetUsers()
         {
             var query = new GetAllUsersQuery<UserListDto>();
             var result = await _mediator.Send(query);
-            if (result.IsFailure)
-            {
-                return new List<UserListDto>();
-            }
-
-            return result.Data;
-
+            return result.IsSuccess && result.Data != null ? result.Data : new List<UserListDto>();
         }
-
-
 
         private async Task<List<VideoListDto>> GetVideos()
         {
             var query = new GetAllVideosQuery<VideoListDto>();
             var result = await _mediator.Send(query);
-            if (result.IsFailure)
-            {
-                return new List<VideoListDto>();
-            }
-
-            return result.Data;
-
+            return result.IsSuccess && result.Data != null ? result.Data : new List<VideoListDto>();
         }
-
-
 
         public async Task<IActionResult> Index(int pageNumber = 1, string search = "")
         {
@@ -95,16 +78,16 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 return RedirectToAction("Error", "Home", new { area = "" });
             }
 
-            ViewBag.Steps = 2;
-
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = "Komentarz został usunięty.";
+            return RedirectToAction("Index");
         }
 
-
-        public IActionResult Add()
+        public async Task<IActionResult> Add()
         {
-            ViewBag.Users = new SelectList(GetUsers().Result, "Id", "Username");
-            ViewBag.Videos = new SelectList(GetVideos().Result, "Id", "Title");
+            var users = await GetUsers();
+            var videos = await GetVideos();
+            ViewBag.Users = new SelectList(users, "Id", "Username");
+            ViewBag.Videos = new SelectList(videos, "Id", "Title");
             return View();
         }
 
@@ -113,8 +96,10 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         {
             if (!ModelState.IsValid)
             {
-                ViewBag.Users = new SelectList(GetUsers().Result, "Id", "Username");
-                ViewBag.Videos = new SelectList(GetVideos().Result, "Id", "Title");
+                var users = await GetUsers();
+                var videos = await GetVideos();
+                ViewBag.Users = new SelectList(users, "Id", "Username");
+                ViewBag.Videos = new SelectList(videos, "Id", "Title");
                 return View(dto);
             }
             var command = new AddCommentCommand(dto.UserId, dto.VideoId, dto.Content);
@@ -126,12 +111,8 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 return RedirectToAction("Error", "Home", new { area = "" });
             }
 
-            ViewBag.Steps = 2;
-
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = "Komentarz został pomyślnie dodany.";
+            return RedirectToAction("Index");
         }
-
-
     }
-
 }

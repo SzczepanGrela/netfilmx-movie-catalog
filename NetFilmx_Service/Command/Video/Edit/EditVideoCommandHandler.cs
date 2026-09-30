@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using NetFilmx_Service.Result;
 using NetFilmx_Storage.Repositories;
 using System.Text.RegularExpressions;
@@ -8,10 +8,12 @@ namespace NetFilmx_Service.Command.Video
     public sealed class EditVideoCommandHandler : IRequestHandler<EditVideoCommand, CResult>
     {
         private readonly IVideoRepository _repository;
+        private readonly NetFilmx_Service.Search.ISearchEngine _searchEngine;
 
-        public EditVideoCommandHandler(IVideoRepository repository)
+        public EditVideoCommandHandler(IVideoRepository repository, NetFilmx_Service.Search.ISearchEngine searchEngine)
         {
             _repository = repository;
+            _searchEngine = searchEngine;
         }
 
 
@@ -46,6 +48,7 @@ namespace NetFilmx_Service.Command.Video
                 video.UpdatedAt = DateTime.Now;
 
                 await _repository.UpdateVideoAsync(video);
+                _searchEngine.IndexVideo(video);
                 return CResult.Ok();
             }
             catch (Exception ex)

@@ -1,6 +1,42 @@
-﻿@{
-    ViewData["Title"] = "Privacy Policy";
+@{
+    ViewData["Title"] = "Polityka Prywatności";
 }
-<h1>@ViewData["Title"]</h1>
 
-<p data-i18n="t_use_this_page_to_detail_your_s">Use this page to detail your site's privacy policy.</p>
+<div style="padding-top: 100px; min-height: 100vh; padding-bottom: 4rem;">
+    <div style="max-width: 900px; margin: 0 auto; padding: 0 4%;">
+        
+        <div style="background: rgba(10, 17, 40, 0.6); backdrop-filter: blur(16px); border: 1px solid rgba(123, 44, 191, 0.2); border-radius: var(--border-radius); padding: 3rem 2.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            
+            <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 1.5rem; background: linear-gradient(90deg, var(--color-accent), var(--color-accent-hover)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;" data-i18n="t_polityka_prywatnosci">
+                Polityka Prywatności i Regulamin
+            </h1>
+
+            <p style="color: var(--color-text-secondary); line-height: 1.7; font-size: 1.05rem; margin-bottom: 1.5rem;" data-i18n="t_polityka_wstep">
+                Witamy w serwisie NetFilmx — demonstracyjnej platformie VOD oferującej dostęp do filmów i animacji o otwartych licencjach tworzonych przez Blender Foundation oraz niezależnych twórców.
+            </p>
+
+            <h3 style="color: white; font-size: 1.3rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.8rem;" data-i18n="t_sekcja_dane">
+                1. Gromadzenie i przetwarzanie danych
+            </h3>
+            <p style="color: var(--color-text-secondary); line-height: 1.7; font-size: 1rem; margin-bottom: 1.5rem;" data-i18n="t_sekcja_dane_opis">
+                Wszelkie dane kont (adresy e-mail, nazwy użytkowników) oraz hasła zabezpieczone są najnowocześniejszym algorytmem haszującym Argon2id. Nie udostępniamy Twoich danych podmiotom trzecim.
+            </p>
+
+            <h3 style="color: white; font-size: 1.3rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.8rem;" data-i18n="t_sekcja_ciasteczka">
+                2. Pliki Cookies i pamięć lokalna
+            </h3>
+            <p style="color: var(--color-text-secondary); line-height: 1.7; font-size: 1rem; margin-bottom: 1.5rem;" data-i18n="t_sekcja_ciasteczka_opis">
+                Serwis wykorzystuje pliki cookies wyłącznie do utrzymania sesji uwierzytelniania (JWT/access token) oraz preferencji językowych użytkownika (PL/EN).
+            </p>
+
+            <div style="margin-top: 3rem; pt-3; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: var(--color-text-secondary); font-size: 0.85rem;">Ostatnia aktualizacja: Sierpień 2026</span>
+                <a asp-controller="Home" asp-action="Index" class="nfx-btn nfx-btn-primary" style="padding: 0.6rem 1.5rem; font-size: 0.9rem;" data-i18n="t_wroc_na_strone_glowna">
+                    ← Powrót na stronę główną
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+</div>

@@ -5,7 +5,8 @@ using NetFilmx_Web.Extensions;
 using System.Globalization;
 using System.Reflection;
 using Hangfire;
-using Hangfire.Storage.SQLite;
+using Hangfire.PostgreSql;
+using Hangfire.MemoryStorage;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -132,15 +133,51 @@ foreach (var handler in closedGenericHandlers)
 }
 
 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+    ?? "Host=localhost;Port=5432;Database=netfilmx_db;Username=netfilmx_user;Password=netfilmx_pass;Include Error Detail=true";
+
+bool isPostgreSql = connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase);
+
 builder.Services.AddDbContext<NetFilmxDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    if (isPostgreSql)
+    {
+        options.UseNpgsql(connectionString);
+    }
+    else
+    {
+        options.UseSqlite(connectionString);
+    }
+});
 
 // Configure Hangfire
-builder.Services.AddHangfire(configuration => configuration
-    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-    .UseSimpleAssemblyNameTypeSerializer()
-    .UseRecommendedSerializerSettings()
-    .UseSQLiteStorage("data/netfilmx.db"));
+builder.Services.AddHangfire((sp, configuration) =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var conn = config.GetConnectionString("DefaultConnection") ?? "";
+    bool usePg = conn.Contains("Host=", StringComparison.OrdinalIgnoreCase);
+
+    configuration
+        .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+        .UseSimpleAssemblyNameTypeSerializer()
+        .UseRecommendedSerializerSettings();
+
+    if (usePg && !builder.Environment.IsEnvironment("Testing"))
+    {
+        try
+        {
+            configuration.UsePostgreSqlStorage(c => c.UseNpgsqlConnection(conn));
+        }
+        catch
+        {
+            configuration.UseMemoryStorage();
+        }
+    }
+    else
+    {
+        configuration.UseMemoryStorage();
+    }
+});
 
 // Add the processing server as IHostedService
 builder.Services.AddHangfireServer();
@@ -154,17 +191,31 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<NetFilmxDbContext>();
     if (db.Database.IsRelational())
     {
-        db.Database.Migrate();
-        
-        // Seed DB if empty
-        if (!db.Users.Any())
+        try
         {
-            var sqlFile = Path.Combine(AppContext.BaseDirectory, "InsertNetFilmxDb_SQLite.sql");
-            if (File.Exists(sqlFile))
+            db.Database.Migrate();
+            
+            // Seed DB if empty
+            if (!db.Users.Any())
             {
-                var sql = File.ReadAllText(sqlFile);
-                db.Database.ExecuteSqlRaw(sql);
+                var sqlFileName = isPostgreSql ? "InsertNetFilmxDb_PostgreSQL.sql" : "InsertNetFilmxDb_SQLite.sql";
+                var sqlFile = Path.Combine(AppContext.BaseDirectory, sqlFileName);
+                if (!File.Exists(sqlFile))
+                {
+                    sqlFile = Path.Combine(Directory.GetCurrentDirectory(), "..", "SQL", sqlFileName);
+                }
+
+                if (File.Exists(sqlFile))
+                {
+                    var sql = File.ReadAllText(sqlFile);
+                    db.Database.ExecuteSqlRaw(sql);
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            var logger = scope.ServiceProvider.GetService<ILogger<Program>>();
+            logger?.LogError(ex, "Błąd podczas automatycznej migracji bazy danych.");
         }
     }
 }
@@ -188,7 +239,17 @@ app.UseRequestLocalization(new RequestLocalizationOptions
     SupportedUICultures = new List<CultureInfo> { ci }
 });
 
-app.UseStaticFiles();
+var fileProvider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+fileProvider.Mappings[".m3u8"] = "application/vnd.apple.mpegurl";
+fileProvider.Mappings[".ts"] = "video/mp2t";
+fileProvider.Mappings[".mp4"] = "video/mp4";
+fileProvider.Mappings[".webm"] = "video/webm";
+fileProvider.Mappings[".mkv"] = "video/x-matroska";
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = fileProvider
+});
 
 app.UseRouting();
 

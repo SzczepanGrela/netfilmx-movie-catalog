@@ -13,7 +13,7 @@ namespace NetFilmx_Tests.Unit.Processing
     public class VideoProcessingJobTests
     {
         [Fact]
-        public async Task ProcessVideoAsync_ShouldUploadAndSetUrl_WhenFfmpegSucceeds()
+        public async Task ProcessVideoAsync_ShouldUploadAndSetUrl_WhenFfmpegSucceedsAndR2Configured()
         {
             // Arrange
             var dbContext = TestDbContextFactory.Create();
@@ -23,8 +23,9 @@ namespace NetFilmx_Tests.Unit.Processing
 
             var loggerMock = new Mock<ILogger<VideoProcessingJob>>();
             var storageMock = new Mock<ICloudStorageService>();
-            var ffmpegMock = new Mock<IFFmpegService>();
+            storageMock.Setup(s => s.IsConfigured).Returns(true);
 
+            var ffmpegMock = new Mock<IFFmpegService>();
             ffmpegMock.Setup(f => f.RunFFmpegHls(It.IsAny<string>(), It.IsAny<string>())).Returns(true);
 
             var job = new VideoProcessingJob(loggerMock.Object, storageMock.Object, dbContext, ffmpegMock.Object);
@@ -36,8 +37,38 @@ namespace NetFilmx_Tests.Unit.Processing
             var updatedVideo = await dbContext.Videos.FindAsync(video.Id);
             updatedVideo.Should().NotBeNull();
             updatedVideo!.VideoUrl.Should().Contain("master.m3u8");
+            updatedVideo.VideoUrl.Should().StartWith("https://netfilmx-assets.grela.dev");
 
             storageMock.Verify(s => s.UploadDirectoryAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task ProcessVideoAsync_ShouldFallbackToLocalHls_WhenR2NotConfigured()
+        {
+            // Arrange
+            var dbContext = TestDbContextFactory.Create();
+            var video = new Video("Test Local", "Desc", 10, "processing", "thumb");
+            dbContext.Videos.Add(video);
+            await dbContext.SaveChangesAsync();
+
+            var loggerMock = new Mock<ILogger<VideoProcessingJob>>();
+            var storageMock = new Mock<ICloudStorageService>();
+            storageMock.Setup(s => s.IsConfigured).Returns(false);
+
+            var ffmpegMock = new Mock<IFFmpegService>();
+            ffmpegMock.Setup(f => f.RunFFmpegHls(It.IsAny<string>(), It.IsAny<string>())).Returns(true);
+
+            var job = new VideoProcessingJob(loggerMock.Object, storageMock.Object, dbContext, ffmpegMock.Object);
+
+            // Act
+            await job.ProcessVideoAsync(video.Id, "dummy_path.mp4");
+
+            // Assert
+            var updatedVideo = await dbContext.Videos.FindAsync(video.Id);
+            updatedVideo.Should().NotBeNull();
+            updatedVideo!.VideoUrl.Should().Be($"/hls/{video.Id}/master.m3u8");
+
+            storageMock.Verify(s => s.UploadDirectoryAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
 
         [Fact]

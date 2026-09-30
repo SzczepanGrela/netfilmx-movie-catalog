@@ -14,6 +14,7 @@ namespace NetFilmx_Tests.Integration.Fixtures
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
+            builder.UseEnvironment("Testing");
             builder.ConfigureAppConfiguration((context, config) =>
             {
                 config.AddInMemoryCollection(new Dictionary<string, string?>
@@ -24,7 +25,7 @@ namespace NetFilmx_Tests.Integration.Fixtures
                     {"JwtSettings:AccessTokenTtlMinutes", "15"},
                     {"JwtSettings:RefreshTokenTtlDays", "7"},
                     {"WalletSettings:RegistrationBonus", "100.00"},
-                    {"ConnectionStrings:DefaultConnection", "Data Source=test_hangfire.db"}
+                    {"ConnectionStrings:DefaultConnection", "Data Source=test_in_memory.db"}
                 });
             });
 

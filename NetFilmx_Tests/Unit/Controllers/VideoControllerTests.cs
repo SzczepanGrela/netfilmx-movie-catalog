@@ -18,7 +18,9 @@ namespace NetFilmx_Tests.Unit.Controllers
             // Arrange
             var mediatorMock = new Mock<IMediator>();
             var storageMock = new Mock<ICloudStorageService>();
-            var controller = new VideoController(mediatorMock.Object, storageMock.Object);
+            var searchEngineMock = new Mock<NetFilmx_Service.Search.ISearchEngine>();
+            var dbContext = NetFilmx_Tests.Helpers.TestDbContextFactory.Create();
+            var controller = new VideoController(mediatorMock.Object, storageMock.Object, dbContext, searchEngineMock.Object);
 
             var model = new UploadVideoViewModel
             {

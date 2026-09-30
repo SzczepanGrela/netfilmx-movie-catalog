@@ -15,7 +15,13 @@ namespace NetFilmx_Storage.Repositories
 
         public async Task<List<Video>> GetAllVideosAsync()
         {
-            return await _context.Videos.ToListAsync();
+            return await _context.Videos
+                .Include(v => v.Translations)
+                .Include(v => v.Categories)
+                    .ThenInclude(c => c.Translations)
+                .Include(v => v.Tags)
+                    .ThenInclude(t => t.Translations)
+                .ToListAsync();
         }
 
         public async Task<(IEnumerable<Video>, int totalCount)> GetPagedVideosAsync(int pageNumber, int pageSize, string searchTerm)
@@ -103,9 +109,17 @@ namespace NetFilmx_Storage.Repositories
 
         public async Task<Video> GetVideoByIdAsync(int videoId)
         {
-            var video = await _context.Videos.FindAsync(videoId)
+            var video = await _context.Videos
+                .Include(v => v.Translations)
+                .Include(v => v.Categories)
+                    .ThenInclude(c => c.Translations)
+                .Include(v => v.Tags)
+                    .ThenInclude(t => t.Translations)
+                .Include(v => v.Series)
+                    .ThenInclude(s => s.Translations)
+                .FirstOrDefaultAsync(v => v.Id == videoId)
                 ?? throw new ArgumentException("Video not found");
-            return video ;
+            return video;
         }
 
         public async Task AddVideoAsync(Video video)
@@ -135,8 +149,32 @@ namespace NetFilmx_Storage.Repositories
 
         public async Task DeleteVideoAsync(int videoId)
         {
-            var video = await _context.Videos.FindAsync(videoId) 
+            var video = await _context.Videos
+                .Include(v => v.Categories)
+                .Include(v => v.Tags)
+                .Include(v => v.Series)
+                .Include(v => v.Bundles)
+                .Include(v => v.Likes)
+                .Include(v => v.Comments)
+                .Include(v => v.VideoPurchases)
+                .FirstOrDefaultAsync(v => v.Id == videoId)
                 ?? throw new ArgumentException("Video not found");
+
+            // Explicitly delete dependent entities to prevent SQLite foreign key constraint errors
+            if (video.Likes.Any())
+                _context.Likes.RemoveRange(video.Likes);
+
+            if (video.Comments.Any())
+                _context.Comments.RemoveRange(video.Comments);
+
+            if (video.VideoPurchases.Any())
+                _context.VideoPurchases.RemoveRange(video.VideoPurchases);
+
+            video.Categories.Clear();
+            video.Tags.Clear();
+            video.Series.Clear();
+            video.Bundles.Clear();
+
             _context.Videos.Remove(video);
             await _context.SaveChangesAsync();
         }

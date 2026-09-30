@@ -17,7 +17,8 @@ namespace NetFilmx_Tests.Unit.Commands
             // Arrange
             var dbContext = TestDbContextFactory.Create();
             var repository = new NetFilmx_Storage.Repositories.VideoRepository(dbContext);
-            var handler = new AddVideoCommandHandler(repository);
+            var mockSearchEngine = new Moq.Mock<NetFilmx_Service.Search.ISearchEngine>();
+            var handler = new AddVideoCommandHandler(repository, mockSearchEngine.Object);
             var command = new AddVideoCommand("Interstellar", "Space movie", 15.99m, "http://video.url", "http://thumb.url");
 
             // Act

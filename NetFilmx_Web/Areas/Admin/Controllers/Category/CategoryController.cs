@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
-﻿using MediatR;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using NetFilmx_Service.Command.Category;
 using NetFilmx_Service.Command.Video;
@@ -30,18 +30,15 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 TempData["ErrorMessage"] = result.Message;
                 TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
                 return RedirectToAction("Error", "Home", new { area = "" });
-
             }
             ViewBag.SearchTerm = search;
             return View(result.Data);
         }
 
-
         public IActionResult Add()
         {
             return View();
         }
-
 
         [HttpPost]
         public async Task<IActionResult> Add(CategoryAddDto dto)
@@ -58,9 +55,9 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
                 return RedirectToAction("Error", "Home", new { area = "" });
             }
-            ViewBag.Steps = 2;
 
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = "Kategoria została pomyślnie dodana.";
+            return RedirectToAction("Index");
         }
 
         [HttpPost]
@@ -75,10 +72,8 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 return RedirectToAction("Error", "Home", new { area = "" });
             }
 
-
-            ViewBag.Steps = 2;
-
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = "Kategoria została pomyślnie usunięta.";
+            return RedirectToAction("Index");
         }
 
         public async Task<IActionResult> Details(int categoryId)
@@ -125,10 +120,8 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 return RedirectToAction("Error", "Home", new { area = "" });
             }
 
-
-            ViewBag.Steps = 2;
-
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = "Kategoria została zaktualizowana.";
+            return RedirectToAction("Index");
         }
 
         public async Task<IActionResult> Videos(int categoryId, string categoryName)
@@ -162,7 +155,7 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddVideos(int categoryId, List<int> videoIds)
+        public async Task<IActionResult> AddVideos(int categoryId, List<int> videoIds, string? categoryName = null)
         {
             foreach (var videoId in videoIds)
             {
@@ -171,13 +164,13 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 if (result.IsFailure)
                 {
                     TempData["ErrorMessage"] = result.Message;
-                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
-                return RedirectToAction("Error", "Home", new { area = "" });
+                    TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                    return RedirectToAction("Error", "Home", new { area = "" });
                 }
             }
-            ViewBag.Steps = 2;
 
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = "Filmy zostały przypisane do kategorii.";
+            return RedirectToAction("Videos", new { categoryId, categoryName = categoryName ?? "" });
         }
 
         public async Task<IActionResult> RemoveVideos(int categoryId, string categoryName)
@@ -196,7 +189,7 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> RemoveVideos(int categoryId, List<int> videoIds)
+        public async Task<IActionResult> RemoveVideos(int categoryId, List<int> videoIds, string? categoryName = null)
         {
             foreach (var videoId in videoIds)
             {
@@ -205,13 +198,13 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 if (result.IsFailure)
                 {
                     TempData["ErrorMessage"] = result.Message;
-                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
-                return RedirectToAction("Error", "Home", new { area = "" });
+                    TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                    return RedirectToAction("Error", "Home", new { area = "" });
                 }
             }
-            ViewBag.Steps = 2;
 
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = "Filmy zostały usunięte z kategorii.";
+            return RedirectToAction("Videos", new { categoryId, categoryName = categoryName ?? "" });
         }
     }
 }

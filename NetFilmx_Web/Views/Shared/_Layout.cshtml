@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] — NetFilmx</title>
-    <meta name="description" content="NetFilmx — Twoja platforma VOD z filmami Blender Foundation" />
+    <meta name="description" content="NetFilmx — Premium VOD platform with open-source animation and films" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
@@ -24,34 +25,31 @@
 
             <div class="nfx-nav-menu" id="nav-menu">
                 <div class="nfx-nav-links">
-                    <a asp-controller="Home" asp-action="Index" class="nfx-nav-link" data-i18n="t_wroc_na_strone_glowna">Strona główna</a>
-                    <a asp-controller="Home" asp-action="Movies" class="nfx-nav-link" data-i18n="t_dodaj_wybrane_filmy">Filmy</a>
-                    <a asp-controller="Home" asp-action="Series" class="nfx-nav-link" data-i18n="t_add_series">Serie</a>
+                    <a asp-controller="Home" asp-action="Index" class="nfx-nav-link" data-i18n="t_strona_glowna">Home</a>
+                    <a asp-controller="Home" asp-action="Movies" class="nfx-nav-link" data-i18n="t_filmy">Movies</a>
+                    <a asp-controller="Home" asp-action="Series" class="nfx-nav-link" data-i18n="t_serie">Series</a>
                     @if (User.IsInRole("Admin"))
                     {
-                        <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="nfx-nav-link" data-i18n="t_panel_admina">Panel Admina</a>
+                        <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="nfx-nav-link" data-i18n="t_panel_admina">Admin Panel</a>
                     }
                 </div>
 
                 <div class="nfx-nav-auth">
                     <!-- i18n switcher -->
                     <div class="lang-selector">
-                        <button id="lang-pl-btn" class="btn-lang active">PL</button>
-                        <button id="lang-en-btn" class="btn-lang">EN</button>
+                        <button id="lang-pl-btn" class="btn-lang" type="button">PL</button>
+                        <button id="lang-en-btn" class="btn-lang active" type="button">EN</button>
                     </div>
 
-                    <button id="theme-toggle" class="nfx-theme-btn" aria-label="Toggle Theme">
-                        <i class="fas fa-moon"></i>
-                    </button>
                     @if (User.Identity != null && User.Identity.IsAuthenticated)
                     {
-                        <span class="nfx-user-greeting" data-i18n="t_witaj">Witaj, @User.Identity.Name!</span>
-                        <a asp-controller="Auth" asp-action="Logout" class="nfx-btn nfx-btn-secondary" data-i18n="t_wyloguj">Wyloguj</a>
+                        <span class="nfx-user-greeting"><span data-i18n="t_witaj">Welcome</span>, @User.Identity.Name!</span>
+                        <a asp-controller="Auth" asp-action="Logout" class="nfx-btn nfx-btn-secondary" style="padding: 0.45rem 1rem; font-size: 0.85rem;" data-i18n="t_wyloguj">Logout</a>
                     }
                     else
                     {
-                        <a asp-controller="Auth" asp-action="Login" class="nfx-nav-link" data-i18n="t_zaloguj_sie">Zaloguj się</a>
-                        <a asp-controller="Auth" asp-action="Register" class="nfx-btn nfx-btn-primary" data-i18n="t_zarejestruj_sie">Zarejestruj się</a>
+                        <a asp-controller="Auth" asp-action="Login" class="nfx-nav-link" data-i18n="t_zaloguj_sie">Log In</a>
+                        <a asp-controller="Auth" asp-action="Register" class="nfx-btn nfx-btn-primary" style="padding: 0.45rem 1.2rem; font-size: 0.85rem;" data-i18n="t_zarejestruj_sie">Sign Up</a>
                     }
                 </div>
             </div>
@@ -63,7 +61,14 @@
     </main>
 
     <footer class="nfx-footer">
-        <p>&copy; @DateTime.Now.Year NetFilmx. <span data-i18n="t_wszelkie_prawa_zastrzezone">Wszystkie prawa zastrzeżone.</span></p>
+        <div style="max-width: 1400px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+            <p style="margin: 0;">&copy; @DateTime.Now.Year NetFilmx. <span data-i18n="t_wszelkie_prawa_zastrzezone">Wszelkie prawa zastrzeżone.</span></p>
+            <div style="display: flex; gap: 1.5rem; font-size: 0.9rem;">
+                <a asp-controller="Home" asp-action="Privacy" data-i18n="t_polityka_prywatnosci">Polityka Prywatności</a>
+                <a asp-controller="Home" asp-action="Movies" data-i18n="t_filmy">Filmy</a>
+                <a asp-controller="Home" asp-action="Series" data-i18n="t_serie">Serie</a>
+            </div>
+        </div>
     </footer>
 
     <script src="~/js/i18n.js"></script>

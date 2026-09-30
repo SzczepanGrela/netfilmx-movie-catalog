@@ -18,7 +18,9 @@ namespace NetFilmx_Storage.Repositories
 
         public async Task<List<Category>> GetAllCategoriesAsync()
         {
-            var categories = await _context.Categories.ToListAsync();
+            var categories = await _context.Categories
+                .Include(c => c.Translations)
+                .ToListAsync();
             return categories;
         }
 

@@ -13,21 +13,67 @@
             <div class="card-body">
                 <form method="post" enctype="multipart/form-data">
                     <div class="form-group">
-                        <label asp-for="Title" class="admin-label"></label>
-                        <input asp-for="Title" class="admin-input" />
-                        <span asp-validation-for="Title" class="text-danger"></span>
-                    </div>
-
-                    <div class="form-group">
                         <label asp-for="Price" class="admin-label"></label>
                         <input asp-for="Price" class="admin-input" type="number" step="0.01" />
                         <span asp-validation-for="Price" class="text-danger"></span>
                     </div>
 
-                    <div class="form-group">
-                        <label asp-for="Description" class="admin-label"></label>
-                        <textarea asp-for="Description" class="admin-input"></textarea>
-                        <span asp-validation-for="Description" class="text-danger"></span>
+                    <!-- Multi-Language Tabs (EN / PL) -->
+                    <div style="background: rgba(10, 17, 40, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                        <div style="display: flex; gap: 0.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
+                            <button type="button" id="tab-btn-en" class="nfx-btn nfx-btn-primary" style="padding: 0.4rem 1rem; font-size: 0.85rem;" onclick="showLangTab('en')">🇬🇧 English (Default)</button>
+                            <button type="button" id="tab-btn-pl" class="nfx-btn nfx-btn-secondary" style="padding: 0.4rem 1rem; font-size: 0.85rem;" onclick="showLangTab('pl')">🇵🇱 Polski</button>
+                        </div>
+
+                        <!-- English Section -->
+                        <div id="section-lang-en">
+                            <div class="form-group">
+                                <label asp-for="Title" class="admin-label">Title (EN) *</label>
+                                <input asp-for="Title" class="admin-input" placeholder="e.g. Sintel" />
+                                <span asp-validation-for="Title" class="text-danger"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label asp-for="Description" class="admin-label">Description (EN) *</label>
+                                <textarea asp-for="Description" class="admin-input" rows="3" placeholder="English synopsis..."></textarea>
+                                <span asp-validation-for="Description" class="text-danger"></span>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 form-group">
+                                    <label asp-for="Director_En" class="admin-label">Director (EN)</label>
+                                    <input asp-for="Director_En" class="admin-input" placeholder="e.g. Colin Levy" />
+                                </div>
+                                <div class="col-md-6 form-group">
+                                    <label asp-for="Cast_En" class="admin-label">Cast (EN)</label>
+                                    <input asp-for="Cast_En" class="admin-input" placeholder="e.g. Halina Reijn, Thom Hoffman" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Polish Section -->
+                        <div id="section-lang-pl" style="display: none;">
+                            <div class="form-group">
+                                <label asp-for="Title_Pl" class="admin-label">Tytuł (PL)</label>
+                                <input asp-for="Title_Pl" class="admin-input" placeholder="np. Sintel" />
+                            </div>
+
+                            <div class="form-group">
+                                <label asp-for="Description_Pl" class="admin-label">Opis (PL)</label>
+                                <textarea asp-for="Description_Pl" class="admin-input" rows="3" placeholder="Polski opis filmu..."></textarea>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 form-group">
+                                    <label asp-for="Director_Pl" class="admin-label">Reżyser (PL)</label>
+                                    <input asp-for="Director_Pl" class="admin-input" placeholder="np. Colin Levy" />
+                                </div>
+                                <div class="col-md-6 form-group">
+                                    <label asp-for="Cast_Pl" class="admin-label">Obsada (PL)</label>
+                                    <input asp-for="Cast_Pl" class="admin-input" placeholder="np. Halina Reijn, Thom Hoffman" />
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -37,8 +83,8 @@
                     </div>
 
                     <div class="form-group border border-secondary p-3 rounded" style="background: rgba(0,0,0,0.2);">
-                        <label asp-for="VideoFile" class="admin-label">Wgraj plik wideo (.mp4) z komputera (HLS)</label>
-                        <input type="file" asp-for="VideoFile" class="admin-input" accept="video/mp4" style="background:transparent; border:none; padding-left:0;" />
+                        <label asp-for="VideoFile" class="admin-label">Wgraj plik wideo (.mp4, .webm, .mkv) z komputera (HLS)</label>
+                        <input type="file" asp-for="VideoFile" class="admin-input" accept="video/*,.mp4,.webm,.mkv,.mov,.avi" style="background:transparent; border:none; padding-left:0;" />
                         <span asp-validation-for="VideoFile" class="text-danger"></span>
                         <small class="form-text" style="color:var(--color-text-muted);">Wybranie pliku spowoduje przetworzenie go w tle przez FFmpeg na format HLS.</small>
                     </div>
@@ -59,4 +105,24 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+    <script>
+        function showLangTab(lang) {
+            const secEn = document.getElementById('section-lang-en');
+            const secPl = document.getElementById('section-lang-pl');
+            const btnEn = document.getElementById('tab-btn-en');
+            const btnPl = document.getElementById('tab-btn-pl');
+
+            if (lang === 'en') {
+                secEn.style.display = 'block';
+                secPl.style.display = 'none';
+                btnEn.className = 'nfx-btn nfx-btn-primary';
+                btnPl.className = 'nfx-btn nfx-btn-secondary';
+            } else {
+                secEn.style.display = 'none';
+                secPl.style.display = 'block';
+                btnPl.className = 'nfx-btn nfx-btn-primary';
+                btnEn.className = 'nfx-btn nfx-btn-secondary';
+            }
+        }
+    </script>
 }

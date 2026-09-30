@@ -8,10 +8,12 @@ namespace NetFilmx_Service.Command.Video
     public sealed class AddVideoCommandHandler : IRequestHandler<AddVideoCommand, QResult<int>>
     {
         private readonly IVideoRepository _repository;
+        private readonly NetFilmx_Service.Search.ISearchEngine _searchEngine;
 
-        public AddVideoCommandHandler(IVideoRepository repository)
+        public AddVideoCommandHandler(IVideoRepository repository, NetFilmx_Service.Search.ISearchEngine searchEngine)
         {
             _repository = repository;
+            _searchEngine = searchEngine;
         }
 
         public async Task<QResult<int>> Handle(AddVideoCommand command, CancellationToken cancellationToken)
@@ -44,6 +46,7 @@ namespace NetFilmx_Service.Command.Video
             try
             {
                 await _repository.AddVideoAsync(video);
+                _searchEngine.IndexVideo(video);
                 return QResult<int>.Ok(video.Id);
             }
             catch (Exception ex)

@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http;
 using System.IO;
 using System.ComponentModel.DataAnnotations;
 using NetFilmx_Service.Storage;
-﻿using MediatR;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using NetFilmx_Service.Command.Comment;
 using NetFilmx_Service.Command.Video;
@@ -30,11 +30,15 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
     {
         private readonly IMediator _mediator;
         private readonly ICloudStorageService _storageService;
+        private readonly NetFilmx_Storage.Context.NetFilmxDbContext _context;
+        private readonly NetFilmx_Service.Search.ISearchEngine _searchEngine;
 
-        public VideoController(IMediator mediator, ICloudStorageService storageService)
+        public VideoController(IMediator mediator, ICloudStorageService storageService, NetFilmx_Storage.Context.NetFilmxDbContext context, NetFilmx_Service.Search.ISearchEngine searchEngine)
         {
             _mediator = mediator;
             _storageService = storageService;
+            _context = context;
+            _searchEngine = searchEngine;
         }
 
         public async Task<IActionResult> Index(int pageNumber = 1, string search = null)
@@ -50,7 +54,6 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
             }
             return View(result.Data);
         }
-
 
         public async Task<IActionResult> Details(int videoId)
         {
@@ -70,8 +73,9 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
             return View();
         }
 
-
         [HttpPost]
+        [RequestSizeLimit(1073741824)] // 1 GB
+        [RequestFormLimits(MultipartBodyLengthLimit = 1073741824)]
         public async Task<IActionResult> Add(UploadVideoViewModel model)
         {
             if (model.VideoFile == null && string.IsNullOrWhiteSpace(model.VideoUrl))
@@ -82,11 +86,10 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
 
             if (!ModelState.IsValid)
             {
-                // Zwrócenie błędów walidacji
                 return View(model);
             }
 
-            // Upload plakatu (ThumbnailFile) synchronicznie, ponieważ to mały obrazek
+            // Upload plakatu (ThumbnailFile)
             string thumbnailUrl = model.ThumbnailUrl ?? "";
             if (model.ThumbnailFile != null && model.ThumbnailFile.Length > 0)
             {
@@ -115,10 +118,45 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 return RedirectToAction("Error", "Home", new { area = "" });
             }
 
+            int videoId = result.Data;
+
+            // Save bilingual translations
+            try
+            {
+                var video = await _context.Videos.FindAsync(videoId);
+                if (video != null)
+                {
+                    video.Director = model.Director_En;
+                    video.Cast = model.Cast_En;
+
+                    var enTrans = new NetFilmx_Storage.Entities.VideoTranslation(videoId, "en", model.Title, model.Description, model.Director_En, model.Cast_En);
+                    _context.VideoTranslations.Add(enTrans);
+
+                    if (!string.IsNullOrWhiteSpace(model.Title_Pl) || !string.IsNullOrWhiteSpace(model.Description_Pl))
+                    {
+                        var plTrans = new NetFilmx_Storage.Entities.VideoTranslation(
+                            videoId,
+                            "pl",
+                            !string.IsNullOrWhiteSpace(model.Title_Pl) ? model.Title_Pl : model.Title,
+                            !string.IsNullOrWhiteSpace(model.Description_Pl) ? model.Description_Pl : model.Description,
+                            model.Director_Pl ?? model.Director_En,
+                            model.Cast_Pl ?? model.Cast_En
+                        );
+                        _context.VideoTranslations.Add(plTrans);
+                    }
+
+                    await _context.SaveChangesAsync();
+                    _searchEngine.IndexVideo(video);
+                }
+            }
+            catch
+            {
+                // Fallback gracefully
+            }
+
             // Trigger background job if file was uploaded
             if (model.VideoFile != null && model.VideoFile.Length > 0)
             {
-                int videoId = result.Data;
                 string uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
                 if (!Directory.Exists(uploadsDir))
                     Directory.CreateDirectory(uploadsDir);
@@ -133,9 +171,10 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                     job => job.ProcessVideoAsync(videoId, filePath));
             }
 
-            ViewBag.Steps = 2;
-
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = model.VideoFile != null 
+                ? "Wideo zostało przesłane i zakolejkowane do przetwarzania HLS w tle. Status zmieni się po zakończeniu transkodowania." 
+                : "Wideo zostało pomyślnie dodane.";
+            return RedirectToAction("Index");
         }
 
         public class UploadVideoViewModel
@@ -146,6 +185,13 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
 
             [Required(ErrorMessage = "Opis jest wymagany")]
             public string? Description { get; set; }
+
+            public string? Title_Pl { get; set; }
+            public string? Description_Pl { get; set; }
+            public string? Director_En { get; set; }
+            public string? Director_Pl { get; set; }
+            public string? Cast_En { get; set; }
+            public string? Cast_Pl { get; set; }
 
             [Required(ErrorMessage = "Cena jest wymagana")]
             [Range(0, 10000, ErrorMessage = "Cena musi być większa od 0")]
@@ -173,7 +219,6 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
             return View(result.Data);
         }
 
-
         [HttpPost]
         public async Task<IActionResult> Edit(VideoEditDto dto)
         {
@@ -185,9 +230,9 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
                 return RedirectToAction("Error", "Home", new { area = "" });
             }
-            ViewBag.Steps = 2;
 
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = "Wideo zostało pomyślnie zaktualizowane.";
+            return RedirectToAction("Index");
         }
 
         [HttpPost]
@@ -201,9 +246,9 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
                 return RedirectToAction("Error", "Home", new { area = "" });
             }
-            ViewBag.Steps = 2;
 
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = "Wideo zostało pomyślnie usunięte z bazy danych i CDN.";
+            return RedirectToAction("Index");
         }
 
         public async Task<IActionResult> Categories(int videoId, string videoName)
@@ -238,7 +283,7 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddCategories(int videoId, List<int> categoryIds)
+        public async Task<IActionResult> AddCategories(int videoId, List<int> categoryIds, string? videoName = null)
         {
             foreach (var categoryId in categoryIds)
             {
@@ -247,13 +292,13 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 if (result.IsFailure)
                 {
                     TempData["ErrorMessage"] = result.Message;
-                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
-                return RedirectToAction("Error", "Home", new { area = "" });
+                    TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                    return RedirectToAction("Error", "Home", new { area = "" });
                 }
             }
-            ViewBag.Steps = 2;
 
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = "Kategorie zostały przypisane.";
+            return RedirectToAction("Categories", new { videoId, videoName = videoName ?? "" });
         }
 
         public async Task<IActionResult> RemoveCategories(int videoId, string videoName)
@@ -272,7 +317,7 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> RemoveCategories(int videoId, List<int> categoryIds)
+        public async Task<IActionResult> RemoveCategories(int videoId, List<int> categoryIds, string? videoName = null)
         {
             foreach (var categoryId in categoryIds)
             {
@@ -281,15 +326,14 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 if (result.IsFailure)
                 {
                     TempData["ErrorMessage"] = result.Message;
-                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
-                return RedirectToAction("Error", "Home", new { area = "" });
+                    TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                    return RedirectToAction("Error", "Home", new { area = "" });
                 }
             }
-            ViewBag.Steps = 2;
 
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = "Kategorie zostały usunięte z wideo.";
+            return RedirectToAction("Categories", new { videoId, videoName = videoName ?? "" });
         }
-
 
         public async Task<IActionResult> Series(int videoId, string videoName)
         {
@@ -322,7 +366,7 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddSeries(int videoId, List<int> seriesIds)
+        public async Task<IActionResult> AddSeries(int videoId, List<int> seriesIds, string? videoName = null)
         {
             foreach (var seriesId in seriesIds)
             {
@@ -331,13 +375,13 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 if (result.IsFailure)
                 {
                     TempData["ErrorMessage"] = result.Message;
-                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
-                return RedirectToAction("Error", "Home", new { area = "" });
+                    TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                    return RedirectToAction("Error", "Home", new { area = "" });
                 }
             }
-            ViewBag.Steps = 2;
 
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = "Serie zostały przypisane do wideo.";
+            return RedirectToAction("Series", new { videoId, videoName = videoName ?? "" });
         }
 
         public async Task<IActionResult> RemoveSeries(int videoId, string videoName)
@@ -356,7 +400,7 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> RemoveSeries(int videoId, List<int> seriesIds)
+        public async Task<IActionResult> RemoveSeries(int videoId, List<int> seriesIds, string? videoName = null)
         {
             foreach (var seriesId in seriesIds)
             {
@@ -365,15 +409,14 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 if (result.IsFailure)
                 {
                     TempData["ErrorMessage"] = result.Message;
-                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
-                return RedirectToAction("Error", "Home", new { area = "" });
+                    TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                    return RedirectToAction("Error", "Home", new { area = "" });
                 }
             }
-            ViewBag.Steps = 2;
 
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = "Serie zostały odłączone od wideo.";
+            return RedirectToAction("Series", new { videoId, videoName = videoName ?? "" });
         }
-
 
         public async Task<IActionResult> Tags(int videoId, string videoName)
         {
@@ -406,23 +449,22 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddTags(int videoId, List<int> tagIds)
+        public async Task<IActionResult> AddTags(int videoId, List<int> tagIds, string? videoName = null)
         {
             foreach (var tagId in tagIds)
             {
                 var command = new AddVideoToTagCommand(tagId, videoId);
-
                 var result = await _mediator.Send(command);
                 if (result.IsFailure)
                 {
                     TempData["ErrorMessage"] = result.Message;
-                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
-                return RedirectToAction("Error", "Home", new { area = "" });
+                    TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                    return RedirectToAction("Error", "Home", new { area = "" });
                 }
             }
-            ViewBag.Steps = 2;
 
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = "Tagi zostały przypisane.";
+            return RedirectToAction("Tags", new { videoId, videoName = videoName ?? "" });
         }
 
         public async Task<IActionResult> RemoveTags(int videoId, string videoName)
@@ -441,7 +483,7 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> RemoveTags(int videoId, List<int> tagIds)
+        public async Task<IActionResult> RemoveTags(int videoId, List<int> tagIds, string? videoName = null)
         {
             foreach (var tagId in tagIds)
             {
@@ -450,15 +492,14 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 if (result.IsFailure)
                 {
                     TempData["ErrorMessage"] = result.Message;
-                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
-                return RedirectToAction("Error", "Home", new { area = "" });
+                    TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                    return RedirectToAction("Error", "Home", new { area = "" });
                 }
             }
-            ViewBag.Steps = 2;
 
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = "Tagi zostały odłączone.";
+            return RedirectToAction("Tags", new { videoId, videoName = videoName ?? "" });
         }
-
 
         public async Task<IActionResult> Comments(int videoId, string videoName)
         {
@@ -492,9 +533,9 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
                 return RedirectToAction("Error", "Home", new { area = "" });
             }
-            ViewBag.Steps = 2;
 
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = "Komentarz został dodany.";
+            return RedirectToAction("Comments", new { videoId = dto.VideoId });
         }
 
         [HttpPost]
@@ -508,11 +549,10 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
                 return RedirectToAction("Error", "Home", new { area = "" });
             }
-            ViewBag.Steps = 2;
 
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = "Komentarz został usunięty.";
+            return RedirectToAction("Comments", new { videoId });
         }
-
 
         public async Task<IActionResult> Users(int videoId, string videoName)
         {
@@ -545,7 +585,7 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddUsers(int videoId, List<int> userIds)
+        public async Task<IActionResult> AddUsers(int videoId, List<int> userIds, string? videoName = null)
         {
             foreach (var userId in userIds)
             {
@@ -554,13 +594,13 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 if (result.IsFailure)
                 {
                     TempData["ErrorMessage"] = result.Message;
-                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
-                return RedirectToAction("Error", "Home", new { area = "" });
+                    TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                    return RedirectToAction("Error", "Home", new { area = "" });
                 }
             }
-            ViewBag.Steps = 2;
 
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = "Dostęp użytkowników został dodany.";
+            return RedirectToAction("Users", new { videoId, videoName = videoName ?? "" });
         }
 
         public async Task<IActionResult> RemoveUsers(int videoId, string videoName)
@@ -579,7 +619,7 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> RemoveUsers(int videoId, List<int> userIds)
+        public async Task<IActionResult> RemoveUsers(int videoId, List<int> userIds, string? videoName = null)
         {
             foreach (var userId in userIds)
             {
@@ -588,13 +628,13 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 if (result.IsFailure)
                 {
                     TempData["ErrorMessage"] = result.Message;
-                TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
-                return RedirectToAction("Error", "Home", new { area = "" });
+                    TempData["Errors"] = System.Text.Json.JsonSerializer.Serialize(result.Errors);
+                    return RedirectToAction("Error", "Home", new { area = "" });
                 }
             }
-            ViewBag.Steps = 2;
 
-            return View("~/Views/Shared/RedirectBack.cshtml");
+            TempData["SuccessMessage"] = "Dostęp użytkowników został usunięty.";
+            return RedirectToAction("Users", new { videoId, videoName = videoName ?? "" });
         }
     }
 }

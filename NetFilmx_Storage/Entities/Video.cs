@@ -115,5 +115,55 @@ namespace NetFilmx_Storage.Entities
         public virtual ICollection<VideoPurchase> VideoPurchases { get; set; }
 
         public virtual ICollection<Bundle> Bundles { get; set; }
+
+        public virtual ICollection<VideoTranslation> Translations { get; set; } = new List<VideoTranslation>();
+
+        public string GetLocalizedTitle(string? lang = null)
+        {
+            if (string.IsNullOrEmpty(lang)) lang = "en";
+            var tr = Translations?.FirstOrDefault(t => t.LanguageCode.Equals(lang, StringComparison.OrdinalIgnoreCase));
+            if (tr != null && !string.IsNullOrWhiteSpace(tr.Title)) return tr.Title;
+
+            var fallback = Translations?.FirstOrDefault(t => t.LanguageCode.Equals("en", StringComparison.OrdinalIgnoreCase));
+            if (fallback != null && !string.IsNullOrWhiteSpace(fallback.Title)) return fallback.Title;
+
+            return Title;
+        }
+
+        public string GetLocalizedDescription(string? lang = null)
+        {
+            if (string.IsNullOrEmpty(lang)) lang = "en";
+            var tr = Translations?.FirstOrDefault(t => t.LanguageCode.Equals(lang, StringComparison.OrdinalIgnoreCase));
+            if (tr != null && !string.IsNullOrWhiteSpace(tr.Description)) return tr.Description;
+
+            var fallback = Translations?.FirstOrDefault(t => t.LanguageCode.Equals("en", StringComparison.OrdinalIgnoreCase));
+            if (fallback != null && !string.IsNullOrWhiteSpace(fallback.Description)) return fallback.Description;
+
+            return Description ?? "";
+        }
+
+        public string GetLocalizedDirector(string? lang = null)
+        {
+            if (string.IsNullOrEmpty(lang)) lang = "en";
+            var tr = Translations?.FirstOrDefault(t => t.LanguageCode.Equals(lang, StringComparison.OrdinalIgnoreCase));
+            if (tr != null && !string.IsNullOrWhiteSpace(tr.Director)) return tr.Director;
+
+            var fallback = Translations?.FirstOrDefault(t => t.LanguageCode.Equals("en", StringComparison.OrdinalIgnoreCase));
+            if (fallback != null && !string.IsNullOrWhiteSpace(fallback.Director)) return fallback.Director;
+
+            return Director ?? "";
+        }
+
+        public string GetLocalizedCast(string? lang = null)
+        {
+            if (string.IsNullOrEmpty(lang)) lang = "en";
+            var tr = Translations?.FirstOrDefault(t => t.LanguageCode.Equals(lang, StringComparison.OrdinalIgnoreCase));
+            if (tr != null && !string.IsNullOrWhiteSpace(tr.Cast)) return tr.Cast;
+
+            var fallback = Translations?.FirstOrDefault(t => t.LanguageCode.Equals("en", StringComparison.OrdinalIgnoreCase));
+            if (fallback != null && !string.IsNullOrWhiteSpace(fallback.Cast)) return fallback.Cast;
+
+            return Cast ?? "";
+        }
     }
 }

@@ -1,0 +1,122 @@
+@model NetFilmx_Web.ViewModels.MovieDetailsViewModel
+@{
+    ViewData["Title"] = Model.Video.Title;
+    var duration = Model.Video.DurationMinutes.HasValue ? $"{Model.Video.DurationMinutes.Value / 60}h {Model.Video.DurationMinutes.Value % 60}min" : "";
+}
+
+<div style="padding-top: 80px; min-height: 100vh; position: relative;">
+    
+    <!-- Ambient Backdrop -->
+    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 60vh; background-image: url('@(Model.Video.BackdropUrl ?? Model.Video.ThumbnailUrl ?? "https://netfilmx-assets.grela.dev/backdrops/tears-of-steel_backdrop.jpg")'); background-size: cover; background-position: center; filter: blur(40px) brightness(0.25); z-index: 0; pointer-events: none;"></div>
+
+    <div style="position: relative; z-index: 10; max-width: 1400px; margin: 0 auto; padding: 2rem 4%;">
+        
+        <!-- Hero Details Section -->
+        <div style="display: flex; flex-wrap: wrap; gap: 3rem; margin-bottom: 3rem; align-items: flex-start;">
+            
+            <!-- Poster -->
+            <div style="flex: 0 0 300px; width: 300px; max-width: 100%;">
+                <div style="border-radius: var(--border-radius); overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.6); border: 1px solid rgba(123, 44, 191, 0.3);">
+                    <img src="@(Model.Video.ThumbnailUrl ?? "https://netfilmx-assets.grela.dev/posters/sintel_poster.jpg")" alt="@Model.Video.Title" style="width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block;" />
+                </div>
+            </div>
+
+            <!-- Info & Actions -->
+            <div style="flex: 1; min-width: 320px;">
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; align-items: center;">
+                    @if (!string.IsNullOrEmpty(Model.Video.QualityBadge))
+                    {
+                        <span class="nfx-badge">@Model.Video.QualityBadge</span>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Video.AgeRating))
+                    {
+                        <span class="nfx-badge" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); color: #fff;">@Model.Video.AgeRating</span>
+                    }
+                    @if (Model.Video.ReleaseYear.HasValue)
+                    {
+                        <span style="color: var(--color-text-secondary); font-weight: 500;">@Model.Video.ReleaseYear.Value</span>
+                    }
+                    @if (!string.IsNullOrEmpty(duration))
+                    {
+                        <span style="color: var(--color-text-secondary); font-weight: 500;">• @duration</span>
+                    }
+                </div>
+
+                <h1 style="font-size: 3rem; font-weight: 700; margin-bottom: 1.5rem; line-height: 1.2;">@Model.Video.Title</h1>
+
+                <p style="color: #e0e0e0; font-size: 1.15rem; line-height: 1.7; margin-bottom: 2rem;">
+                    @Model.Video.Description
+                </p>
+
+                <!-- Metadata Grid -->
+                <div style="background: rgba(10, 17, 40, 0.5); backdrop-filter: blur(16px); border: 1px solid rgba(123, 44, 191, 0.2); border-radius: var(--border-radius); padding: 1.5rem; margin-bottom: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                    @if (!string.IsNullOrEmpty(Model.Video.Director))
+                    {
+                        <div>
+                            <span style="color: var(--color-text-secondary); font-size: 0.85rem; display: block;" data-i18n="t_rezyser">Director:</span>
+                            <strong style="color: white; font-size: 1rem;">@Model.Video.Director</strong>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Video.Cast))
+                    {
+                        <div>
+                            <span style="color: var(--color-text-secondary); font-size: 0.85rem; display: block;" data-i18n="t_obsada">Cast:</span>
+                            <strong style="color: white; font-size: 1rem;">@Model.Video.Cast</strong>
+                        </div>
+                    }
+                    @if (Model.Categories != null && Model.Categories.Any())
+                    {
+                        <div>
+                            <span style="color: var(--color-text-secondary); font-size: 0.85rem; display: block;" data-i18n="t_kategorie">Categories:</span>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.3rem;">
+                                @foreach (var cat in Model.Categories)
+                                {
+                                    <span style="background: rgba(123, 44, 191, 0.2); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.85rem; color: #d8b4fe;">@cat.Name</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <a asp-controller="Home" asp-action="Watch" asp-route-id="@Model.Video.Id" class="nfx-btn nfx-btn-primary" data-i18n="t_odtworz">
+                        ▶ Play
+                    </a>
+                    <a asp-action="Movies" class="nfx-btn nfx-btn-secondary" data-i18n="t_wroc_do_katalogu">
+                        ← Back to Movies
+                    </a>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Comments Section -->
+        <div style="background: rgba(10, 17, 40, 0.6); backdrop-filter: blur(16px); border: 1px solid rgba(123, 44, 191, 0.2); border-radius: var(--border-radius); padding: 2rem; margin-bottom: 4rem;">
+            <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.8rem;" data-i18n="t_komentarze">
+                Comments
+            </h2>
+
+            @if (Model.Comments != null && Model.Comments.Any())
+            {
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    @foreach (var comment in Model.Comments)
+                    {
+                        <div style="background: rgba(4, 8, 20, 0.5); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <strong style="color: var(--color-accent-hover);">User #@comment.UserId</strong>
+                                <span style="color: var(--color-text-secondary); font-size: 0.8rem;">@comment.UpdatedAt.ToString("g")</span>
+                            </div>
+                            <p style="margin: 0; color: #ddd; font-size: 0.95rem;">@comment.Content</p>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p style="color: var(--color-text-secondary); margin: 0;" data-i18n="t_brak_komentarzy">No comments yet. Be the first to share your review!</p>
+            }
+        </div>
+
+    </div>
+</div>

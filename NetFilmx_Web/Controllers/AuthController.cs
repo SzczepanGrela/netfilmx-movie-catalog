@@ -112,9 +112,8 @@ namespace NetFilmx_Web.Controllers
             return RedirectToAction(nameof(Login));
         }
 
-        [Authorize]
-        [HttpPost("logout")]
-        [ValidateAntiForgeryToken]
+        [AcceptVerbs("GET", "POST")]
+        [Route("logout")]
         public async Task<IActionResult> Logout()
         {
             var refreshTokenCookie = Request.Cookies["refresh_token"];
@@ -126,7 +125,7 @@ namespace NetFilmx_Web.Controllers
             Response.Cookies.Delete("access_token");
             Response.Cookies.Delete("refresh_token");
 
-            return RedirectToAction("Index", "Home");
+            return RedirectToAction("Index", "Home", new { area = "" });
         }
 
         // We keep this for SPA-like AJAX calls if needed (e.g. for checking session from JS)

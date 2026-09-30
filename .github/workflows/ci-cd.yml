@@ -70,6 +70,20 @@ jobs:
       (needs.changes.outputs.app == 'true') ||
       (needs.changes.outputs.infra == 'true')
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: netfilmx_db
+          POSTGRES_USER: netfilmx_user
+          POSTGRES_PASSWORD: netfilmx_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 

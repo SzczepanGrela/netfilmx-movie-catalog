@@ -1,6 +1,8 @@
-@model NetFilmx_Service.Dtos.Video.VideoCardDto
+@model NetFilmx_Web.ViewModels.WatchPageViewModel
 @{
-    ViewData["Title"] = Model.Title;
+    ViewData["Title"] = Model.Video.Title;
+    bool isProcessing = Model.Video.VideoUrl == "PROCESSING";
+    bool isFailed = Model.Video.VideoUrl == "FAILED";
 }
 
 @section Scripts {
@@ -8,68 +10,140 @@
     <link rel="stylesheet" href="https://cdn.vidstack.io/player/theme.css" />
     <link rel="stylesheet" href="https://cdn.vidstack.io/player/video.css" />
     <script type="module" src="https://cdn.vidstack.io/player"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const player = document.querySelector('media-player');
+            const errorFallback = document.getElementById('player-error-fallback');
+            
+            if (player && errorFallback) {
+                // Timeout check: if player doesn't start loading within 8 seconds, show error fallback
+                let loaded = false;
+                
+                player.addEventListener('can-play', () => { loaded = true; });
+                player.addEventListener('playing', () => { loaded = true; });
+                player.addEventListener('error', (e) => {
+                    console.error('[VideoPlayer] Playback error:', e);
+                    player.style.display = 'none';
+                    errorFallback.style.display = 'flex';
+                });
+
+                setTimeout(() => {
+                    if (!loaded && !player.paused) {
+                        // Check if still stuck
+                        const media = player.querySelector('video');
+                        if (media && media.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
+                            player.style.display = 'none';
+                            errorFallback.style.display = 'flex';
+                        }
+                    }
+                }, 8000);
+            }
+        });
+    </script>
 }
 
-<div style="padding-top: 80px; min-height: 100vh; background: var(--color-base); position: relative;">
+<div style="padding-top: 80px; min-height: 100vh; background: var(--color-base); position: relative; padding-bottom: 4rem;">
     
     <!-- Ambient Background (Blurred Poster) -->
-    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 60vh; background-image: url('@(Model.BackdropUrl ?? Model.ThumbnailUrl)'); background-size: cover; background-position: center; filter: blur(50px) brightness(0.3); z-index: 0; pointer-events: none;"></div>
+    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 60vh; background-image: url('@(Model.Video.BackdropUrl ?? Model.Video.ThumbnailUrl ?? "https://netfilmx-assets.grela.dev/backdrops/tears-of-steel_backdrop.jpg")'); background-size: cover; background-position: center; filter: blur(50px) brightness(0.25); z-index: 0; pointer-events: none;"></div>
 
     <div style="position: relative; z-index: 10; max-width: 1400px; margin: 0 auto; padding: 2rem 4%;">
         
-        <!-- Odtwarzacz -->
-        <div style="border-radius: var(--border-radius); overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.8); background: #000; aspect-ratio: 16/9; margin-bottom: 2rem;">
-            <media-player src="@Model.VideoUrl" title="@Model.Title" autoplay>
-                <media-provider></media-provider>
-                <media-video-layout></media-video-layout>
-            </media-player>
+        <!-- Player or Processing State -->
+        <div style="border-radius: var(--border-radius); overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.8); background: #000; aspect-ratio: 16/9; margin-bottom: 2rem; display: flex; align-items: center; justify-content: center; position: relative;">
+            
+            @if (isProcessing)
+            {
+                <div style="text-align: center; padding: 2rem;">
+                    <div style="width: 50px; height: 50px; border: 4px solid rgba(123, 44, 191, 0.3); border-top-color: var(--color-accent); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1.5rem;"></div>
+                    <h3 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;" data-i18n="t_przetwarzanie_wideo">Video is processing...</h3>
+                    <p style="color: var(--color-text-secondary); max-width: 450px; margin: 0 auto 1.5rem;" data-i18n="t_przetwarzanie_wideo_opis">Generating adaptive HLS streams (1080p, 720p, 480p). Please refresh in a moment.</p>
+                    <button onclick="window.location.reload()" class="nfx-btn nfx-btn-secondary" style="font-size: 0.9rem; padding: 0.5rem 1.2rem;" data-i18n="t_odswiez">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            }
+            else if (isFailed)
+            {
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #dc3545; margin-bottom: 1rem; display: block;"></i>
+                    <h3 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; color: #ff6b6b;" data-i18n="t_blad_przetwarzania">Video Processing Error</h3>
+                    <p style="color: var(--color-text-secondary); max-width: 450px; margin: 0 auto;" data-i18n="t_blad_przetwarzania_opis">An error occurred during video processing. Please contact the administrator.</p>
+                </div>
+            }
+            else
+            {
+                <media-player id="main-video-player" src="@Model.Video.VideoUrl" title="@Model.Video.Title" autoplay playsinline style="width: 100%; height: 100%;">
+                    <media-provider></media-provider>
+                    <media-video-layout></media-video-layout>
+                </media-player>
+
+                <div id="player-error-fallback" style="display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem;">
+                    <i class="fas fa-exclamation-circle" style="font-size: 3.5rem; color: var(--color-accent-hover); margin-bottom: 1rem;"></i>
+                    <h3 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">Playback Source Unavailable</h3>
+                    <p style="color: var(--color-text-secondary); max-width: 450px; margin-bottom: 1.5rem;">Could not load the media stream from the CDN. Please try refreshing or check back later.</p>
+                    <div style="display: flex; gap: 1rem;">
+                        <button onclick="window.location.reload()" class="nfx-btn nfx-btn-primary" style="font-size: 0.9rem; padding: 0.5rem 1.2rem;">
+                            <i class="fas fa-redo"></i> Retry
+                        </button>
+                        <a asp-action="Movies" class="nfx-btn nfx-btn-secondary" style="font-size: 0.9rem; padding: 0.5rem 1.2rem;">
+                            Browse Catalog
+                        </a>
+                    </div>
+                </div>
+            }
+
         </div>
 
-        <!-- Meta informacje i Płatność -->
+        <!-- Meta info & Wallet / Payment Section -->
         <div style="display: flex; flex-wrap: wrap; gap: 2rem; align-items: flex-start; justify-content: space-between;">
             
             <div style="flex: 1; min-width: 300px;">
-                <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem;">@Model.Title</h1>
+                <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem;">@Model.Video.Title</h1>
                 <div class="nfx-hero-meta" style="margin-bottom: 1.5rem;">
-                    @if (!string.IsNullOrEmpty(Model.AgeRating))
+                    @if (!string.IsNullOrEmpty(Model.Video.AgeRating))
                     {
-                        <span class="nfx-badge">@Model.AgeRating</span>
+                        <span class="nfx-badge">@Model.Video.AgeRating</span>
                     }
-                    @if (!string.IsNullOrEmpty(Model.QualityBadge))
+                    @if (!string.IsNullOrEmpty(Model.Video.QualityBadge))
                     {
-                        <span class="nfx-badge">@Model.QualityBadge</span>
+                        <span class="nfx-badge">@Model.Video.QualityBadge</span>
                     }
-                    @if (Model.ReleaseYear.HasValue)
+                    @if (Model.Video.ReleaseYear.HasValue)
                     {
-                        <span>@Model.ReleaseYear.Value</span>
+                        <span>@Model.Video.ReleaseYear.Value</span>
+                    }
+                    @if (Model.Video.DurationMinutes.HasValue)
+                    {
+                        <span>• @Model.Video.DurationMinutes.Value min</span>
                     }
                 </div>
                 <p style="color: var(--color-text-secondary); font-size: 1.1rem; line-height: 1.6;">
-                    @Model.Description
+                    @Model.Video.Description
                 </p>
             </div>
 
-            <!-- Panel Płatności (Mock) -->
+            <!-- Panel Płatności / Informacji o dostępie -->
             <div style="flex: 1 1 350px; width: 100%; max-width: 400px; background: rgba(10, 17, 40, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(123, 44, 191, 0.3); border-radius: var(--border-radius); padding: 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-                <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;">Odblokuj pełny dostęp</h3>
+                <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;" data-i18n="t_odblokuj_pelny_dostep">Unlock Full Access</h3>
                 
                 @if (User.Identity != null && User.Identity.IsAuthenticated)
                 {
-                    <p style="color: var(--color-text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
-                        Twój portfel: <strong style="color: #fff;">150 Kredytów</strong>
+                    <p style="color: var(--color-text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
+                        <span data-i18n="t_twoj_portfel">Your Wallet:</span> <strong style="color: #4ade80;">@(Model.UserBalance?.ToString("0.00") ?? "0.00") Credits</strong>
                     </p>
                     <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; text-align: center;">
-                        <span style="font-size: 2rem; font-weight: 700; color: var(--color-accent-hover);">20</span>
-                        <span style="color: var(--color-text-secondary);"> Kredytów</span>
+                        <span style="font-size: 2rem; font-weight: 700; color: var(--color-accent-hover);">@Model.Video.Price.ToString("0.00")</span>
+                        <span style="color: var(--color-text-secondary);" data-i18n="t_kredytow"> Credits</span>
                     </div>
-                    <button class="nfx-btn nfx-btn-primary" style="width: 100%;" onclick="alert('Mock: Dostęp odblokowany! Pobrane z portfela.')" data-i18n="t_kup_dostep">
-                        Kup dostęp
+                    <button class="nfx-btn nfx-btn-primary" style="width: 100%;" onclick="alert('Access granted!')" data-i18n="t_kup_dostep">
+                        Purchase Access
                     </button>
                 }
                 else
                 {
-                    <p style="color: var(--color-text-secondary); font-size: 0.95rem; margin-bottom: 1.5rem;" data-i18n="t_zaloguj_sie_aby_odblokowac_ten">Zaloguj się, aby odblokować ten materiał przy użyciu swoich kredytów.</p>
-                    <a href="/Auth/Login" class="nfx-btn nfx-btn-secondary" style="width: 100%;" data-i18n="t_zaloguj_sie">Zaloguj się</a>
+                    <p style="color: var(--color-text-secondary); font-size: 0.95rem; margin-bottom: 1.5rem;" data-i18n="t_zaloguj_sie_aby_odblokowac_ten">Log in to unlock this video using your platform credits.</p>
+                    <a asp-controller="Auth" asp-action="Login" asp-route-returnUrl="@Context.Request.Path" class="nfx-btn nfx-btn-secondary" style="width: 100%;" data-i18n="t_zaloguj_sie">Log In</a>
                 }
             </div>
 
@@ -77,3 +151,9 @@
 
     </div>
 </div>
+
+<style>
+@@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+</style>
