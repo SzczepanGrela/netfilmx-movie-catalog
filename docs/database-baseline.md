@@ -3,6 +3,11 @@
 This branch prepares NetFilmx for a separate PostgreSQL database. It is not yet
 a production deployment or a completed data import.
 
+The recovered local commits included about 1.7 GB of media in `r2_assets/`.
+Those files remain in the original local checkout/source backup and are excluded
+from this branch's new history and Docker context. Media belong in object
+storage; this source reconciliation neither uploads nor deletes R2 objects.
+
 ## Provider-specific migrations
 
 - `NetFilmx_Storage/Migrations` retains the legacy SQLite history.

@@ -371,3 +371,4 @@ FodyWeavers.xsd
 appsettings.json
 appsettings.*.json
 upload_to_r2.sh
+r2_assets/
