@@ -93,10 +93,10 @@ Before implementing or running the import:
 5. Rehearse import into a separate PostgreSQL database. Preserve identifiers
    where required, reset identity sequences after explicit-ID inserts, and
    validate counts, relationships, playback and thumbnails.
-6. Prevent new uploads from colliding with retained object prefixes. Current
-   processing uses `videos/{videoId}/hls`; restarting IDs at one is unsafe when
-   the old objects remain. A separate asset identity or a verified preserved-ID
-   strategy is required before enabling uploads.
+6. Keep the [media-lifetime policy](retained-catalogue.md#media-lifetime-and-upload-keys):
+   new uploads use random object keys rather than database IDs, and catalogue
+   deletion retains media. Qualify durable staging, worker/retry coordination
+   and orphan retention before enabling production uploads.
 
 No live database or R2 objects have been changed by this preparatory work.
 

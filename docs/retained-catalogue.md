@@ -70,7 +70,33 @@ create accounts, import user history, schedule jobs, delete rows or mutate
 object storage. Preserve the old database independently; this command is not
 a backup, recovery tool or migration of existing account balances.
 
-The import's URLs are independent of database IDs. The existing upload/delete
-handlers still need an explicit object-ownership policy before production:
-their historical `videos/{id}/...` assumptions must not delete unrelated
-retained objects. Successful local import tests do not close that release gate.
+## Media lifetime and upload keys
+
+Catalogue deletion removes the database entry and search entry; it retains the
+video, poster and backdrop. URLs may refer to retained objects or be shared by
+several entries, so neither a URL nor a database ID is proof of exclusive
+ownership. The application's storage interface has no object-delete operation.
+Physical deletion requires a separate reviewed inventory of references and
+recovery copies. Do not apply an expiry lifecycle to the media bucket as if it
+were a temporary-upload or backup bucket.
+
+New uploads allocate fresh random keys, independent of the catalogue IDs:
+
+- Posters: `uploads/posters/<uuid>.jpg|.png|.webp`.
+- HLS: `uploads/videos/<uuid>/hls/master.m3u8` and its sibling playlists/segments.
+
+Each upload attempt uses a new namespace, including retries for the same film.
+The storage service returns a URL from the configured HTTPS media origin only
+after the upload succeeds. Missing configuration fails the upload; it does not
+fabricate a URL or publish an ephemeral local HLS fallback. Input filenames do
+not determine object keys or staging filenames. Poster MIME types are restricted
+to JPEG/PNG/WebP; this is not a substitute for validating and decoding their
+contents, which remains part of the upload-security gate.
+
+Failed uploads or a later failed database commit can leave unreferenced objects.
+They are retained, not automatically deleted. Processing failures retain the
+source for retry. A durable staging area, bounded workers, retry/concurrency
+coordination and an explicit orphan-retention policy remain release gates.
+This change avoids overwriting retained objects but is not an asset registry
+or production worker acceptance. Successful local import/upload tests do not
+close those gates or prove browser playback.

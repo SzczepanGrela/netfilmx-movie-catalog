@@ -84,6 +84,11 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 ModelState.AddModelError("VideoUrl", "Musisz podać plik wideo lub link z YouTube.");
             }
 
+            if ((model.ThumbnailFile?.Length > 0 || model.VideoFile?.Length > 0) && !_storageService.IsConfigured)
+                ModelState.AddModelError("", "Wysyłanie plików wymaga skonfigurowanego magazynu mediów.");
+            if (model.ThumbnailFile?.Length > 0 && model.ThumbnailFile.ContentType is not ("image/jpeg" or "image/png" or "image/webp"))
+                ModelState.AddModelError("ThumbnailFile", "Plakat musi być obrazem JPEG, PNG lub WebP.");
+
             if (!ModelState.IsValid)
             {
                 return View(model);
@@ -93,17 +98,17 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
             string thumbnailUrl = model.ThumbnailUrl ?? "";
             if (model.ThumbnailFile != null && model.ThumbnailFile.Length > 0)
             {
-                string tempThumbPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}_{model.ThumbnailFile.FileName}");
-                using (var stream = new FileStream(tempThumbPath, FileMode.Create))
+                string tempThumbPath = Path.Combine(Path.GetTempPath(), $"netfilmx-poster-{Guid.NewGuid():N}");
+                try
                 {
-                    await model.ThumbnailFile.CopyToAsync(stream);
+                    await using (var stream = new FileStream(tempThumbPath, FileMode.CreateNew))
+                        await model.ThumbnailFile.CopyToAsync(stream);
+                    thumbnailUrl = await _storageService.UploadPosterAsync(tempThumbPath, model.ThumbnailFile.ContentType);
                 }
-                
-                string objectKey = $"thumbnails/{Guid.NewGuid()}{Path.GetExtension(model.ThumbnailFile.FileName)}";
-                thumbnailUrl = await _storageService.UploadFileAsync(tempThumbPath, objectKey, model.ThumbnailFile.ContentType);
-                
-                if (System.IO.File.Exists(tempThumbPath))
+                finally
+                {
                     System.IO.File.Delete(tempThumbPath);
+                }
             }
 
             // Set placeholder if file is provided
@@ -161,7 +166,7 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 if (!Directory.Exists(uploadsDir))
                     Directory.CreateDirectory(uploadsDir);
 
-                string filePath = Path.Combine(uploadsDir, $"{Guid.NewGuid()}_{model.VideoFile.FileName}");
+                string filePath = Path.Combine(uploadsDir, $"{Guid.NewGuid():N}.upload");
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
                     await model.VideoFile.CopyToAsync(stream);

@@ -1,13 +1,9 @@
-using System.Threading.Tasks;
+namespace NetFilmx_Service.Storage;
 
-namespace NetFilmx_Service.Storage
+// Uploads allocate their own keys. Catalogue deletion has no storage-delete capability.
+public interface ICloudStorageService
 {
-    public interface ICloudStorageService
-    {
-        bool IsConfigured { get; }
-        Task<string> UploadFileAsync(string filePath, string objectKey, string contentType = "application/octet-stream");
-        Task UploadDirectoryAsync(string directoryPath, string targetPrefix);
-        Task DeleteFileAsync(string objectKey);
-        Task DeleteDirectoryAsync(string targetPrefix);
-    }
+    bool IsConfigured { get; }
+    Task<string> UploadPosterAsync(string filePath, string contentType);
+    Task<string> UploadHlsAsync(string directoryPath);
 }

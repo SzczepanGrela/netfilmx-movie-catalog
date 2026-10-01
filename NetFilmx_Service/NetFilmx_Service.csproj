@@ -20,4 +20,8 @@
     <ProjectReference Include="..\NetFilmx_Storage\NetFilmx_Storage.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="NetFilmx_Tests" />
+  </ItemGroup>
+
 </Project>

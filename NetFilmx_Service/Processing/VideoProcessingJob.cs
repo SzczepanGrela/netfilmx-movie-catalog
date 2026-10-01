@@ -43,6 +43,9 @@ namespace NetFilmx_Service.Processing
 
             try
             {
+                if (!_cloudStorageService.IsConfigured)
+                    throw new InvalidOperationException("R2 must be configured before processing uploads.");
+
                 // Run FFmpeg to generate adaptive HLS
                 bool success = _ffmpegService.RunFFmpegHls(inputFilePath, outputDir);
                 if (!success)
@@ -50,31 +53,10 @@ namespace NetFilmx_Service.Processing
                     _logger.LogError("Błąd podczas konwersji FFmpeg dla wideo {VideoId}", videoId);
                     video.VideoUrl = "FAILED";
                     await _dbContext.SaveChangesAsync();
-                    CleanupInputFile(inputFilePath);
                     return;
                 }
 
-                string masterPlaylistUrl;
-                if (_cloudStorageService.IsConfigured)
-                {
-                    _logger.LogInformation("Wysyłanie pakietu HLS do Cloudflare R2 dla wideo {VideoId}...", videoId);
-                    string r2Prefix = $"videos/{videoId}/hls";
-                    await _cloudStorageService.UploadDirectoryAsync(outputDir, r2Prefix);
-                    masterPlaylistUrl = $"https://netfilmx-assets.grela.dev/{r2Prefix}/master.m3u8";
-                }
-                else
-                {
-                    _logger.LogInformation("Cloudflare R2 nie jest skonfigurowane. Zapisywanie HLS lokalnie w wwwroot/hls/{VideoId}...", videoId);
-                    string localHlsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "hls", videoId.ToString());
-                    if (Directory.Exists(localHlsDir)) Directory.Delete(localHlsDir, true);
-                    Directory.CreateDirectory(localHlsDir);
-
-                    foreach (var file in Directory.GetFiles(outputDir))
-                    {
-                        File.Copy(file, Path.Combine(localHlsDir, Path.GetFileName(file)), true);
-                    }
-                    masterPlaylistUrl = $"/hls/{videoId}/master.m3u8";
-                }
+                string masterPlaylistUrl = await _cloudStorageService.UploadHlsAsync(outputDir);
 
                 // Update database with the new HLS master playlist URL
                 video.VideoUrl = masterPlaylistUrl;
@@ -90,7 +72,7 @@ namespace NetFilmx_Service.Processing
                 _logger.LogError(ex, "Błąd krytyczny podczas przetwarzania wideo {VideoId}.", videoId);
                 video.VideoUrl = "FAILED";
                 await _dbContext.SaveChangesAsync();
-                CleanupInputFile(inputFilePath);
+                // Preserve the source for a retry; staged-file retention needs its own policy.
                 throw;
             }
             finally
