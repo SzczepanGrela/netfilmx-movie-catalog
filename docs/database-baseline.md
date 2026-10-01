@@ -100,6 +100,12 @@ Before implementing or running the import:
 
 No live database or R2 objects have been changed by this preparatory work.
 
+For the accepted fresh catalogue direction, see the
+[retained-media plan and explicit import command](retained-catalogue.md).
+It keeps the original source keys, deduplicates the seven selected entries,
+and refuses import while two playback derivatives remain pending. It does
+not blindly copy the legacy YouTube catalogue or local demo streams.
+
 ## Remaining release gates
 
 The branch preserves previously unpublished work, not just the database fix.

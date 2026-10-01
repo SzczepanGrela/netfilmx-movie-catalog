@@ -12,6 +12,14 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
+// Administrative bootstrap is explicit and never starts HTTP, Hangfire or
+// automatic startup migrations. The default application path is unchanged.
+if (args.Length > 0 && args[0] == "catalogue")
+{
+    Environment.ExitCode = await NetFilmx_Web.CatalogueCommand.RunAsync(args[1..]);
+    return;
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddAuthentication(options =>

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using NetFilmx_Storage.Context;
 using NetFilmx_Storage.Entities;
 using Npgsql;
+using NetFilmx_Storage.PostgreSql.Catalogue;
 
 namespace NetFilmx_Tests.Integration;
 
@@ -89,6 +90,79 @@ public sealed class PostgreSqlMigrationTests : IAsyncLifetime
         db.Videos.Remove(await db.Videos.SingleAsync());
         await db.SaveChangesAsync();
         Assert.False(await db.VideoTranslations.AnyAsync());
+    }
+
+    [PostgreSqlFact]
+    public async Task CatalogueImport_CreatesRetainedLinks_AndRefusesRepeatWithoutChangingData()
+    {
+        await using var db = OpenContext();
+        await db.Database.MigrateAsync();
+        var plan = ReadyTestCatalogue();
+        await CatalogueImporter.ImportAsync(db, plan, "https://media.example.test");
+        db.ChangeTracker.Clear();
+        Assert.Equal(7, await db.Videos.CountAsync());
+        Assert.False(await db.Users.AnyAsync());
+        Assert.False(await db.Bundles.AnyAsync());
+        Assert.Equal(3, (await db.Series.Include(s => s.Videos).SingleAsync()).Videos.Count);
+        var originals = await db.Videos.OrderBy(v => v.Id).Select(v => v.VideoUrl).ToArrayAsync();
+        Assert.All(originals, url => Assert.StartsWith("https://media.example.test/videos/", url));
+        Assert.Equal("https://media.example.test/videos/caminandes-gran-dillama.mp4",
+            (await db.Videos.SingleAsync(v => v.Title == "Caminandes: Gran Dillama")).VideoUrl);
+        Assert.All(await db.Videos.ToArrayAsync(), video => Assert.Equal(DateTimeKind.Utc, video.CreatedAt.Kind));
+
+        await Assert.ThrowsAsync<CatalogueImportException>(() =>
+            CatalogueImporter.ImportAsync(db, plan, "https://other.example.test"));
+        Assert.Equal(originals, await db.Videos.OrderBy(v => v.Id).Select(v => v.VideoUrl).ToArrayAsync());
+        var maxId = await db.Videos.MaxAsync(v => v.Id);
+        var next = new Video("Additional film", "Test", 0, "/next.mp4", "/next.jpg");
+        db.Videos.Add(next);
+        await db.SaveChangesAsync();
+        Assert.True(next.Id > maxId);
+    }
+
+    [PostgreSqlFact]
+    public async Task CatalogueImport_RefusesUnpreparedMediaAndExistingAccounts()
+    {
+        await using var db = OpenContext();
+        await db.Database.MigrateAsync();
+        await Assert.ThrowsAsync<CatalogueImportException>(() =>
+            CatalogueImporter.ImportAsync(db, CataloguePlan.Load(), "https://media.example.test"));
+        Assert.False(await db.Videos.AnyAsync());
+        Assert.False(await db.Series.AnyAsync());
+        db.Users.Add(new User("retained-user", "retained@example.test", "test-only-hash"));
+        await db.SaveChangesAsync();
+        await Assert.ThrowsAsync<CatalogueImportException>(() =>
+            CatalogueImporter.ImportAsync(db, ReadyTestCatalogue(), "https://media.example.test"));
+        Assert.Equal("retained-user", (await db.Users.SingleAsync()).Username);
+        Assert.False(await db.Videos.AnyAsync());
+        Assert.False(await db.Series.AnyAsync());
+    }
+
+    private static CataloguePlan ReadyTestCatalogue()
+    {
+        var plan = CataloguePlan.Load();
+        // Synthetic derivative paths in a disposable DB, never a claim that
+        // those missing production objects were uploaded or verified.
+        return plan with
+        {
+            Videos = plan.Videos.Select(v => v.PlaybackObjectKey is null
+                ? v with { PlaybackObjectKey = $"videos/test-derivatives/{v.Slug}.mp4" } : v).ToArray()
+        };
+    }
+
+    [PostgreSqlFact]
+    public async Task CatalogueImport_RollsBackAllRowsWhenAnInsertFails()
+    {
+        await using var db = OpenContext();
+        await db.Database.MigrateAsync();
+        await db.Database.ExecuteSqlRawAsync("""
+            ALTER TABLE "Videos" ADD CONSTRAINT test_catalogue_failure CHECK ("Title" <> 'Charge')
+            """);
+        await Assert.ThrowsAsync<DbUpdateException>(() =>
+            CatalogueImporter.ImportAsync(db, ReadyTestCatalogue(), "https://media.example.test"));
+        db.ChangeTracker.Clear();
+        Assert.False(await db.Videos.AnyAsync());
+        Assert.False(await db.Series.AnyAsync());
     }
 
     public async Task DisposeAsync()
