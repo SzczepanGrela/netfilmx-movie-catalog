@@ -9,7 +9,9 @@ RUN dotnet publish "NetFilmx_Web/NetFilmx_Web.csproj" \
 # Stage 2: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
-RUN adduser --disabled-password --no-create-home appuser
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+RUN adduser --uid 10001 --disabled-password --no-create-home appuser
 COPY --from=build /app/publish .
 RUN mkdir -p /app/data && chown -R appuser:appuser /app
 USER appuser

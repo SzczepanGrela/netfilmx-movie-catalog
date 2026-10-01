@@ -3,6 +3,9 @@ using NetFilmx_Storage.Context;
 using NetFilmx_Storage.Entities;
 using Npgsql;
 using NetFilmx_Storage.PostgreSql.Catalogue;
+using Hangfire;
+using Hangfire.PostgreSql;
+using NetFilmx_Web.Services;
 
 namespace NetFilmx_Tests.Integration;
 
@@ -37,12 +40,44 @@ public sealed class PostgreSqlMigrationTests : IAsyncLifetime
             .Options);
 
     [PostgreSqlFact]
+    public async Task UploadIntentAndQueue_SurviveNewDatabaseAndQueueConnections()
+    {
+        string uploadId = Guid.NewGuid().ToString("N");
+        await using (var db = OpenContext())
+        {
+            await db.Database.MigrateAsync();
+            db.Videos.Add(new Video("Upload", "Retained source", 1, "PROCESSING", "/cover.jpg") { SourceUploadId = uploadId });
+            await db.SaveChangesAsync();
+        }
+        await using (var connection = new NpgsqlConnection(_testConnection))
+        {
+            var options = new PostgreSqlStorageOptions();
+            var storage = new PostgreSqlStorage(new Hangfire.PostgreSql.Factories.ExistingNpgsqlConnectionFactory(connection, options), options);
+            await using var db = OpenContext();
+            await UploadDispatcher.DispatchAsync(db, new BackgroundJobClient(storage), CancellationToken.None);
+        }
+        await using var readDb = OpenContext();
+        var saved = await readDb.Videos.SingleAsync();
+        Assert.Equal(uploadId, saved.SourceUploadId);
+        Assert.NotNull(saved.UploadJobId);
+        await using var reopened = new NpgsqlConnection(_testConnection);
+        var reopenedOptions = new PostgreSqlStorageOptions();
+        var reopenedStorage = new PostgreSqlStorage(new Hangfire.PostgreSql.Factories.ExistingNpgsqlConnectionFactory(reopened, reopenedOptions), reopenedOptions);
+        using var queue = reopenedStorage.GetConnection();
+        var job = queue.GetJobData(saved.UploadJobId);
+        Assert.Equal(typeof(VideoJobRunner), job.Job.Type);
+        Assert.Equal(saved.Id, job.Job.Args[0]);
+        Assert.Equal(uploadId, job.Job.Args[1]);
+        Assert.Equal("video", queue.GetStateData(saved.UploadJobId).Data["Queue"]);
+    }
+
+    [PostgreSqlFact]
     public async Task Migrate_CreatesEmptySchema_AndCanRunAgainWithoutChangingData()
     {
         await using var db = OpenContext();
         await db.Database.MigrateAsync();
         var migrations = (await db.Database.GetAppliedMigrationsAsync()).ToArray();
-        Assert.Single(migrations);
+        Assert.Equal(2, migrations.Length);
         Assert.EndsWith("_InitialPostgreSql", migrations[0]);
         Assert.False(await db.Users.AnyAsync());
         Assert.False(await db.Videos.AnyAsync());

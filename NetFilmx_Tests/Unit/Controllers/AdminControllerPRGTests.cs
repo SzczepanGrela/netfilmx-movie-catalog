@@ -45,7 +45,7 @@ namespace NetFilmx_Tests.Unit.Controllers
         {
             var dbContext = NetFilmx_Tests.Helpers.TestDbContextFactory.Create();
             var searchEngineMock = new Mock<NetFilmx_Service.Search.ISearchEngine>();
-            var controller = new VideoController(_mediatorMock.Object, _storageMock.Object, dbContext, searchEngineMock.Object);
+            var controller = new VideoController(_mediatorMock.Object, _storageMock.Object, new NetFilmx_Service.Processing.UploadStagingStore(false, null), dbContext, searchEngineMock.Object);
             SetupTempData(controller);
 
             _mediatorMock.Setup(m => m.Send(It.IsAny<DeleteVideoCommand>(), default))

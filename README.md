@@ -9,7 +9,7 @@ NetFilmx to zaawansowana aplikacja webowa VOD (Video on Demand) w technologii AS
 
 ## Główne Funkcjonalności
 
-- **Przetwarzanie Wideo (FFmpeg + Hangfire)**: Wgrywane pliki .mp4 są asynchronicznie, w tle (Fire-and-Forget) konwertowane do formatu HLS (.m3u8 i segmenty .ts), co gwarantuje płynne przesyłanie strumieniowe bez zapychania procesu serwera webowego.
+- **Przetwarzanie wideo (FFmpeg + Hangfire)**: Opcjonalne uploady są konwertowane w tle do HLS. Wymagają prywatnego trwałego katalogu, PostgreSQL i R2; domyślnie są wyłączone. [Konfiguracja i ograniczenia](docs/upload-processing.md).
 - **Zewnętrzny Storage (Cloudflare R2)**: Zoptymalizowane przechowywanie plików statycznych oraz segmentów wideo z wykorzystaniem technologii S3 (AWS SDK).
 - **Architektura CQRS (MediatR)**: Logika biznesowa i operacje wejścia/wyjścia podzielone są na komendy (Commands) i zapytania (Queries), co poprawia testowalność i modularność.
 - **Bezpieczeństwo**:

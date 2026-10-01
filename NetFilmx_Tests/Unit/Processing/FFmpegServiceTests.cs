@@ -1,37 +1,50 @@
-using FluentAssertions;
 using NetFilmx_Service.Processing;
-using System.IO;
-using Xunit;
 
-namespace NetFilmx_Tests.Unit.Processing
+namespace NetFilmx_Tests.Unit.Processing;
+
+public class FFmpegServiceTests
 {
-    public class FFmpegServiceTests
+    [Fact]
+    public async Task SilentSyntheticVideo_ProducesFiniteHls()
     {
-        [Fact]
-        public void RunFFmpegHls_WhenInputFileDoesNotExist_ShouldFail()
+        string directory = Path.Combine(Path.GetTempPath(), "netfilmx-ffmpeg-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
         {
-            // Arrange
-            var service = new FFmpegService();
-            string inputPath = "non_existent_video.mp4";
-            string outputDir = Path.GetTempPath();
-
-            // Act
-            // If ffmpeg runs and cannot find the file, it will return non-zero exit code.
-            // Note: This requires ffmpeg to be installed on the system where the test runs.
-            // If ffmpeg is missing, this might throw an exception. We'll catch it or assume ffmpeg is available.
-            try
-            {
-                bool result = service.RunFFmpegHls(inputPath, outputDir);
-                
-                // Assert
-                result.Should().BeFalse();
-            }
-            catch (System.ComponentModel.Win32Exception)
-            {
-                // FFmpeg is not installed on the test machine, which is fine.
-                // In a real environment, we'd mock the process execution.
-                Assert.True(true, "FFmpeg is not installed, skipping test.");
-            }
+            string input = Path.Combine(directory, "source.mp4");
+            string output = Path.Combine(directory, "hls");
+            Directory.CreateDirectory(output);
+            var generated = await MediaProcess.RunAsync("ffmpeg",
+                $"-nostdin -f lavfi -i color=c=black:s=64x64:r=10 -t 0.3 -c:v libx264 -threads 1 -pix_fmt yuv420p \"{input}\"",
+                TimeSpan.FromSeconds(10), CancellationToken.None);
+            Assert.Equal(0, generated.ExitCode);
+            using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            await new FFmpegService().RunFFmpegHlsAsync(input, output, stop.Token);
+            Assert.Contains("#EXTM3U", await File.ReadAllTextAsync(Path.Combine(output, "master.m3u8")));
+            Assert.NotEmpty(Directory.GetFiles(output, "*.ts"));
         }
+        finally { Directory.Delete(directory, true); }
+    }
+
+    [Fact]
+    public async Task MissingSource_FailsBeforeStartingAProcess() =>
+        await Assert.ThrowsAsync<FileNotFoundException>(() => new FFmpegService()
+            .RunFFmpegHlsAsync("non-existent.mp4", Path.GetTempPath(), CancellationToken.None));
+
+    [Fact]
+    public async Task ProcessDeadline_StopsARealLongRunningProcess()
+    {
+        if (OperatingSystem.IsWindows()) return;
+        await Assert.ThrowsAsync<TimeoutException>(() => MediaProcess.RunAsync("/bin/sh", "-c \"sleep 30\"",
+            TimeSpan.FromMilliseconds(100), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Cancellation_IsDistinctFromDeadline()
+    {
+        if (OperatingSystem.IsWindows()) return;
+        using var stop = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => MediaProcess.RunAsync("/bin/sh", "-c \"sleep 30\"",
+            TimeSpan.FromMinutes(1), stop.Token));
     }
 }

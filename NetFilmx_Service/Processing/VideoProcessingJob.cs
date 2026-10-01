@@ -1,110 +1,72 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NetFilmx_Service.Storage;
 using NetFilmx_Storage.Context;
-using System;
-using System.IO;
-using System.Threading.Tasks;
 
-namespace NetFilmx_Service.Processing
+namespace NetFilmx_Service.Processing;
+
+public sealed class VideoProcessingJob(
+    ILogger<VideoProcessingJob> logger, ICloudStorageService storage,
+    NetFilmxDbContext db, IFFmpegService ffmpeg, UploadStagingStore staging)
 {
-    public class VideoProcessingJob
+    public async Task ProcessVideoAsync(int videoId, string uploadId, CancellationToken token)
     {
-        private readonly ILogger<VideoProcessingJob> _logger;
-        private readonly ICloudStorageService _cloudStorageService;
-        private readonly NetFilmxDbContext _dbContext;
-        private readonly IFFmpegService _ffmpegService;
-
-        public VideoProcessingJob(ILogger<VideoProcessingJob> logger, ICloudStorageService cloudStorageService, NetFilmxDbContext dbContext, IFFmpegService ffmpegService)
+        // One conversion at a time across instances sharing the same VPS staging mount.
+        using var workerLock = await staging.AcquireWorkerLockAsync(token);
+        var video = await db.Videos.SingleOrDefaultAsync(v => v.Id == videoId, token);
+        if (video is null || video.SourceUploadId != uploadId) return;
+        if (video.VideoUrl is not ("PROCESSING" or "FAILED"))
         {
-            _logger = logger;
-            _cloudStorageService = cloudStorageService;
-            _dbContext = dbContext;
-            _ffmpegService = ffmpegService;
+            // Duplicate delivery after a committed result must not transcode/upload again.
+            TryRemoveSource(uploadId);
+            return;
         }
-
-        public async Task ProcessVideoAsync(int videoId, string inputFilePath)
+        string input = staging.InputPath(uploadId);
+        string output = Path.Combine(Path.GetDirectoryName(input)!, "work-" + Guid.NewGuid().ToString("N"));
+        try
         {
-            _logger.LogInformation("Rozpoczynam przetwarzanie HLS dla wideo {VideoId} z pliku {InputPath}", videoId, inputFilePath);
-
-            var video = await _dbContext.Videos.FindAsync(videoId);
-            if (video == null)
+            if (!storage.IsConfigured) throw new InvalidOperationException("R2 uploads are not configured.");
+            if (!File.Exists(input)) throw new IOException("The staged source is missing; restore it before retrying.");
+            Directory.CreateDirectory(output);
+            await ffmpeg.RunFFmpegHlsAsync(input, output, token);
+            string url = await storage.UploadHlsAsync(output, token);
+            token.ThrowIfCancellationRequested();
+            // Respect an admin edit/deletion that happened while this job was running.
+            await db.Entry(video).ReloadAsync(token);
+            if (db.Entry(video).State == EntityState.Detached || video.SourceUploadId != uploadId
+                || video.VideoUrl is not ("PROCESSING" or "FAILED")) return;
+            video.VideoUrl = url;
+            video.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(token);
+            TryRemoveSource(uploadId);
+            logger.LogInformation("Video processing completed for video {VideoId}", videoId);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // Hangfire requeues interrupted work; retain both source and durable intent.
+            throw;
+        }
+        catch
+        {
+            await db.Entry(video).ReloadAsync(CancellationToken.None);
+            if (db.Entry(video).State != EntityState.Detached && video.SourceUploadId == uploadId
+                && video.VideoUrl is "PROCESSING" or "FAILED")
             {
-                _logger.LogError("Nie znaleziono wideo o ID {VideoId}", videoId);
-                CleanupInputFile(inputFilePath);
-                return;
-            }
-
-            // Create temporary output directory for HLS files
-            string outputDir = Path.Combine(Path.GetTempPath(), $"hls_video_{videoId}_{Guid.NewGuid()}");
-            if (!Directory.Exists(outputDir))
-            {
-                Directory.CreateDirectory(outputDir);
-            }
-
-            try
-            {
-                if (!_cloudStorageService.IsConfigured)
-                    throw new InvalidOperationException("R2 must be configured before processing uploads.");
-
-                // Run FFmpeg to generate adaptive HLS
-                bool success = _ffmpegService.RunFFmpegHls(inputFilePath, outputDir);
-                if (!success)
-                {
-                    _logger.LogError("Błąd podczas konwersji FFmpeg dla wideo {VideoId}", videoId);
-                    video.VideoUrl = "FAILED";
-                    await _dbContext.SaveChangesAsync();
-                    return;
-                }
-
-                string masterPlaylistUrl = await _cloudStorageService.UploadHlsAsync(outputDir);
-
-                // Update database with the new HLS master playlist URL
-                video.VideoUrl = masterPlaylistUrl;
-                await _dbContext.SaveChangesAsync();
-
-                _logger.LogInformation("Zakończono pomyślnie przetwarzanie wideo {VideoId}. HLS URL: {Url}", videoId, masterPlaylistUrl);
-
-                // Clean up original input file on success
-                CleanupInputFile(inputFilePath);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Błąd krytyczny podczas przetwarzania wideo {VideoId}.", videoId);
                 video.VideoUrl = "FAILED";
-                await _dbContext.SaveChangesAsync();
-                // Preserve the source for a retry; staged-file retention needs its own policy.
-                throw;
+                await db.SaveChangesAsync(CancellationToken.None);
             }
-            finally
-            {
-                // Clean up local temp output directory
-                if (Directory.Exists(outputDir))
-                {
-                    try
-                    {
-                        Directory.Delete(outputDir, true);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Nie udało się usunąć tymczasowego katalogu HLS {OutputDir}", outputDir);
-                    }
-                }
-            }
+            throw;
         }
-
-        private void CleanupInputFile(string path)
+        finally
         {
-            try
-            {
-                if (File.Exists(path))
-                {
-                    File.Delete(path);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Nie udało się usunąć pliku wejściowego {Path}", path);
-            }
+            if (Directory.Exists(output)) Directory.Delete(output, recursive: true);
         }
+    }
+
+    private void TryRemoveSource(string uploadId)
+    {
+        try { staging.RemoveInput(uploadId); }
+        catch (IOException) { logger.LogWarning("Completed upload {UploadId} retains its staged source for cleanup", uploadId); }
+        catch (UnauthorizedAccessException) { logger.LogWarning("Cannot clean up completed upload {UploadId}", uploadId); }
     }
 }

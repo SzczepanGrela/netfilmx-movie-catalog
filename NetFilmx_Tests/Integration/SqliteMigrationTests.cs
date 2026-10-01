@@ -60,7 +60,7 @@ public sealed class SqliteMigrationTests
         }
 
         await db.Database.MigrateAsync();
-        Assert.Equal(9, (await db.Database.GetAppliedMigrationsAsync()).Count());
+        Assert.Equal(10, (await db.Database.GetAppliedMigrationsAsync()).Count());
         Assert.Empty(await db.Database.GetPendingMigrationsAsync());
         Assert.Equal(3, await db.Videos.CountAsync());
         Assert.Equal(3, await db.Series.CountAsync());

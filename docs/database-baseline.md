@@ -42,6 +42,13 @@ migration while SQLite support is retained. Its design-time factory is in
 `NetFilmx_Storage`. Never edit an already-applied production migration to hide
 schema differences.
 
+`DurableUploadIntent` adds nullable `SourceUploadId` and `UploadJobId` columns
+to Videos in each provider. Existing catalogue entries remain unqueued. The
+historical SQLite snapshot included PostgreSQL type names; its refreshed
+snapshot uses SQLite types, while the actual new migration only adds those two
+columns. It deliberately avoids unrelated table/type rewrites. Video URL and
+upload identity use optimistic concurrency checks when saving worker results.
+
 The PostgreSQL initial migration inserts no accounts or sample catalogue.
 Runtime demo seeding is disabled by default and can only be enabled with
 `Database__SeedDemoData=true` in `Development`. The legacy SQLite migration
@@ -95,8 +102,8 @@ Before implementing or running the import:
    validate counts, relationships, playback and thumbnails.
 6. Keep the [media-lifetime policy](retained-catalogue.md#media-lifetime-and-upload-keys):
    new uploads use random object keys rather than database IDs, and catalogue
-   deletion retains media. Qualify durable staging, worker/retry coordination
-   and orphan retention before enabling production uploads.
+   deletion retains media. Follow the [upload-processing guide](upload-processing.md)
+   for durable staging/queue configuration and remaining production acceptance.
 
 No live database or R2 objects have been changed by this preparatory work.
 

@@ -95,8 +95,8 @@ contents, which remains part of the upload-security gate.
 
 Failed uploads or a later failed database commit can leave unreferenced objects.
 They are retained, not automatically deleted. Processing failures retain the
-source for retry. A durable staging area, bounded workers, retry/concurrency
-coordination and an explicit orphan-retention policy remain release gates.
-This change avoids overwriting retained objects but is not an asset registry
-or production worker acceptance. Successful local import/upload tests do not
-close those gates or prove browser playback.
+source for retry. See [durable upload processing](upload-processing.md) for the
+private staging directory, persistent dispatch intent, queue and cancellation
+behavior. Production mount/restart/resource acceptance and an explicit
+orphan-retention policy remain release gates. These changes are not an asset
+registry or proof of browser playback.

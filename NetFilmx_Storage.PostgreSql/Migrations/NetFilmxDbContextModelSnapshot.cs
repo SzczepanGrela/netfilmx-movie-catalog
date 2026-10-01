@@ -582,6 +582,11 @@ namespace NetFilmx_Storage.PostgreSql.Migrations
                     b.Property<int?>("ReleaseYear")
                         .HasColumnType("integer");
 
+                    b.Property<string>("SourceUploadId")
+                        .IsConcurrencyToken()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<string>("ThumbnailUrl")
                         .IsRequired()
                         .HasColumnType("text");
@@ -598,7 +603,12 @@ namespace NetFilmx_Storage.PostgreSql.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("UploadJobId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("VideoUrl")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasColumnType("text");
 

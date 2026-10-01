@@ -62,7 +62,7 @@ public sealed class R2StorageService : ICloudStorageService, IDisposable
         return $"{_publicOrigin}/{key}";
     }
 
-    public async Task<string> UploadHlsAsync(string directoryPath)
+    public async Task<string> UploadHlsAsync(string directoryPath, CancellationToken token = default)
     {
         EnsureConfigured();
         if (!File.Exists(Path.Combine(directoryPath, "master.m3u8")))
@@ -76,7 +76,7 @@ public sealed class R2StorageService : ICloudStorageService, IDisposable
             BucketName = _bucket,
             KeyPrefix = prefix,
             SearchOption = SearchOption.AllDirectories
-        });
+        }, token);
         return $"{_publicOrigin}/{prefix}/master.m3u8";
     }
 

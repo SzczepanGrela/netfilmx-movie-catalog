@@ -94,6 +94,11 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Install media test tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:

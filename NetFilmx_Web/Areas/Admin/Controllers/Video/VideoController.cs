@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
-using Hangfire;
+using NetFilmx_Service.Processing;
 using Microsoft.AspNetCore.Http;
 using System.IO;
 using System.ComponentModel.DataAnnotations;
@@ -30,13 +30,15 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
     {
         private readonly IMediator _mediator;
         private readonly ICloudStorageService _storageService;
+        private readonly UploadStagingStore _staging;
         private readonly NetFilmx_Storage.Context.NetFilmxDbContext _context;
         private readonly NetFilmx_Service.Search.ISearchEngine _searchEngine;
 
-        public VideoController(IMediator mediator, ICloudStorageService storageService, NetFilmx_Storage.Context.NetFilmxDbContext context, NetFilmx_Service.Search.ISearchEngine searchEngine)
+        public VideoController(IMediator mediator, ICloudStorageService storageService, UploadStagingStore staging, NetFilmx_Storage.Context.NetFilmxDbContext context, NetFilmx_Service.Search.ISearchEngine searchEngine)
         {
             _mediator = mediator;
             _storageService = storageService;
+            _staging = staging;
             _context = context;
             _searchEngine = searchEngine;
         }
@@ -84,7 +86,10 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 ModelState.AddModelError("VideoUrl", "Musisz podać plik wideo lub link z YouTube.");
             }
 
-            if ((model.ThumbnailFile?.Length > 0 || model.VideoFile?.Length > 0) && !_storageService.IsConfigured)
+            if (model.VideoFile is { Length: 0 } || model.VideoFile?.Length > 1_000_000_000)
+                ModelState.AddModelError("VideoFile", "Plik wideo musi być niepusty i nie większy niż 1 GB.");
+
+            if ((model.ThumbnailFile?.Length > 0 || model.VideoFile?.Length > 0) && (!_staging.Enabled || !_storageService.IsConfigured))
                 ModelState.AddModelError("", "Wysyłanie plików wymaga skonfigurowanego magazynu mediów.");
             if (model.ThumbnailFile?.Length > 0 && model.ThumbnailFile.ContentType is not ("image/jpeg" or "image/png" or "image/webp"))
                 ModelState.AddModelError("ThumbnailFile", "Plakat musi być obrazem JPEG, PNG lub WebP.");
@@ -114,7 +119,13 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
             // Set placeholder if file is provided
             string videoUrl = model.VideoFile != null ? "PROCESSING" : model.VideoUrl ?? "";
 
-            var command = new AddVideoCommand(model.Title, model.Description, model.Price, videoUrl, thumbnailUrl);
+            string? uploadId = null;
+            if (model.VideoFile is { Length: > 0 })
+            {
+                await using var input = model.VideoFile.OpenReadStream();
+                uploadId = await _staging.StageAsync(input, HttpContext.RequestAborted);
+            }
+            var command = new AddVideoCommand(model.Title, model.Description, model.Price, videoUrl, thumbnailUrl, uploadId);
             var result = await _mediator.Send(command);
             if (result.IsFailure)
             {
@@ -159,22 +170,8 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 // Fallback gracefully
             }
 
-            // Trigger background job if file was uploaded
-            if (model.VideoFile != null && model.VideoFile.Length > 0)
-            {
-                string uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
-                if (!Directory.Exists(uploadsDir))
-                    Directory.CreateDirectory(uploadsDir);
-
-                string filePath = Path.Combine(uploadsDir, $"{Guid.NewGuid():N}.upload");
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await model.VideoFile.CopyToAsync(stream);
-                }
-
-                BackgroundJob.Enqueue<NetFilmx_Service.Processing.VideoProcessingJob>(
-                    job => job.ProcessVideoAsync(videoId, filePath));
-            }
+            // The durable upload intent was saved with the video. The dispatcher enqueues it,
+            // including after a crash between this save and the HTTP response.
 
             TempData["SuccessMessage"] = model.VideoFile != null 
                 ? "Wideo zostało przesłane i zakolejkowane do przetwarzania HLS w tle. Status zmieni się po zakończeniu transkodowania." 

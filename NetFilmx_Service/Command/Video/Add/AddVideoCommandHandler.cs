@@ -29,6 +29,11 @@ namespace NetFilmx_Service.Command.Video
                 return QResult<int>.Fail(validation);
             }
 
+            if (command.SourceUploadId is not null &&
+                (command.VideoUrl != "PROCESSING" || !Guid.TryParseExact(command.SourceUploadId, "N", out var uploadId)
+                 || uploadId.ToString("N") != command.SourceUploadId))
+                return QResult<int>.Fail("Invalid upload intent.");
+
             string videoUrl = command.VideoUrl;
             
             // Legacy YouTube support
@@ -41,7 +46,8 @@ namespace NetFilmx_Service.Command.Video
                 }
             }
 
-            var video = new NetFilmx_Storage.Entities.Video(command.Title, command.Description, command.Price, videoUrl, command.ThumbnailUrl);
+            var video = new NetFilmx_Storage.Entities.Video(command.Title, command.Description, command.Price, videoUrl, command.ThumbnailUrl)
+            { SourceUploadId = command.SourceUploadId };
 
             try
             {

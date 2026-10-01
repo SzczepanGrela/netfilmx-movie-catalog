@@ -7,16 +7,16 @@ namespace NetFilmx_Service.Processing
 {
     public class FFmpegService : IFFmpegService
     {
-        public bool RunFFmpegHls(string inputPath, string outputDir)
+        public async Task RunFFmpegHlsAsync(string inputPath, string outputDir, CancellationToken token)
         {
             if (!File.Exists(inputPath))
             {
-                return false;
+                throw new FileNotFoundException("Video source is missing.");
             }
 
             // Probe input resolution and audio
-            var (sourceWidth, sourceHeight) = ProbeResolution(inputPath);
-            bool hasAudio = ProbeHasAudio(inputPath);
+            var (sourceWidth, sourceHeight) = await ProbeResolutionAsync(inputPath, token);
+            bool hasAudio = await ProbeHasAudioAsync(inputPath, token);
 
             // Determine active variants based on source height (Never upscale!)
             var variants = GetAdaptiveVariants(sourceWidth, sourceHeight);
@@ -44,7 +44,7 @@ namespace NetFilmx_Service.Processing
 
             // Build full ffmpeg arguments
             var args = new StringBuilder();
-            args.Append($"-y -i \"{inputPath}\" ");
+            args.Append($"-nostdin -threads 2 -filter_complex_threads 1 -protocol_whitelist file,pipe -y -i \"{inputPath}\" ");
             
             // If no audio, generate silent audio so player doesn't fail
             if (!hasAudio)
@@ -53,12 +53,13 @@ namespace NetFilmx_Service.Processing
             }
 
             args.Append($"-filter_complex \"{filterBuilder}\" ");
+            if (!hasAudio) args.Append("-shortest ");
 
             // Maps and encoding settings per variant
             for (int i = 0; i < variants.Count; i++)
             {
                 var v = variants[i];
-                args.Append($"-map \"[v{i}out]\" -c:v:{i} libx264 -preset fast -crf 23 -b:v:{i} {v.BitrateK}k -maxrate:v:{i} {v.MaxRateK}k -bufsize:v:{i} {v.BufSizeK}k ");
+                args.Append($"-map \"[v{i}out]\" -c:v:{i} libx264 -threads:v:{i} 2 -preset fast -crf 23 -b:v:{i} {v.BitrateK}k -maxrate:v:{i} {v.MaxRateK}k -bufsize:v:{i} {v.BufSizeK}k ");
             }
 
             // Audio mapping
@@ -84,95 +85,31 @@ namespace NetFilmx_Service.Processing
             args.Append($"-var_stream_map \"{streamMap}\" ");
             args.Append($"\"{outputDir}/stream_%v.m3u8\"");
 
-            var processStartInfo = new ProcessStartInfo
-            {
-                FileName = "ffmpeg",
-                Arguments = args.ToString(),
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using var process = new Process { StartInfo = processStartInfo };
-            
-            var errorOutput = new StringBuilder();
-            process.ErrorDataReceived += (sender, e) =>
-            {
-                if (!string.IsNullOrEmpty(e.Data))
-                    errorOutput.AppendLine(e.Data);
-            };
-
-            process.Start();
-            process.BeginErrorReadLine();
-            process.WaitForExit();
-
-            string masterPath = Path.Combine(outputDir, "master.m3u8");
-            return process.ExitCode == 0 && File.Exists(masterPath);
+            var result = await MediaProcess.RunAsync("ffmpeg", args.ToString(), TimeSpan.FromMinutes(30), token);
+            if (result.ExitCode != 0 || !File.Exists(Path.Combine(outputDir, "master.m3u8")))
+                throw new IOException("Video conversion failed or produced no master playlist.");
         }
 
-        private (int width, int height) ProbeResolution(string inputPath)
+        private async Task<(int width, int height)> ProbeResolutionAsync(string inputPath, CancellationToken token)
         {
-            try
-            {
-                var psi = new ProcessStartInfo
-                {
-                    FileName = "ffprobe",
-                    Arguments = $"-v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 \"{inputPath}\"",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-
-                using var process = Process.Start(psi);
-                if (process == null) return (1280, 720);
-                
-                string output = process.StandardOutput.ReadToEnd().Trim();
-                process.WaitForExit();
-
-                var match = Regex.Match(output, @"^(\d+)x(\d+)$");
-                if (match.Success)
-                {
-                    int w = int.Parse(match.Groups[1].Value);
-                    int h = int.Parse(match.Groups[2].Value);
-                    return (w, h);
-                }
-            }
-            catch
-            {
-                // Fallback default
-            }
-
-            return (1280, 720);
+            var result = await MediaProcess.RunAsync("ffprobe",
+                $"-protocol_whitelist file,pipe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 \"{inputPath}\"",
+                TimeSpan.FromSeconds(15), token);
+            var match = Regex.Match(result.Output.Trim(), @"^(\d+)x(\d+)$");
+            if (result.ExitCode != 0 || !match.Success || !int.TryParse(match.Groups[1].Value, out int width)
+                || !int.TryParse(match.Groups[2].Value, out int height) || width < 2 || height < 2
+                || width > 8192 || height > 8192)
+                throw new IOException("Unsupported video dimensions or failed probe.");
+            return (width, height);
         }
 
-        private bool ProbeHasAudio(string inputPath)
+        private async Task<bool> ProbeHasAudioAsync(string inputPath, CancellationToken token)
         {
-            try
-            {
-                var psi = new ProcessStartInfo
-                {
-                    FileName = "ffprobe",
-                    Arguments = $"-v error -select_streams a:0 -show_entries stream=channels -of csv=p=0 \"{inputPath}\"",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-
-                using var process = Process.Start(psi);
-                if (process == null) return true;
-
-                string output = process.StandardOutput.ReadToEnd().Trim();
-                process.WaitForExit();
-
-                return !string.IsNullOrEmpty(output) && int.TryParse(output, out int channels) && channels > 0;
-            }
-            catch
-            {
-                return true;
-            }
+            var result = await MediaProcess.RunAsync("ffprobe",
+                $"-protocol_whitelist file,pipe -v error -select_streams a:0 -show_entries stream=channels -of csv=p=0 \"{inputPath}\"",
+                TimeSpan.FromSeconds(15), token);
+            if (result.ExitCode != 0) throw new IOException("Audio probe failed.");
+            return int.TryParse(result.Output.Trim(), out int channels) && channels > 0;
         }
 
         private List<VideoVariant> GetAdaptiveVariants(int sourceWidth, int sourceHeight)

@@ -5,5 +5,5 @@ public interface ICloudStorageService
 {
     bool IsConfigured { get; }
     Task<string> UploadPosterAsync(string filePath, string contentType);
-    Task<string> UploadHlsAsync(string directoryPath);
+    Task<string> UploadHlsAsync(string directoryPath, CancellationToken token = default);
 }

@@ -6,7 +6,6 @@ using System.Globalization;
 using System.Reflection;
 using Hangfire;
 using Hangfire.PostgreSql;
-using Hangfire.MemoryStorage;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -151,40 +150,50 @@ builder.Services.AddDbContext<NetFilmxDbContext>(options =>
     NetFilmxDatabaseOptions.Configure(options, connectionString);
 });
 
-// Configure Hangfire
-builder.Services.AddHangfire((sp, configuration) =>
+// Uploads are opt-in and need a shared private mount plus durable PostgreSQL jobs.
+var uploadsEnabled = builder.Configuration.GetValue<bool>("Uploads:Enabled");
+var stagingRoot = builder.Configuration["Uploads:StagingPath"];
+if (uploadsEnabled)
 {
-    var config = sp.GetRequiredService<IConfiguration>();
-    var conn = config.GetConnectionString("DefaultConnection") ?? "";
-    bool usePg = conn.Contains("Host=", StringComparison.OrdinalIgnoreCase);
-
-    configuration
-        .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-        .UseSimpleAssemblyNameTypeSerializer()
-        .UseRecommendedSerializerSettings();
-
-    if (usePg && !builder.Environment.IsEnvironment("Testing"))
+    if (string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("DefaultConnection")))
+        throw new InvalidOperationException("Uploads require an explicit PostgreSQL connection configuration.");
+    if (!isPostgreSql) throw new InvalidOperationException("Uploads require PostgreSQL-backed jobs.");
+    if (string.IsNullOrWhiteSpace(stagingRoot) || !Path.IsPathFullyQualified(stagingRoot))
+        throw new InvalidOperationException("Uploads require an absolute private staging path.");
+    var fullStagingRoot = Path.GetFullPath(stagingRoot).TrimEnd(Path.DirectorySeparatorChar);
+    var contentRoot = Path.GetFullPath(builder.Environment.ContentRootPath).TrimEnd(Path.DirectorySeparatorChar);
+    if (fullStagingRoot == contentRoot || fullStagingRoot.StartsWith(contentRoot + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+        throw new InvalidOperationException("Upload staging must be outside the application and public web directory.");
+}
+builder.Services.AddSingleton(new NetFilmx_Service.Processing.UploadStagingStore(uploadsEnabled, stagingRoot));
+builder.Services.AddTransient<NetFilmx_Web.Services.VideoJobRunner>();
+if (uploadsEnabled)
+{
+    builder.Services.AddHangfire((sp, configuration) =>
     {
-        try
-        {
-            configuration.UsePostgreSqlStorage(c => c.UseNpgsqlConnection(conn));
-        }
-        catch
-        {
-            configuration.UseMemoryStorage();
-        }
-    }
-    else
+        configuration.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer().UseRecommendedSerializerSettings()
+            .UsePostgreSqlStorage(c => c.UseNpgsqlConnection(connectionString));
+    });
+    builder.Services.AddHangfireServer(options =>
     {
-        configuration.UseMemoryStorage();
-    }
-});
-
-// Add the processing server as IHostedService
-builder.Services.AddHangfireServer();
+        options.Queues = new[] { "video" };
+        options.WorkerCount = 1;
+        options.CancellationCheckInterval = TimeSpan.FromSeconds(1);
+        options.ShutdownTimeout = TimeSpan.FromSeconds(20);
+    });
+    builder.Services.AddHostedService<NetFilmx_Web.Services.UploadDispatcher>();
+}
 
 
 var app = builder.Build();
+
+if (uploadsEnabled)
+{
+    using var uploadScope = app.Services.CreateScope();
+    if (!uploadScope.ServiceProvider.GetRequiredService<NetFilmx_Service.Storage.ICloudStorageService>().IsConfigured)
+        throw new InvalidOperationException("Enabled uploads require complete R2 configuration.");
+}
 
 var seedDemoData = builder.Configuration.GetValue<bool>("Database:SeedDemoData");
 if (seedDemoData && !app.Environment.IsDevelopment())
@@ -264,7 +273,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseHangfireDashboard("/admin/jobs", new DashboardOptions
+if (uploadsEnabled) app.UseHangfireDashboard("/admin/jobs", new DashboardOptions
 {
     Authorization = new[] { new NetFilmx_Web.Filters.HangfireAuthorizationFilter() }
 });

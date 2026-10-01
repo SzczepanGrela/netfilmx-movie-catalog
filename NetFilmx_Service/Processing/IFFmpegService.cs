@@ -1,7 +1,6 @@
-namespace NetFilmx_Service.Processing
+namespace NetFilmx_Service.Processing;
+
+public interface IFFmpegService
 {
-    public interface IFFmpegService
-    {
-        bool RunFFmpegHls(string inputPath, string outputDir);
-    }
+    Task RunFFmpegHlsAsync(string inputPath, string outputDir, CancellationToken token);
 }

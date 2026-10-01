@@ -43,11 +43,20 @@ namespace NetFilmx_Storage.Entities
 
         [Required]
         [MinLength(3)]
+        [ConcurrencyCheck]
         public string VideoUrl { get; set; }
 
         [MinLength(3)]
         [Required]
         public string ThumbnailUrl { get; set; }
+
+        // Durable dispatch intent is saved in the same transaction as the catalogue row.
+        [MaxLength(32)]
+        [ConcurrencyCheck]
+        public string? SourceUploadId { get; set; }
+
+        [MaxLength(100)]
+        public string? UploadJobId { get; set; }
 
         [Required]
         public int Views { get; set; } = 0;
