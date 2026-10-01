@@ -50,8 +50,14 @@ migration fails; it must not serve requests against an incomplete schema.
 
 ## Regression tests
 
-`dotnet test "ST2 NetFilmx.sln" -c Release` includes an actual SQLite migration
-test that preserves catalogue URLs across the translation upgrade.
+`dotnet test "ST2 NetFilmx.sln" -c Release` includes actual SQLite migration
+tests starting at both `InitialSqlite` and the later pre-translation schema.
+They preserve sparse catalogue IDs, remote/relative media URLs, prices, views,
+legacy timestamps and category/series/tag links through all migrations. They
+also verify translation insertion and a new ID above the retained IDs. The
+fixtures use historical columns, so newer model properties cannot conceal a
+missing step in the oldest upgrade path. These tests do not perform a
+SQLite-to-PostgreSQL import or authorize upgrading the live SQLite file.
 
 Set `NETFILMX_TEST_POSTGRES` to a **disposable local/CI PostgreSQL service** to
 run the PostgreSQL tests. The test role needs `CREATE DATABASE` permission.
@@ -75,6 +81,11 @@ Before implementing or running the import:
 
 1. Identify the authoritative SQLite file and which running instance writes it.
 2. Inventory catalogue tables, links, migrations and the R2 object mapping.
+   The original schema links videos through `VideoCategory`, `VideoSeries`
+   and `VideoTag`. A missing newer `Bundles` table is consistent with that
+   older schema; it does not by itself indicate database corruption. Inspect
+   the stored media-reference shape: repository demo URLs are not evidence
+   that production videos exist in the application's object bucket.
 3. Agree which catalogue metadata to retain and whether accounts, comments,
    purchases and other user data are to be retained or archived.
 4. Back up the live database consistently, retain an off-host copy, and test
