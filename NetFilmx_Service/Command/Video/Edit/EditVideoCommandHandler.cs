@@ -1,7 +1,6 @@
 using MediatR;
 using NetFilmx_Service.Result;
 using NetFilmx_Storage.Repositories;
-using System.Text.RegularExpressions;
 
 namespace NetFilmx_Service.Command.Video
 {
@@ -30,20 +29,18 @@ namespace NetFilmx_Service.Command.Video
                 return CResult.Fail(validation);
             }
 
-
-            var ytVideoId = ExtractYouTubeVideoId(command.Video_url);
-
-
             try
             {
                 var video = await _repository.GetVideoByIdAsync(command.Id);
-
-                //var video = task.Result;
+                // A completed job must not be overwritten with a stale form's status.
+                if (command.Video_url is "PROCESSING" or "FAILED" &&
+                    (video.VideoUrl != command.Video_url || video.SourceUploadId == null))
+                    return CResult.Fail("Upload state changed. Reload the video before editing.");
 
                 video.Price = command.Price;
                 video.Title = command.Title;
                 video.Description = command.Description;
-                video.VideoUrl = ytVideoId;
+                video.VideoUrl = command.Video_url;
                 video.ThumbnailUrl = command.Thumbnail_url;
                 video.UpdatedAt = DateTime.UtcNow;
 
@@ -58,29 +55,5 @@ namespace NetFilmx_Service.Command.Video
 
         }
 
-        public string ExtractYouTubeVideoId(string url)
-        {
-            if (string.IsNullOrEmpty(url))
-                return string.Empty;
-
-            var ytRegex = new Regex(@"(?:https?:\/\/)?(?:www\.)?(youtube\.com|youtu\.be)(\/watch\?v=|\/)([^&]+)?");
-            var isYtLink = ytRegex.Match(url);
-
-            if (isYtLink.Success)
-            {
-                return isYtLink.Groups[3].Value;
-            }
-            else
-            {
-                var linkRegex = new Regex(@"(www|http|https|\.com|\.net|\.org)");
-                var isLink = linkRegex.IsMatch(url);
-
-                return isLink ? string.Empty : url;
-            }
-        }
-
-
-
     }
-
 }

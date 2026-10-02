@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Reflection;
 using Hangfire;
 using Hangfire.PostgreSql;
+using NetFilmx_Web.Security;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -20,6 +21,14 @@ if (args.Length > 0 && args[0] == "catalogue")
 }
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddHttpSecurity(builder.Configuration);
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 1_048_576);
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.ValueCountLimit = 256;
+    options.ValueLengthLimit = 8192;
+    options.MultipartHeadersLengthLimit = 8192;
+});
 
 builder.Services.AddAuthentication(options =>
 {
@@ -182,6 +191,8 @@ var app = builder.Build();
 // Reject invalid authentication configuration before migrations or accepting traffic.
 _ = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<JwtBearerOptions>>()
     .Get(JwtBearerDefaults.AuthenticationScheme);
+_ = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>>().Value;
+_ = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<Microsoft.AspNetCore.RateLimiting.RateLimiterOptions>>().Value;
 
 
 if (uploadsEnabled)
@@ -234,6 +245,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
+app.UseForwardedHeaders();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -268,6 +280,7 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 if (uploadsEnabled) app.UseHangfireDashboard("/admin/jobs", new DashboardOptions
 {

@@ -39,7 +39,7 @@ public sealed class R2StorageService : ICloudStorageService, IDisposable
         _publicOrigin = ValidateOrigin(publicOrigin);
     }
 
-    public async Task<string> UploadPosterAsync(string filePath, string contentType)
+    public async Task<string> UploadPosterAsync(string filePath, string contentType, CancellationToken token = default)
     {
         EnsureConfigured();
         string extension = contentType switch
@@ -58,7 +58,7 @@ public sealed class R2StorageService : ICloudStorageService, IDisposable
             BucketName = _bucket,
             ContentType = contentType,
             DisablePayloadSigning = true
-        });
+        }, token);
         return $"{_publicOrigin}/{key}";
     }
 

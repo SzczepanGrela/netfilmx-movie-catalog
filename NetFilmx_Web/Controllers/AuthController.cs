@@ -1,4 +1,5 @@
 using MediatR;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -11,6 +12,7 @@ using NetFilmx_Storage.Repositories;
 namespace NetFilmx_Web.Controllers
 {
     [Route("auth")]
+    [RequestSizeLimit(16_384)]
     public class AuthController : Controller
     {
         private readonly IMediator _mediator;
@@ -170,15 +172,20 @@ namespace NetFilmx_Web.Controllers
 
     public class RegisterRequest
     {
-        public string Username { get; set; }
-        public string Email { get; set; }
-        public string Password { get; set; }
+        [Required, StringLength(50, MinimumLength = 3)]
+        public string Username { get; set; } = "";
+        [Required, EmailAddress, StringLength(50)]
+        public string Email { get; set; } = "";
+        [Required, StringLength(128, MinimumLength = 8)]
+        public string Password { get; set; } = "";
     }
 
     public class LoginRequest
     {
-        public string Username { get; set; }
-        public string Password { get; set; }
+        [Required, StringLength(50)]
+        public string Username { get; set; } = "";
+        [Required, StringLength(128)]
+        public string Password { get; set; } = "";
         public bool RememberMe { get; set; }
     }
 }

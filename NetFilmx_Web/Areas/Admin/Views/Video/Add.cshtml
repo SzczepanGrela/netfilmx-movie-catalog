@@ -77,20 +77,25 @@
                     </div>
 
                     <div class="form-group">
-                        <label asp-for="VideoUrl" class="admin-label">Wklej link z YouTube LUB</label>
+                        <label asp-for="VideoUrl" class="admin-label">Adres HTTPS z domeny mediów aplikacji LUB</label>
                         <input asp-for="VideoUrl" class="admin-input" />
                         <span asp-validation-for="VideoUrl" class="text-danger"></span>
                     </div>
 
                     <div class="form-group border border-secondary p-3 rounded" style="background: rgba(0,0,0,0.2);">
                         <label asp-for="VideoFile" class="admin-label">Wgraj plik wideo (.mp4, .webm, .mkv) z komputera (HLS)</label>
-                        <input type="file" asp-for="VideoFile" class="admin-input" accept="video/*,.mp4,.webm,.mkv,.mov,.avi" style="background:transparent; border:none; padding-left:0;" />
+                        <input type="file" asp-for="VideoFile" class="admin-input" accept=".mp4,.webm,.mkv,.mov,.avi,.ogv,.ogg" style="background:transparent; border:none; padding-left:0;" />
                         <span asp-validation-for="VideoFile" class="text-danger"></span>
                         <small class="form-text" style="color:var(--color-text-muted);">Wybranie pliku spowoduje przetworzenie go w tle przez FFmpeg na format HLS.</small>
                     </div>
+                    <div class="form-group">
+                        <label asp-for="ThumbnailUrl" class="admin-label">Adres HTTPS istniejącego plakatu LUB</label>
+                        <input asp-for="ThumbnailUrl" class="admin-input" />
+                        <span asp-validation-for="ThumbnailUrl" class="text-danger"></span>
+                    </div>
                     <div class="form-group border border-secondary p-3 rounded" style="background: rgba(0,0,0,0.2);">
-                        <label asp-for="ThumbnailFile" class="admin-label">Wgraj plakat wideo (.jpg, .png)</label>
-                        <input type="file" asp-for="ThumbnailFile" class="admin-input" accept="image/*" style="background:transparent; border:none; padding-left:0;" />
+                        <label asp-for="ThumbnailFile" class="admin-label">Wgraj plakat (JPEG, PNG lub WebP, do 5 MiB)</label>
+                        <input type="file" asp-for="ThumbnailFile" class="admin-input" accept="image/jpeg,image/png,image/webp" style="background:transparent; border:none; padding-left:0;" />
                         <span asp-validation-for="ThumbnailFile" class="text-danger"></span>
                     </div>
 

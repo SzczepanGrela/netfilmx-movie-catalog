@@ -7,10 +7,27 @@ using NetFilmx_Tests.Integration.Fixtures;
 
 namespace NetFilmx_Tests.Integration;
 
-public class AuthFlowTests : IClassFixture<TestWebApplicationFactory<Program>>
+public class AuthFlowTests : IDisposable
 {
-    private readonly TestWebApplicationFactory<Program> _factory;
-    public AuthFlowTests(TestWebApplicationFactory<Program> factory) => _factory = factory;
+    private readonly TestWebApplicationFactory<Program> _factory = new();
+    public void Dispose() => _factory.Dispose();
+
+    [Theory]
+    [InlineData("not-an-email", "Password123!")]
+    [InlineData("valid@example.test", "short")]
+    public async Task InvalidRegistration_DoesNotCreateAccount(string email, string password)
+    {
+        using var browser = new AuthBrowser(_factory);
+        var name = "invalid" + Guid.NewGuid().ToString("N");
+        var token = await browser.FormTokenAsync("/auth/register");
+        using var response = await browser.SendAsync(HttpMethod.Post, "/auth/register", new()
+        {
+            ["Username"] = name, ["Email"] = email, ["Password"] = password, ["__RequestVerificationToken"] = token
+        });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode); Assert.Empty(browser.Cookie("access_token"));
+        using var scope = _factory.Services.CreateScope();
+        Assert.False(await scope.ServiceProvider.GetRequiredService<NetFilmxDbContext>().Users.AnyAsync(u => u.Username == name));
+    }
 
     [Fact]
     public async Task Registration_RefreshRotation_Logout_RejectTokenReplay()

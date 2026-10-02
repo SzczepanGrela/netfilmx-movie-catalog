@@ -21,6 +21,8 @@ namespace NetFilmx_Web.Extensions
             serviceCollection.AddTransient<IUserSessionRepository, UserSessionRepository>();
             serviceCollection.AddTransient<IWalletTransactionRepository, WalletTransactionRepository>();
 
+            serviceCollection.AddSingleton<NetFilmx_Web.Security.MediaReferencePolicy>();
+
             serviceCollection.AddTransient<IPasswordHasher, Argon2idPasswordHasher>();
             serviceCollection.AddTransient<IJwtTokenService, JwtTokenService>();
             serviceCollection.AddTransient<ISessionService, SessionService>();

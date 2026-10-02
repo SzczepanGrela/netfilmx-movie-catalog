@@ -88,7 +88,9 @@ permissions/path checks, and lock exclusion including another Linux process.
 Still required before public file upload: exact candidate-image tests, mounted
 directory and PostgreSQL recovery, forced worker/container restart during each
 phase, rolling overlap on the actual filesystem, disk-pressure and full-film
-resource tests, image/media content validation and orphan retention policy.
-The existing authentication/antiforgery/dependency and protected-delivery gates
-remain open. Original databases and retained R2 objects are unchanged by these
-local tests.
+resource tests, image/decoder scanning and orphan retention policy.
+[HTTP/media admission controls](http-security.md) now bound poster decoding and
+video header admission; they do not certify complete files or production limits.
+Authentication/antiforgery and dependency remediation are locally tested;
+shared protected key persistence and protected delivery remain open. Original
+databases and retained R2 objects are unchanged by these local tests.

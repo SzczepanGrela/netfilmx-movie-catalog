@@ -57,7 +57,7 @@ internal sealed class AuthBrowser : IDisposable
         var token = await FormTokenAsync("/auth/register");
         return await SendAsync(HttpMethod.Post, "/auth/register", new()
         {
-            ["Username"] = name, ["Email"] = name + "@example.test", ["Password"] = "Password123!",
+            ["Username"] = name, ["Email"] = name[..Math.Min(name.Length, 30)] + "@example.test", ["Password"] = "Password123!",
             ["__RequestVerificationToken"] = token
         });
     }

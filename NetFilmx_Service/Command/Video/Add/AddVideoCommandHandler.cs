@@ -1,7 +1,6 @@
 using MediatR;
 using NetFilmx_Service.Result;
 using NetFilmx_Storage.Repositories;
-using System.Text.RegularExpressions;
 
 namespace NetFilmx_Service.Command.Video
 {
@@ -34,19 +33,7 @@ namespace NetFilmx_Service.Command.Video
                  || uploadId.ToString("N") != command.SourceUploadId))
                 return QResult<int>.Fail("Invalid upload intent.");
 
-            string videoUrl = command.VideoUrl;
-            
-            // Legacy YouTube support
-            if (videoUrl.Contains("youtube.com") || videoUrl.Contains("youtu.be"))
-            {
-                string ytVideoId = ExtractYouTubeVideoId(videoUrl);
-                if (!string.IsNullOrEmpty(ytVideoId))
-                {
-                    videoUrl = ytVideoId;
-                }
-            }
-
-            var video = new NetFilmx_Storage.Entities.Video(command.Title, command.Description, command.Price, videoUrl, command.ThumbnailUrl)
+            var video = new NetFilmx_Storage.Entities.Video(command.Title, command.Description, command.Price, command.VideoUrl, command.ThumbnailUrl)
             { SourceUploadId = command.SourceUploadId };
 
             try
@@ -58,27 +45,6 @@ namespace NetFilmx_Service.Command.Video
             catch (Exception ex)
             {
                 return QResult<int>.Fail(ex.Message);
-            }
-        }
-
-        public string ExtractYouTubeVideoId(string url)
-        {
-            if (string.IsNullOrEmpty(url))
-                return string.Empty;
-
-            var ytRegex = new Regex(@"(?:https?:\/\/)?(?:www\.)?(youtube\.com|youtu\.be)(\/watch\?v=|\/)([^&]+)?");
-            var isYtLink = ytRegex.Match(url);
-
-            if (isYtLink.Success)
-            {
-                return isYtLink.Groups[3].Value;
-            }
-            else
-            {
-                var linkRegex = new Regex(@"(www|http|https|\.com|\.net|\.org)");
-                var isLink = linkRegex.IsMatch(url);
-
-                return isLink ? string.Empty : url;
             }
         }
 

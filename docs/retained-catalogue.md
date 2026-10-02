@@ -15,6 +15,13 @@ and can be reviewed before release.
 
 ## Inspect without a database or provider credentials
 
+Operator decision, October 2, 2026: start the new release with new accounts and
+empty user history. Preserve the old SQLite database as an archive, without
+importing its YouTube rows, accounts, comments or purchases. Reuse the retained
+R2 media and reviewed catalogue metadata. This decision does not authorize
+deleting the old database, existing objects or either legacy container. Confirm
+production rights, licence notices and credits for each title before publication.
+
 ```bash
 dotnet run --project NetFilmx_Web --no-launch-profile -- catalogue plan
 ```

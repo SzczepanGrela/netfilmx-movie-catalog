@@ -20,7 +20,7 @@ namespace NetFilmx_Tests.Unit.Controllers
             var storageMock = new Mock<ICloudStorageService>();
             var searchEngineMock = new Mock<NetFilmx_Service.Search.ISearchEngine>();
             var dbContext = NetFilmx_Tests.Helpers.TestDbContextFactory.Create();
-            var controller = new VideoController(mediatorMock.Object, storageMock.Object, new NetFilmx_Service.Processing.UploadStagingStore(false, null), dbContext, searchEngineMock.Object);
+            var controller = new VideoController(mediatorMock.Object, storageMock.Object, new NetFilmx_Service.Processing.UploadStagingStore(false, null), dbContext, searchEngineMock.Object, new NetFilmx_Web.Security.MediaReferencePolicy(new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build()));
 
             var model = new UploadVideoViewModel
             {
@@ -38,8 +38,8 @@ namespace NetFilmx_Tests.Unit.Controllers
             var viewResult = result as ViewResult;
             viewResult.Should().NotBeNull();
             controller.ModelState.ErrorCount.Should().BeGreaterThan(0);
-            controller.ModelState.ContainsKey("VideoFile").Should().BeTrue();
-            controller.ModelState["VideoFile"]!.Errors[0].ErrorMessage.Should().Be("Musisz podać plik wideo lub link z YouTube.");
+            controller.ModelState.ContainsKey("VideoUrl").Should().BeTrue();
+            mediatorMock.Verify(m => m.Send(It.IsAny<NetFilmx_Service.Command.Video.AddVideoCommand>(), default), Times.Never);
         }
     }
 }

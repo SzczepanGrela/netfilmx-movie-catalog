@@ -116,9 +116,11 @@ not blindly copy the legacy YouTube catalogue or local demo streams.
 ## Remaining release gates
 
 The branch preserves previously unpublished work, not just the database fix.
-Before a production release it still needs dependency/security remediation,
-working authentication/antiforgery tests, rate limiting, trusted proxy handling,
-readiness, durable background jobs/media staging, explicit migration execution,
+Authentication/antiforgery, patched locked dependencies, durable upload jobs and
+[HTTP/media admission controls](http-security.md) are implemented and tested
+locally. Production qualification still needs exact proxy/edge acceptance,
+shared protected Data Protection keys, readiness, explicit migration execution,
+mounted staging/queue restart and resource tests, media playback/credits/licences,
 and the protected immutable-image Coolify workflow. The legacy SSH deployment
 workflow remains in the repository; **do not merge this draft to trigger it**.
 

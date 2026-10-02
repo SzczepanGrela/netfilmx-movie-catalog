@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using NetFilmx_Service.Processing;
+using NetFilmx_Web.Security;
 using Microsoft.AspNetCore.Http;
 using System.IO;
 using System.ComponentModel.DataAnnotations;
@@ -29,18 +31,20 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
     public class VideoController : Controller
     {
         private readonly IMediator _mediator;
+        private readonly MediaReferencePolicy _mediaReferences;
         private readonly ICloudStorageService _storageService;
         private readonly UploadStagingStore _staging;
         private readonly NetFilmx_Storage.Context.NetFilmxDbContext _context;
         private readonly NetFilmx_Service.Search.ISearchEngine _searchEngine;
 
-        public VideoController(IMediator mediator, ICloudStorageService storageService, UploadStagingStore staging, NetFilmx_Storage.Context.NetFilmxDbContext context, NetFilmx_Service.Search.ISearchEngine searchEngine)
+        public VideoController(IMediator mediator, ICloudStorageService storageService, UploadStagingStore staging, NetFilmx_Storage.Context.NetFilmxDbContext context, NetFilmx_Service.Search.ISearchEngine searchEngine, MediaReferencePolicy mediaReferences)
         {
             _mediator = mediator;
             _storageService = storageService;
             _staging = staging;
             _context = context;
             _searchEngine = searchEngine;
+            _mediaReferences = mediaReferences;
         }
 
         public async Task<IActionResult> Index(int pageNumber = 1, string search = null)
@@ -80,11 +84,12 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         [RequestFormLimits(MultipartBodyLengthLimit = 1073741824)]
         public async Task<IActionResult> Add(UploadVideoViewModel model)
         {
-            if (model.VideoFile == null && string.IsNullOrWhiteSpace(model.VideoUrl))
-            {
-                ModelState.AddModelError("VideoFile", "Musisz podać plik wideo lub link z YouTube.");
-                ModelState.AddModelError("VideoUrl", "Musisz podać plik wideo lub link z YouTube.");
-            }
+            if (model.VideoFile == null && !_mediaReferences.Allows(model.VideoUrl))
+                ModelState.AddModelError("VideoUrl", "Podaj adres HTTPS z domeny mediów aplikacji lub wgraj plik wideo.");
+            if (model.VideoFile != null && !string.IsNullOrWhiteSpace(model.VideoUrl))
+                ModelState.AddModelError("VideoUrl", "Wybierz plik wideo albo istniejący adres mediów.");
+            if (model.ThumbnailFile == null && !_mediaReferences.Allows(model.ThumbnailUrl))
+                ModelState.AddModelError("ThumbnailUrl", "Podaj adres HTTPS plakatu z domeny mediów aplikacji lub wgraj obraz.");
 
             if (model.VideoFile is { Length: 0 } || model.VideoFile?.Length > 1_000_000_000)
                 ModelState.AddModelError("VideoFile", "Plik wideo musi być niepusty i nie większy niż 1 GB.");
@@ -94,25 +99,41 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
             if (model.ThumbnailFile?.Length > 0 && model.ThumbnailFile.ContentType is not ("image/jpeg" or "image/png" or "image/webp"))
                 ModelState.AddModelError("ThumbnailFile", "Plakat musi być obrazem JPEG, PNG lub WebP.");
 
+            if (model.ThumbnailFile is { Length: 0 } || model.ThumbnailFile?.Length > PosterUpload.MaximumBytes)
+                ModelState.AddModelError("ThumbnailFile", "Plakat musi być niepusty i nie większy niż 5 MiB.");
+
             if (!ModelState.IsValid)
             {
                 return View(model);
             }
 
-            // Upload plakatu (ThumbnailFile)
-            string thumbnailUrl = model.ThumbnailUrl ?? "";
-            if (model.ThumbnailFile != null && model.ThumbnailFile.Length > 0)
+            if (model.VideoFile != null)
             {
-                string tempThumbPath = Path.Combine(Path.GetTempPath(), $"netfilmx-poster-{Guid.NewGuid():N}");
                 try
                 {
-                    await using (var stream = new FileStream(tempThumbPath, FileMode.CreateNew))
-                        await model.ThumbnailFile.CopyToAsync(stream);
-                    thumbnailUrl = await _storageService.UploadPosterAsync(tempThumbPath, model.ThumbnailFile.ContentType);
+                    await using var input = model.VideoFile.OpenReadStream();
+                    await PosterUpload.ValidateVideoHeaderAsync(input, model.VideoFile.FileName, HttpContext.RequestAborted);
                 }
-                finally
+                catch (InvalidDataException)
                 {
-                    System.IO.File.Delete(tempThumbPath);
+                    ModelState.AddModelError("VideoFile", "Plik musi zawierać obsługiwany kontener wideo.");
+                    return View(model);
+                }
+            }
+
+            string thumbnailUrl = model.ThumbnailUrl ?? "";
+            if (model.ThumbnailFile != null)
+            {
+                try
+                {
+                    await using var input = model.ThumbnailFile.OpenReadStream();
+                    using var poster = await PosterUpload.PrepareAsync(input, model.ThumbnailFile.ContentType, HttpContext.RequestAborted);
+                    thumbnailUrl = await _storageService.UploadPosterAsync(poster.Path, poster.ContentType, HttpContext.RequestAborted);
+                }
+                catch (InvalidDataException)
+                {
+                    ModelState.AddModelError("ThumbnailFile", "Plakat musi być poprawnym obrazem JPEG, PNG lub WebP (do 4096 px na bok i 16 mln pikseli).");
+                    return View(model);
                 }
             }
 
@@ -185,14 +206,20 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
             [MaxLength(100, ErrorMessage = "Tytuł nie może przekraczać 100 znaków")]
             public string Title { get; set; }
 
-            [Required(ErrorMessage = "Opis jest wymagany")]
+            [Required(ErrorMessage = "Opis jest wymagany"), MaxLength(2000)]
             public string? Description { get; set; }
 
+            [MaxLength(100)]
             public string? Title_Pl { get; set; }
+            [MaxLength(2000)]
             public string? Description_Pl { get; set; }
+            [MaxLength(200)]
             public string? Director_En { get; set; }
+            [MaxLength(200)]
             public string? Director_Pl { get; set; }
+            [MaxLength(500)]
             public string? Cast_En { get; set; }
+            [MaxLength(500)]
             public string? Cast_Pl { get; set; }
 
             [Required(ErrorMessage = "Cena jest wymagana")]
@@ -204,7 +231,6 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
             
             public IFormFile? VideoFile { get; set; }
             
-            [Required(ErrorMessage = "Plakat jest wymagany")]
             public IFormFile? ThumbnailFile { get; set; }
         }
 
@@ -224,6 +250,12 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(VideoEditDto dto)
         {
+            var preservePending = dto.VideoUrl is "PROCESSING" or "FAILED" && await _context.Videos.AnyAsync(video =>
+                video.Id == dto.Id && video.VideoUrl == dto.VideoUrl && video.SourceUploadId != null);
+            if (!preservePending && !_mediaReferences.Allows(dto.VideoUrl))
+                ModelState.AddModelError("VideoUrl", "Użyj adresu HTTPS z domeny mediów aplikacji.");
+            if (!_mediaReferences.Allows(dto.ThumbnailUrl)) ModelState.AddModelError("ThumbnailUrl", "Użyj adresu HTTPS z domeny mediów aplikacji.");
+            if (!ModelState.IsValid) return View(dto);
             var command = new EditVideoCommand(dto.Id, dto.Title, dto.Description, dto.Price, dto.VideoUrl, dto.ThumbnailUrl);
             var result = await _mediator.Send(command);
             if (result.IsFailure)
@@ -249,7 +281,7 @@ namespace NetFilmx_Web.Areas.Admin.Controllers
                 return RedirectToAction("Error", "Home", new { area = "" });
             }
 
-            TempData["SuccessMessage"] = "Wideo zostało pomyślnie usunięte z bazy danych i CDN.";
+            TempData["SuccessMessage"] = "Wideo zostało usunięte z katalogu. Pliki mediów pozostają w magazynie.";
             return RedirectToAction("Index");
         }
 
