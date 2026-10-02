@@ -1,62 +1,73 @@
-using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Testing;
-using NetFilmx_Tests.Integration.Fixtures;
 using System.Net;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using Xunit;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using NetFilmx_Storage.Context;
+using NetFilmx_Storage.Entities;
+using NetFilmx_Tests.Integration.Fixtures;
 
-namespace NetFilmx_Tests.Integration
+namespace NetFilmx_Tests.Integration;
+
+public class AdminAccessTests : IClassFixture<TestWebApplicationFactory<Program>>
 {
-    public class AdminAccessTests : IClassFixture<TestWebApplicationFactory<Program>>
+    private readonly TestWebApplicationFactory<Program> _factory;
+    public AdminAccessTests(TestWebApplicationFactory<Program> factory) => _factory = factory;
+
+    [Theory]
+    [InlineData("/admin/video")]
+    [InlineData("/admin/category")]
+    [InlineData("/admin/series")]
+    public async Task AnonymousUsersAreDirectedToLogin(string endpoint)
     {
-        private readonly HttpClient _client;
+        using var browser = new AuthBrowser(_factory);
+        using var response = await browser.SendAsync(HttpMethod.Get, endpoint);
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.StartsWith("/auth/login?returnUrl=", response.Headers.Location?.OriginalString);
+    }
 
-        public AdminAccessTests(TestWebApplicationFactory<Program> factory)
+    [Fact]
+    public async Task OrdinaryUsersCannotReadOrModifyAdminResources()
+    {
+        using var browser = new AuthBrowser(_factory);
+        using var register = await browser.RegisterAsync("ordinary" + Guid.NewGuid().ToString("N"));
+        Assert.Equal(HttpStatusCode.Redirect, register.StatusCode);
+        foreach (var url in new[] { "/admin/video", "/admin/category", "/admin/series", "/admin/user", "/admin/comment", "/admin/tag" })
         {
-            _client = factory.CreateClient(new WebApplicationFactoryClientOptions
-            {
-                AllowAutoRedirect = false
-            });
+            using var response = await browser.SendAsync(HttpMethod.Get, url);
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
+        using var write = await browser.SendAsync(HttpMethod.Post, "/admin/category/add", new() { ["Name"] = "forbidden" }, await browser.CsrfAsync());
+        Assert.Equal(HttpStatusCode.Forbidden, write.StatusCode);
+        using var scope = _factory.Services.CreateScope();
+        Assert.False(await scope.ServiceProvider.GetRequiredService<NetFilmxDbContext>().Categories.AnyAsync(c => c.Name == "forbidden"));
+    }
 
-        [Theory]
-        [InlineData("/admin/video")]
-        [InlineData("/admin/category")]
-        [InlineData("/admin/series")]
-        public async Task AdminEndpoints_ShouldReturnUnauthorized_WhenNotAuthenticated(string endpoint)
+    [Fact]
+    public async Task AdministratorCanUseForms_ButCannotWriteWithoutCsrf()
+    {
+        var name = "admin" + Guid.NewGuid().ToString("N");
+        using (var register = new AuthBrowser(_factory))
+        using (var response = await register.RegisterAsync(name)) Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        using (var scope = _factory.Services.CreateScope())
         {
-            var response = await _client.GetAsync(endpoint);
-            
-            // Should be 302 Found (Redirect to Login)
-            response.StatusCode.Should().Be(HttpStatusCode.Found);
+            var db = scope.ServiceProvider.GetRequiredService<NetFilmxDbContext>();
+            var user = await db.Users.SingleAsync(u => u.Username == name);
+            user.Role = UserRole.Admin;
+            await db.SaveChangesAsync();
         }
-
-        [Fact(Skip = "Converted to MVC Views with Anti-Forgery tokens. Use E2E UI testing instead.")]
-        public async Task AdminEndpoints_ShouldReturnForbidden_WhenAuthenticatedAsNormalUser()
-        {
-            // Register a normal user
-            var registerResponse = await _client.PostAsJsonAsync("/auth/register", new
-            {
-                Username = "normaluser",
-                Email = "normaluser@example.com",
-                Password = "Password123!"
-            });
-
-            registerResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-
-            // Extract cookies
-            var setCookieHeader = registerResponse.Headers.GetValues("Set-Cookie").ToList();
-            var cookies = string.Join("; ", setCookieHeader.Select(c => c.Split(';')[0]));
-
-            // Try to access admin endpoint
-            var request = new HttpRequestMessage(HttpMethod.Get, "/admin/video");
-            request.Headers.Add("Cookie", cookies);
-            var response = await _client.SendAsync(request);
-
-            // Should be 403 Forbidden
-            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        }
+        using var browser = new AuthBrowser(_factory);
+        using var login = await browser.LoginAsync(name);
+        Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
+        var categoryName = "Category" + Guid.NewGuid().ToString("N");
+        var form = new Dictionary<string, string> { ["Name"] = categoryName, ["Description"] = "CSRF test" };
+        using var blocked = await browser.SendAsync(HttpMethod.Post, "/admin/category/add", form);
+        Assert.Equal(HttpStatusCode.BadRequest, blocked.StatusCode);
+        using var badToken = await browser.SendAsync(HttpMethod.Post, "/admin/category/add", form, "invalid");
+        Assert.Equal(HttpStatusCode.BadRequest, badToken.StatusCode);
+        form["__RequestVerificationToken"] = await browser.FormTokenAsync("/admin/category/add");
+        using var added = await browser.SendAsync(HttpMethod.Post, "/admin/category/add", form);
+        Assert.Equal(HttpStatusCode.Redirect, added.StatusCode);
+        using var read = _factory.Services.CreateScope();
+        var dbRead = read.ServiceProvider.GetRequiredService<NetFilmxDbContext>();
+        Assert.Equal(1, await dbRead.Categories.CountAsync(c => c.Name == categoryName));
     }
 }

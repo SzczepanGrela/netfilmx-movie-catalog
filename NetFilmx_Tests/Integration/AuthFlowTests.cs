@@ -1,77 +1,95 @@
-using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Testing;
-using NetFilmx_Tests.Integration.Fixtures;
-using System.Linq;
 using System.Net;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using Xunit;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using NetFilmx_Storage.Context;
+using NetFilmx_Service.Security;
+using NetFilmx_Tests.Integration.Fixtures;
 
-namespace NetFilmx_Tests.Integration
+namespace NetFilmx_Tests.Integration;
+
+public class AuthFlowTests : IClassFixture<TestWebApplicationFactory<Program>>
 {
-    public class AuthFlowTests : IClassFixture<TestWebApplicationFactory<Program>>
+    private readonly TestWebApplicationFactory<Program> _factory;
+    public AuthFlowTests(TestWebApplicationFactory<Program> factory) => _factory = factory;
+
+    [Fact]
+    public async Task Registration_RefreshRotation_Logout_RejectTokenReplay()
     {
-        private readonly HttpClient _client;
+        using var browser = new AuthBrowser(_factory);
+        using var registered = await browser.RegisterAsync("flow" + Guid.NewGuid().ToString("N"));
+        Assert.Equal(HttpStatusCode.Redirect, registered.StatusCode);
+        var oldRefresh = browser.Cookie("refresh_token");
+        Assert.NotEmpty(oldRefresh);
+        Assert.NotEmpty(browser.Cookie("access_token"));
+        Assert.All(registered.Headers.GetValues("Set-Cookie").Where(c => c.StartsWith("access_token=") || c.StartsWith("refresh_token=")),
+            c => { Assert.Contains("secure", c); Assert.Contains("httponly", c); Assert.Contains("samesite=strict", c); });
+        using var forbidden = await browser.SendAsync(HttpMethod.Get, "/admin/category");
+        Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
 
-        public AuthFlowTests(TestWebApplicationFactory<Program> factory)
+        using var getLogout = await browser.SendAsync(HttpMethod.Get, "/auth/logout");
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, getLogout.StatusCode);
+        foreach (var url in new[] { "/auth/logout", "/auth/refresh" })
         {
-            _client = factory.CreateClient(new WebApplicationFactoryClientOptions
-            {
-                AllowAutoRedirect = false
-            });
+            using var missingCsrf = await browser.SendAsync(HttpMethod.Post, url);
+            Assert.Equal(HttpStatusCode.BadRequest, missingCsrf.StatusCode);
         }
+        var csrf = await browser.CsrfAsync();
+        using var refreshed = await browser.SendAsync(HttpMethod.Post, "/auth/refresh", csrf: csrf);
+        Assert.Equal(HttpStatusCode.OK, refreshed.StatusCode);
+        var newRefresh = browser.Cookie("refresh_token");
+        Assert.NotEqual(oldRefresh, newRefresh);
 
-        [Fact(Skip = "Converted to MVC Views with Anti-Forgery tokens. Use E2E UI testing instead.")]
-        public async Task CompleteAuthFlow_ShouldSucceed()
+        using var replay = new AuthBrowser(_factory);
+        replay.SetCookie("refresh_token", oldRefresh);
+        using var oldRejected = await replay.SendAsync(HttpMethod.Post, "/auth/refresh", csrf: await replay.CsrfAsync());
+        Assert.Equal(HttpStatusCode.Unauthorized, oldRejected.StatusCode);
+
+        using var logout = await browser.SendAsync(HttpMethod.Post, "/auth/logout", csrf: await browser.CsrfAsync());
+        Assert.Equal(HttpStatusCode.Redirect, logout.StatusCode);
+        Assert.Empty(browser.Cookie("refresh_token"));
+        Assert.Empty(browser.Cookie("access_token"));
+        using var anonymous = await browser.SendAsync(HttpMethod.Get, "/admin/category");
+        Assert.Equal(HttpStatusCode.Redirect, anonymous.StatusCode);
+        replay.SetCookie("refresh_token", newRefresh);
+        using var logoutRejected = await replay.SendAsync(HttpMethod.Post, "/auth/refresh", csrf: await replay.CsrfAsync());
+        Assert.Equal(HttpStatusCode.Unauthorized, logoutRejected.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("/auth/register")]
+    [InlineData("/auth/login")]
+    public async Task LoginAndRegistration_RejectMissingCsrf(string path)
+    {
+        using var browser = new AuthBrowser(_factory);
+        using var response = await browser.SendAsync(HttpMethod.Post, path, new()
         {
-            // 1. Register
-            var registerResponse = await _client.PostAsJsonAsync("/auth/register", new
-            {
-                Username = "integrationtest",
-                Email = "test@example.com",
-                Password = "Password123!"
-            });
+            ["Username"] = "forged", ["Password"] = "Password123!", ["Email"] = "forged@example.test"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Empty(browser.Cookie("access_token"));
+    }
 
-            var content = await registerResponse.Content.ReadAsStringAsync();
-            registerResponse.StatusCode.Should().Be(HttpStatusCode.OK, "Response: " + content);
-            
-            // Extract cookies
-            var setCookieHeader = registerResponse.Headers.GetValues("Set-Cookie").ToList();
-            setCookieHeader.Should().Contain(c => c.StartsWith("access_token="));
-            setCookieHeader.Should().Contain(c => c.StartsWith("refresh_token="));
-
-            var cookies = string.Join("; ", setCookieHeader.Select(c => c.Split(';')[0]));
-
-            // 2. Get Me (authenticated)
-            var request = new HttpRequestMessage(HttpMethod.Get, "/auth/me");
-            request.Headers.Add("Cookie", cookies);
-            var meResponse = await _client.SendAsync(request);
-            meResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-
-            // 3. Refresh
-            var refreshRequest = new HttpRequestMessage(HttpMethod.Post, "/auth/refresh");
-            refreshRequest.Headers.Add("Cookie", cookies);
-            var refreshResponse = await _client.SendAsync(refreshRequest);
-            refreshResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-
-            var newSetCookieHeader = refreshResponse.Headers.GetValues("Set-Cookie").ToList();
-            var newCookies = string.Join("; ", newSetCookieHeader.Select(c => c.Split(';')[0]));
-
-            // 4. Logout
-            var logoutRequest = new HttpRequestMessage(HttpMethod.Post, "/auth/logout");
-            logoutRequest.Headers.Add("Cookie", newCookies);
-            var logoutResponse = await _client.SendAsync(logoutRequest);
-            logoutResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-
-            // 5. Check that cookies are deleted
-            var logoutCookies = logoutResponse.Headers.GetValues("Set-Cookie").ToList();
-            logoutCookies.Should().Contain(c => c.StartsWith("access_token=") && c.ToLower().Contains("expires="));
-
-            var finalRequest = new HttpRequestMessage(HttpMethod.Get, "/auth/me");
-            // not adding cookie headers simulating browser deleting them
-            var finalResponse = await _client.SendAsync(finalRequest);
-            finalResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    [Fact]
+    public async Task RememberedLogin_RotationPreservesExpiry_AndExternalReturnUrlIsIgnored()
+    {
+        var name = "remember" + Guid.NewGuid().ToString("N");
+        using (var register = new AuthBrowser(_factory))
+        using (var response = await register.RegisterAsync(name)) Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        using var browser = new AuthBrowser(_factory);
+        using var login = await browser.LoginAsync(name, true, "https://external.example/");
+        Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
+        Assert.Equal("/", login.Headers.Location?.OriginalString);
+        async Task<DateTime> Expiry()
+        {
+            using var scope = _factory.Services.CreateScope();
+            var raw = Uri.UnescapeDataString(browser.Cookie("refresh_token"));
+            var hash = scope.ServiceProvider.GetRequiredService<ISessionService>().HashToken(raw);
+            return (await scope.ServiceProvider.GetRequiredService<NetFilmxDbContext>().UserSessions.SingleAsync(s => s.RefreshTokenHash == hash)).ExpiresAt;
         }
+        var expiry = await Expiry();
+        Assert.True(expiry > DateTime.UtcNow.AddDays(29));
+        using var response2 = await browser.SendAsync(HttpMethod.Post, "/auth/refresh", csrf: await browser.CsrfAsync());
+        Assert.Equal(HttpStatusCode.OK, response2.StatusCode);
+        Assert.Equal(expiry, await Expiry());
     }
 }

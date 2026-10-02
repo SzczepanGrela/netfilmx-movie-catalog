@@ -12,6 +12,15 @@ namespace NetFilmx_Tests.Integration.Fixtures
     public class TestWebApplicationFactory<TProgram>
         : WebApplicationFactory<TProgram> where TProgram : class
     {
+        private readonly string _databasePath = Path.Combine(Path.GetTempPath(), "netfilmx-auth-test-" + Guid.NewGuid().ToString("N") + ".db");
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            if (disposing)
+                foreach (var suffix in new[] { "", "-wal", "-shm" }) File.Delete(_databasePath + suffix);
+        }
+
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment("Testing");
@@ -25,25 +34,16 @@ namespace NetFilmx_Tests.Integration.Fixtures
                     {"JwtSettings:AccessTokenTtlMinutes", "15"},
                     {"JwtSettings:RefreshTokenTtlDays", "7"},
                     {"WalletSettings:RegistrationBonus", "100.00"},
-                    {"ConnectionStrings:DefaultConnection", "Data Source=test_in_memory.db"}
+                    {"ConnectionStrings:DefaultConnection", "Data Source=" + _databasePath + ";Pooling=false"}
                 });
             });
 
             builder.ConfigureServices(services =>
             {
-                var dbContextDescriptor = services.SingleOrDefault(
-                    d => d.ServiceType ==
-                        typeof(DbContextOptions<NetFilmxDbContext>));
-
-                if (dbContextDescriptor != null)
-                {
-                    services.Remove(dbContextDescriptor);
-                }
-
+                var descriptor = services.Single(d => d.ServiceType == typeof(DbContextOptions<NetFilmxDbContext>));
+                services.Remove(descriptor);
                 services.AddDbContext<NetFilmxDbContext>(options =>
-                {
-                    options.UseInMemoryDatabase("InMemoryDbForTesting");
-                });
+                    options.UseSqlite("Data Source=" + _databasePath + ";Pooling=false"));
             });
         }
     }

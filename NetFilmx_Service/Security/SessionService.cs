@@ -19,18 +19,10 @@ namespace NetFilmx_Service.Security
 
         public async Task<(string refreshToken, UserSession session)> CreateSessionAsync(int userId, bool rememberMe = false, string? ipAddress = null, string? userAgent = null)
         {
-            var tokenBytes = new byte[64];
-            using (var rng = RandomNumberGenerator.Create())
-            {
-                rng.GetBytes(tokenBytes);
-            }
-            var refreshToken = Convert.ToBase64String(tokenBytes);
-            var tokenHash = HashToken(refreshToken);
-
             var ttlDaysStr = rememberMe ? _configuration["JwtSettings:RefreshTokenTtlDaysRemember"] : _configuration["JwtSettings:RefreshTokenTtlDays"];
             int ttlDays = int.TryParse(ttlDaysStr, out var parsedTtl) ? parsedTtl : (rememberMe ? 30 : 7);
 
-            var session = new UserSession(userId, tokenHash, DateTime.UtcNow.AddDays(ttlDays), ipAddress, userAgent);
+            var (refreshToken, session) = NewSession(userId, DateTime.UtcNow.AddDays(ttlDays), ipAddress, userAgent);
 
             await _sessionRepository.AddSessionAsync(session);
 
@@ -47,20 +39,20 @@ namespace NetFilmx_Service.Security
                 return null;
             }
 
-            session.IsRevoked = true;
-            await _sessionRepository.UpdateSessionAsync(session);
-
-            return await CreateSessionAsync(session.UserId, false, session.IpAddress, session.UserAgent);
+            // Preserve the original absolute expiry, including remembered logins.
+            var (newToken, replacement) = NewSession(session.UserId, session.ExpiresAt, session.IpAddress, session.UserAgent);
+            if (!await _sessionRepository.TryRotateSessionAsync(session.Id, replacement, DateTime.UtcNow))
+                return null;
+            return (newToken, replacement);
         }
 
-        public async Task RevokeSessionAsync(string refreshTokenHash)
+        public Task RevokeSessionAsync(string refreshToken) =>
+            _sessionRepository.RevokeByRefreshTokenHashAsync(HashToken(refreshToken));
+
+        private (string token, UserSession session) NewSession(int userId, DateTime expiresAt, string? ipAddress, string? userAgent)
         {
-            var session = await _sessionRepository.GetByRefreshTokenHashAsync(refreshTokenHash);
-            if (session != null)
-            {
-                session.IsRevoked = true;
-                await _sessionRepository.UpdateSessionAsync(session);
-            }
+            var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+            return (token, new UserSession(userId, HashToken(token), expiresAt, ipAddress, userAgent));
         }
 
         public async Task RevokeAllUserSessionsAsync(int userId)

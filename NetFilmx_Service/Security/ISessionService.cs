@@ -6,7 +6,7 @@ namespace NetFilmx_Service.Security
     {
         Task<(string refreshToken, UserSession session)> CreateSessionAsync(int userId, bool rememberMe = false, string? ipAddress = null, string? userAgent = null);
         Task<(string newRefreshToken, UserSession newSession)?> RotateSessionAsync(string refreshToken);
-        Task RevokeSessionAsync(string refreshTokenHash);
+        Task RevokeSessionAsync(string refreshToken);
         Task RevokeAllUserSessionsAsync(int userId);
         string HashToken(string token);
     }

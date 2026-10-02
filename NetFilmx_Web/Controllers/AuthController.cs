@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -30,7 +31,7 @@ namespace NetFilmx_Web.Controllers
         {
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
-                return LocalRedirect(returnUrl);
+                return LocalRedirect(Url.IsLocalUrl(returnUrl) ? returnUrl : "/");
             }
             ViewData["ReturnUrl"] = returnUrl;
             return View(new LoginRequest());
@@ -60,9 +61,9 @@ namespace NetFilmx_Web.Controllers
             var accessToken = _jwtTokenService.GenerateAccessToken(user);
             var (refreshToken, session) = await _sessionService.CreateSessionAsync(user.Id, request.RememberMe);
             
-            SetTokenCookies(accessToken, refreshToken, request.RememberMe);
+            SetTokenCookies(accessToken, refreshToken, session.ExpiresAt);
             
-            return LocalRedirect(returnUrl);
+            return LocalRedirect(Url.IsLocalUrl(returnUrl) ? returnUrl : "/");
         }
 
         [HttpGet("register")]
@@ -70,7 +71,7 @@ namespace NetFilmx_Web.Controllers
         {
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
-                return LocalRedirect(returnUrl);
+                return LocalRedirect(Url.IsLocalUrl(returnUrl) ? returnUrl : "/");
             }
             ViewData["ReturnUrl"] = returnUrl;
             return View(new RegisterRequest());
@@ -105,15 +106,14 @@ namespace NetFilmx_Web.Controllers
                 var user = loginResult.Data;
                 var accessToken = _jwtTokenService.GenerateAccessToken(user);
                 var (refreshToken, session) = await _sessionService.CreateSessionAsync(user.Id, false);
-                SetTokenCookies(accessToken, refreshToken, false);
-                return LocalRedirect(returnUrl);
+                SetTokenCookies(accessToken, refreshToken, session.ExpiresAt);
+                return LocalRedirect(Url.IsLocalUrl(returnUrl) ? returnUrl : "/");
             }
             
             return RedirectToAction(nameof(Login));
         }
 
-        [AcceptVerbs("GET", "POST")]
-        [Route("logout")]
+        [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
             var refreshTokenCookie = Request.Cookies["refresh_token"];
@@ -128,7 +128,12 @@ namespace NetFilmx_Web.Controllers
             return RedirectToAction("Index", "Home", new { area = "" });
         }
 
-        // We keep this for SPA-like AJAX calls if needed (e.g. for checking session from JS)
+        // Fetch a token for the current identity, also after an access JWT expires.
+        [HttpGet("csrf")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public IActionResult Csrf([FromServices] IAntiforgery antiforgery) =>
+            Json(new { token = antiforgery.GetAndStoreTokens(HttpContext).RequestToken });
+
         [HttpPost("refresh")]
         public async Task<IActionResult> Refresh()
         {
@@ -143,21 +148,20 @@ namespace NetFilmx_Web.Controllers
             var user = await _userRepository.GetUserByIdAsync(sessionResult.Value.newSession.UserId);
             var accessToken = _jwtTokenService.GenerateAccessToken(user);
             
-            bool rememberMe = (sessionResult.Value.newSession.ExpiresAt - DateTime.UtcNow).TotalDays > 10;
-            
-            SetTokenCookies(accessToken, sessionResult.Value.newRefreshToken, rememberMe);
+            SetTokenCookies(accessToken, sessionResult.Value.newRefreshToken, sessionResult.Value.newSession.ExpiresAt);
             
             return Ok();
         }
 
-        private void SetTokenCookies(string accessToken, string refreshToken, bool rememberMe)
+        private void SetTokenCookies(string accessToken, string refreshToken, DateTime expiresAt)
         {
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true, // should be true in prod, but keep it true (works on localhost over HTTPS/HTTP if browser allows)
+                Secure = true,
                 SameSite = SameSiteMode.Strict,
-                Expires = rememberMe ? DateTime.UtcNow.AddDays(30) : DateTime.UtcNow.AddDays(7)
+                Expires = new DateTimeOffset(expiresAt),
+                Path = "/"
             };
             Response.Cookies.Append("access_token", accessToken, cookieOptions);
             Response.Cookies.Append("refresh_token", refreshToken, cookieOptions);

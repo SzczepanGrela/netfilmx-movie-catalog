@@ -21,7 +21,7 @@ namespace NetFilmx_Tests.Integration
         }
 
         [Fact]
-        public async Task AddVideo_ShouldFailValidation_WhenMissingFilesAndYouTubeUrl()
+        public async Task AddVideo_RequiresAuthentication()
         {
             // Arrange
             var content = new MultipartFormDataContent();
@@ -30,8 +30,9 @@ namespace NetFilmx_Tests.Integration
             content.Add(new StringContent("10.50"), "Price");
             // Deliberately missing VideoFile, ThumbnailFile, and VideoUrl
             
-            // Assuming we are bypassing Auth for test endpoints or doing this unauthenticated (it should return 302 to login).
-            // Actually, Admin endpoints require auth. Let's just check if the model validation fails on unit test level instead of integration level to bypass complex auth setups for multipart form data, OR we can just unit test the controller.
+            using var response = await _client.PostAsync("/admin/video/add", content);
+            response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+            response.Headers.Location!.OriginalString.Should().StartWith("/auth/login?returnUrl=");
         }
     }
 }

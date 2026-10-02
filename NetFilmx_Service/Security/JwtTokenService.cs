@@ -9,27 +9,15 @@ namespace NetFilmx_Service.Security
 {
     public class JwtTokenService : IJwtTokenService
     {
-        private readonly IConfiguration _configuration;
+        private readonly JwtConfiguration _settings;
 
         public JwtTokenService(IConfiguration configuration)
         {
-            _configuration = configuration;
+            _settings = new JwtConfiguration(configuration);
         }
 
         public string GenerateAccessToken(User user)
         {
-            var secretKey = _configuration["JwtSettings:SecretKey"];
-            if (string.IsNullOrEmpty(secretKey)) secretKey = "default_secret_key_for_development_only_1234567890";
-
-            var issuer = _configuration["JwtSettings:Issuer"];
-            var audience = _configuration["JwtSettings:Audience"];
-            var ttlMinutesStr = _configuration["JwtSettings:AccessTokenTtlMinutes"];
-
-            int ttlMinutes = int.TryParse(ttlMinutesStr, out var parsedTtl) ? parsedTtl : 15;
-
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
-            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -39,11 +27,11 @@ namespace NetFilmx_Service.Security
             };
 
             var token = new JwtSecurityToken(
-                issuer: issuer,
-                audience: audience,
+                issuer: _settings.Issuer,
+                audience: _settings.Audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(ttlMinutes),
-                signingCredentials: credentials);
+                expires: DateTime.UtcNow.AddMinutes(_settings.AccessTokenTtlMinutes),
+                signingCredentials: _settings.SigningCredentials());
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
@@ -53,29 +41,10 @@ namespace NetFilmx_Service.Security
             if (string.IsNullOrWhiteSpace(token))
                 return null;
 
-            var secretKey = _configuration["JwtSettings:SecretKey"] ?? string.Empty;
-            var issuer = _configuration["JwtSettings:Issuer"];
-            var audience = _configuration["JwtSettings:Audience"];
-
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
-
             try
             {
-                tokenHandler.ValidateToken(token, new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = key,
-                    ValidateIssuer = !string.IsNullOrEmpty(issuer),
-                    ValidIssuer = issuer,
-                    ValidateAudience = !string.IsNullOrEmpty(audience),
-                    ValidAudience = audience,
-                    ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero
-                }, out SecurityToken validatedToken);
-
-                var jwtToken = (JwtSecurityToken)validatedToken;
-                var userIdClaim = jwtToken.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
+                var principal = new JwtSecurityTokenHandler().ValidateToken(token, _settings.ValidationParameters(), out _);
+                var userIdClaim = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
                 if (int.TryParse(userIdClaim, out int userId))
                 {

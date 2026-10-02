@@ -40,6 +40,68 @@ public sealed class PostgreSqlMigrationTests : IAsyncLifetime
             .Options);
 
     [PostgreSqlFact]
+    public async Task ConcurrentRefresh_OnlyOneTransactionConsumesTheToken()
+    {
+        int sessionId, userId;
+        var expiry = DateTime.UtcNow.AddDays(30);
+        await using (var db = OpenContext())
+        {
+            await db.Database.MigrateAsync();
+            var user = new User("refresh-race", "race@example.test", "test-hash");
+            db.Users.Add(user);
+            await db.SaveChangesAsync();
+            userId = user.Id;
+            var session = new UserSession(userId, "original", expiry);
+            db.UserSessions.Add(session);
+            await db.SaveChangesAsync();
+            sessionId = session.Id;
+        }
+        await using var first = OpenContext();
+        await using var second = OpenContext();
+        var repo1 = new NetFilmx_Storage.Repositories.UserSessionRepository(first);
+        var repo2 = new NetFilmx_Storage.Repositories.UserSessionRepository(second);
+        // Both requests have read the valid old session before either consumes it.
+        Assert.NotNull(await repo1.GetByRefreshTokenHashAsync("original"));
+        Assert.NotNull(await repo2.GetByRefreshTokenHashAsync("original"));
+        var results = await Task.WhenAll(
+            repo1.TryRotateSessionAsync(sessionId, new UserSession(userId, "replacement-1", expiry), DateTime.UtcNow),
+            repo2.TryRotateSessionAsync(sessionId, new UserSession(userId, "replacement-2", expiry), DateTime.UtcNow));
+        Assert.Single(results.Where(result => result));
+        await using var read = OpenContext();
+        Assert.Equal(2, await read.UserSessions.CountAsync());
+        Assert.Equal(1, await read.UserSessions.CountAsync(s => !s.IsRevoked));
+        Assert.True((await read.UserSessions.SingleAsync(s => s.Id == sessionId)).IsRevoked);
+    }
+
+    [PostgreSqlFact]
+    public async Task FailedReplacementInsert_RollsBackTokenConsumption()
+    {
+        int sessionId, userId;
+        var expiry = DateTime.UtcNow.AddDays(7);
+        await using (var db = OpenContext())
+        {
+            await db.Database.MigrateAsync();
+            var user = new User("refresh-rollback", "rollback@example.test", "test-hash");
+            db.Users.Add(user);
+            await db.SaveChangesAsync();
+            userId = user.Id;
+            var session = new UserSession(userId, "original", expiry);
+            db.UserSessions.Add(session);
+            await db.SaveChangesAsync();
+            sessionId = session.Id;
+        }
+        await using (var db = OpenContext())
+        {
+            var repo = new NetFilmx_Storage.Repositories.UserSessionRepository(db);
+            await Assert.ThrowsAsync<DbUpdateException>(() => repo.TryRotateSessionAsync(sessionId,
+                new UserSession(userId, null!, expiry), DateTime.UtcNow));
+        }
+        await using var read = OpenContext();
+        Assert.Equal(1, await read.UserSessions.CountAsync());
+        Assert.False((await read.UserSessions.SingleAsync()).IsRevoked);
+    }
+
+    [PostgreSqlFact]
     public async Task UploadIntentAndQueue_SurviveNewDatabaseAndQueueConnections()
     {
         string uploadId = Guid.NewGuid().ToString("N");
