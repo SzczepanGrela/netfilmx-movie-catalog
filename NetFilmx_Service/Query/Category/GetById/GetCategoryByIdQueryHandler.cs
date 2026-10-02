@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using NetFilmx_Service.Mappings;
 using MediatR;
 using NetFilmx_Service.Dtos.Category;
 using NetFilmx_Service.Result;
@@ -10,9 +10,9 @@ namespace NetFilmx_Service.Query.Category
         where TDto : ICategoryDto
     {
         private readonly ICategoryRepository _repository;
-        private readonly IMapper _mapper;
+        private readonly ICatalogueMapper _mapper;
 
-        public GetCategoryByIdQueryHandler(ICategoryRepository repository, IMapper mapper)
+        public GetCategoryByIdQueryHandler(ICategoryRepository repository, ICatalogueMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;

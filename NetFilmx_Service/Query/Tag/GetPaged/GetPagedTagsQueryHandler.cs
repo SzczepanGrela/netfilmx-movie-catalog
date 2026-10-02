@@ -1,4 +1,4 @@
-using AutoMapper;
+using NetFilmx_Service.Mappings;
 using MediatR;
 using NetFilmx_Service.Dtos.Tag;
 using NetFilmx_Service.Result;
@@ -14,9 +14,9 @@ namespace NetFilmx_Service.Query.Tag
         where TDto : ITagDto
     {
         private readonly ITagRepository _repository;
-        private readonly IMapper _mapper;
+        private readonly ICatalogueMapper _mapper;
 
-        public GetPagedTagsQueryHandler(ITagRepository repository, IMapper mapper)
+        public GetPagedTagsQueryHandler(ITagRepository repository, ICatalogueMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;
@@ -27,7 +27,7 @@ namespace NetFilmx_Service.Query.Tag
             try
             {
                 var (tags, totalCount) = await _repository.GetPagedTagsAsync(query.PageNumber, query.PageSize, query.SearchTerm);
-                var tagsDto = _mapper.Map<List<TDto>>(tags);
+                var tagsDto = _mapper.MapList<TDto>(tags);
                 var paginatedList = new PaginatedList<TDto>(tagsDto, totalCount, query.PageNumber, query.PageSize);
                 return QResult<PaginatedList<TDto>>.Ok(paginatedList);
             }

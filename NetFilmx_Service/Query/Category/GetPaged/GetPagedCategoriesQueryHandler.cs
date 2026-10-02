@@ -1,4 +1,4 @@
-using AutoMapper;
+using NetFilmx_Service.Mappings;
 using MediatR;
 using NetFilmx_Service.Dtos.Category;
 using NetFilmx_Service.Result;
@@ -14,9 +14,9 @@ namespace NetFilmx_Service.Query.Category
         where TDto : ICategoryDto
     {
         private readonly ICategoryRepository _repository;
-        private readonly IMapper _mapper;
+        private readonly ICatalogueMapper _mapper;
 
-        public GetPagedCategoriesQueryHandler(ICategoryRepository repository, IMapper mapper)
+        public GetPagedCategoriesQueryHandler(ICategoryRepository repository, ICatalogueMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;
@@ -27,7 +27,7 @@ namespace NetFilmx_Service.Query.Category
             try
             {
                 var (categories, totalCount) = await _repository.GetPagedCategoriesAsync(query.PageNumber, query.PageSize, query.SearchTerm);
-                var categoriesDto = _mapper.Map<List<TDto>>(categories);
+                var categoriesDto = _mapper.MapList<TDto>(categories);
                 var paginatedList = new PaginatedList<TDto>(categoriesDto, totalCount, query.PageNumber, query.PageSize);
                 return QResult<PaginatedList<TDto>>.Ok(paginatedList);
             }

@@ -78,7 +78,7 @@ builder.Services.AddAntiforgery(options =>
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(
     Assembly.GetExecutingAssembly()));
 
-builder.Services.AddAutoMapper(typeof(NetFilmx_Service.Mappings.VideoMappingProfile).Assembly);
+builder.Services.AddSingleton<NetFilmx_Service.Mappings.ICatalogueMapper, NetFilmx_Service.Mappings.CatalogueMapper>();
 
 builder.Services.AddNetFilmxServices();
 

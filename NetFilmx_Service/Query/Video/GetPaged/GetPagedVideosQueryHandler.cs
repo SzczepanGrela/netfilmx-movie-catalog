@@ -1,4 +1,4 @@
-using AutoMapper;
+using NetFilmx_Service.Mappings;
 using MediatR;
 using NetFilmx_Service.Dtos.Video;
 using NetFilmx_Service.Result;
@@ -14,9 +14,9 @@ namespace NetFilmx_Service.Query.Video
         where TDto : IVideoDto
     {
         private readonly IVideoRepository _repository;
-        private readonly IMapper _mapper;
+        private readonly ICatalogueMapper _mapper;
 
-        public GetPagedVideosQueryHandler(IVideoRepository repository, IMapper mapper)
+        public GetPagedVideosQueryHandler(IVideoRepository repository, ICatalogueMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;
@@ -27,7 +27,7 @@ namespace NetFilmx_Service.Query.Video
             try
             {
                 var (videos, totalCount) = await _repository.GetPagedVideosAsync(query.PageNumber, query.PageSize, query.SearchTerm);
-                var videosDto = _mapper.Map<List<TDto>>(videos);
+                var videosDto = _mapper.MapList<TDto>(videos);
                 var paginatedList = new PaginatedList<TDto>(videosDto, totalCount, query.PageNumber, query.PageSize);
                 return QResult<PaginatedList<TDto>>.Ok(paginatedList);
             }

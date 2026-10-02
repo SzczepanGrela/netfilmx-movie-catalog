@@ -1,4 +1,4 @@
-using AutoMapper;
+using NetFilmx_Service.Mappings;
 using MediatR;
 using NetFilmx_Service.Dtos.Comment;
 using NetFilmx_Service.Result;
@@ -14,9 +14,9 @@ namespace NetFilmx_Service.Query.Comment
         where TDto : ICommentDto
     {
         private readonly ICommentRepository _repository;
-        private readonly IMapper _mapper;
+        private readonly ICatalogueMapper _mapper;
 
-        public GetPagedCommentsQueryHandler(ICommentRepository repository, IMapper mapper)
+        public GetPagedCommentsQueryHandler(ICommentRepository repository, ICatalogueMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;
@@ -27,7 +27,7 @@ namespace NetFilmx_Service.Query.Comment
             try
             {
                 var (comments, totalCount) = await _repository.GetPagedCommentsAsync(query.PageNumber, query.PageSize, query.SearchTerm);
-                var commentsDto = _mapper.Map<List<TDto>>(comments);
+                var commentsDto = _mapper.MapList<TDto>(comments);
                 var paginatedList = new PaginatedList<TDto>(commentsDto, totalCount, query.PageNumber, query.PageSize);
                 return QResult<PaginatedList<TDto>>.Ok(paginatedList);
             }

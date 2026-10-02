@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using NetFilmx_Service.Mappings;
 using MediatR;
 using NetFilmx_Service.Dtos.Category;
 using NetFilmx_Service.Result;
@@ -13,9 +13,9 @@ namespace NetFilmx_Service.Query.Category
     {
 
         private readonly ICategoryRepository _repository;
-        private readonly IMapper _mapper;
+        private readonly ICatalogueMapper _mapper;
 
-        public GetCategoriesByExcludedVideoIdQueryHandler(ICategoryRepository repository, IMapper mapper)
+        public GetCategoriesByExcludedVideoIdQueryHandler(ICategoryRepository repository, ICatalogueMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;
@@ -34,7 +34,7 @@ namespace NetFilmx_Service.Query.Category
             List<TDto> categoryDto;
             try
             {
-                categoryDto = _mapper.Map<List<TDto>>(category);
+                categoryDto = _mapper.MapList<TDto>(category);
                 return QResult<List<TDto>>.Ok(categoryDto);
             }
             catch (Exception ex)
