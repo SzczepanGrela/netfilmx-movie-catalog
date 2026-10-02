@@ -5,6 +5,10 @@
 > produkcyjnym. Aktualny zakres, testy i warunki zachowania mediów opisuje
 > [przewodnik baz danych](docs/database-baseline.md).
 
+Zależności są przypięte w lockfile i sprawdzane pod kątem podatności w CI.
+Aktualizacje, audyty NuGet/npm i testy opisuje
+[przewodnik zależności](docs/dependencies.md).
+
 NetFilmx to zaawansowana aplikacja webowa VOD (Video on Demand) w technologii ASP.NET Core 8 MVC. Głównym celem tego projektu jest zaprezentowanie pełnego, nowoczesnego ekosystemu streamingu wideo z zachowaniem dobrych praktyk architektonicznych.
 
 ## Główne Funkcjonalności

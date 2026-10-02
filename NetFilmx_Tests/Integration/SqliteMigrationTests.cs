@@ -8,6 +8,20 @@ namespace NetFilmx_Tests.Integration;
 
 public sealed class SqliteMigrationTests
 {
+    [Fact]
+    public async Task Sqlite_LoadsNativeLibraryWithTheCve20256965Fix()
+    {
+        await using var db = new NetFilmxDbContext(new DbContextOptionsBuilder<NetFilmxDbContext>()
+            .UseNetFilmxDatabase("Data Source=:memory:").Options);
+        await db.Database.OpenConnectionAsync();
+        await using var command = db.Database.GetDbConnection().CreateCommand();
+        command.CommandText = "SELECT sqlite_version()";
+        var version = Version.Parse((string)(await command.ExecuteScalarAsync())!);
+
+        // Check the library actually loaded by EF, rather than the NuGet label.
+        Assert.True(version >= new Version(3, 50, 2), $"Unpatched native SQLite: {version}");
+    }
+
     [Theory]
     [InlineData("20260728210152_InitialSqlite")]
     [InlineData("20260807090211_ArgonPasswords")]

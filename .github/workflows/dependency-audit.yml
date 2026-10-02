@@ -1,0 +1,51 @@
+name: Dependency audit
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/*.csproj'
+      - '**/packages.lock.json'
+      - 'Directory.Build.props'
+      - 'NuGet.Config'
+      - 'NetFilmx_Web/package*.json'
+      - 'NetFilmx_Web/scripts/**'
+      - 'NetFilmx_Web/wwwroot/lib/**'
+      - 'NetFilmx_Web/Views/Shared/_ValidationScriptsPartial.cshtml'
+      - '.github/workflows/dependency-audit.yml'
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Audit direct and transitive NuGet packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore locked dependencies against current advisories
+        run: dotnet restore "ST2 NetFilmx.sln" --locked-mode --force --no-cache
+
+  browser-audit:
+    name: Audit locked browser dependencies and vendor files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: NetFilmx_Web/package-lock.json
+      - name: Audit dependencies and verify validation behavior
+        working-directory: NetFilmx_Web
+        run: |
+          npm ci --ignore-scripts
+          npm audit --audit-level=low
+          npm run vendor:check
+          npm test

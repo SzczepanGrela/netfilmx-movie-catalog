@@ -61,3 +61,6 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+# Vendor verification compares upstream bytes, including their line endings.
+NetFilmx_Web/wwwroot/lib/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

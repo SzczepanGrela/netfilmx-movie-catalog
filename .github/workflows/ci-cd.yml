@@ -56,6 +56,8 @@ jobs:
               - 'NetFilmx_Storage/**'
               - 'NetFilmx_Storage.PostgreSql/**'
               - '.config/dotnet-tools.json'
+              - 'Directory.Build.props'
+              - 'NuGet.Config'
               - 'NetFilmx_Common/**'
               - 'NetFilmx_Tests/**'
               - 'ST2 NetFilmx.sln'
@@ -89,6 +91,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Node for browser dependency checks
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: NetFilmx_Web/package-lock.json
+
+      - name: Audit browser dependencies and test form validation
+        working-directory: NetFilmx_Web
+        run: |
+          npm ci --ignore-scripts
+          npm audit --audit-level=low
+          npm run vendor:check
+          npm test
+
       - name: Setup .NET 8 SDK
         uses: actions/setup-dotnet@v4
         with:
@@ -103,11 +120,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', 'ST2 NetFilmx.sln') }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json', 'NuGet.Config', 'Directory.Build.props') }}
           restore-keys: ${{ runner.os }}-nuget-
 
-      - name: Restore
-        run: dotnet restore "ST2 NetFilmx.sln"
+      - name: Restore locked dependencies and audit vulnerabilities
+        run: dotnet restore "ST2 NetFilmx.sln" --locked-mode --force
 
       - name: Build (Release)
         run: dotnet build "ST2 NetFilmx.sln" --no-restore -c Release

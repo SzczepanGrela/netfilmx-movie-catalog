@@ -2,9 +2,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY . .
-RUN dotnet restore "NetFilmx_Web/NetFilmx_Web.csproj"
+RUN dotnet restore "NetFilmx_Web/NetFilmx_Web.csproj" --locked-mode
 RUN dotnet publish "NetFilmx_Web/NetFilmx_Web.csproj" \
-    -c Release -o /app/publish
+    --no-restore -c Release -o /app/publish
 
 # Stage 2: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime

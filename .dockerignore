@@ -11,6 +11,7 @@ obj/
 infra/
 **/bin/
 **/obj/
+**/node_modules/
 **/appsettings*.json
 **/.env
 **/.env.*
