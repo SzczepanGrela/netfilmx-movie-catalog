@@ -17,6 +17,109 @@ namespace NetFilmx_Storage.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.7");
 
+            modelBuilder.Entity("BundleSeries", b =>
+                {
+                    b.Property<int>("BundleId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SeriesId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("BundleId", "SeriesId");
+
+                    b.HasIndex("SeriesId");
+
+                    b.ToTable("BundleSeries", (string)null);
+                });
+
+            modelBuilder.Entity("BundleVideo", b =>
+                {
+                    b.Property<int>("BundleId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("VideoId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("BundleId", "VideoId");
+
+                    b.HasIndex("VideoId");
+
+                    b.ToTable("BundleVideos", (string)null);
+                });
+
+            modelBuilder.Entity("NetFilmx_Storage.Entities.Bundle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("BackdropUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LogoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PosterUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Bundles");
+                });
+
+            modelBuilder.Entity("NetFilmx_Storage.Entities.BundlePurchase", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<int>("BundleId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("BundleId1")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("PurchaseDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BundleId");
+
+                    b.HasIndex("BundleId1");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("BundlePurchases");
+                });
+
             modelBuilder.Entity("NetFilmx_Storage.Entities.Category", b =>
                 {
                     b.Property<int>("Id")
@@ -35,6 +138,43 @@ namespace NetFilmx_Storage.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Categories");
+                });
+
+            modelBuilder.Entity("NetFilmx_Storage.Entities.CategoryTranslation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId", "LanguageCode")
+                        .IsUnique();
+
+                    b.ToTable("CategoryTranslations");
                 });
 
             modelBuilder.Entity("NetFilmx_Storage.Entities.Comment", b =>
@@ -99,6 +239,18 @@ namespace NetFilmx_Storage.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("AgeRating")
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BackdropUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Cast")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -106,13 +258,40 @@ namespace NetFilmx_Storage.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Director")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LogoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MaturityWarning")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("PosterUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18, 2)");
+
+                    b.Property<string>("QualityBadge")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ReleaseYear")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("TrailerUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");
@@ -146,6 +325,51 @@ namespace NetFilmx_Storage.Migrations
                     b.ToTable("SeriesPurchases");
                 });
 
+            modelBuilder.Entity("NetFilmx_Storage.Entities.SeriesTranslation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Cast")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(3000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Director")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SeriesId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SeriesId", "LanguageCode")
+                        .IsUnique();
+
+                    b.ToTable("SeriesTranslations");
+                });
+
             modelBuilder.Entity("NetFilmx_Storage.Entities.Tag", b =>
                 {
                     b.Property<int>("Id")
@@ -162,11 +386,51 @@ namespace NetFilmx_Storage.Migrations
                     b.ToTable("Tags");
                 });
 
+            modelBuilder.Entity("NetFilmx_Storage.Entities.TagTranslation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("TagId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TagId", "LanguageCode")
+                        .IsUnique();
+
+                    b.ToTable("TagTranslations");
+                });
+
             modelBuilder.Entity("NetFilmx_Storage.Entities.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("AvatarUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("decimal(18, 2)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
@@ -181,6 +445,9 @@ namespace NetFilmx_Storage.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("Role")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");
 
@@ -194,7 +461,7 @@ namespace NetFilmx_Storage.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("NetFilmx_Storage.Entities.Video", b =>
+            modelBuilder.Entity("NetFilmx_Storage.Entities.UserSession", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -203,12 +470,89 @@ namespace NetFilmx_Storage.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("RefreshTokenHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserSessions");
+                });
+
+            modelBuilder.Entity("NetFilmx_Storage.Entities.Video", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AgeRating")
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BackdropUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Cast")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2000)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Director")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DurationMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LogoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MaturityWarning")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18, 2)");
+
+                    b.Property<string>("QualityBadge")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ReleaseYear")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SourceUploadId")
+                        .IsConcurrencyToken()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ThumbnailUrl")
                         .IsRequired()
@@ -219,10 +563,19 @@ namespace NetFilmx_Storage.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("TrailerUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("UploadJobId")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("VideoUrl")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasColumnType("TEXT");
 
@@ -256,6 +609,87 @@ namespace NetFilmx_Storage.Migrations
                     b.HasIndex("VideoId");
 
                     b.ToTable("VideoPurchases");
+                });
+
+            modelBuilder.Entity("NetFilmx_Storage.Entities.VideoTranslation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Cast")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(3000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Director")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("VideoId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VideoId", "LanguageCode")
+                        .IsUnique();
+
+                    b.ToTable("VideoTranslations");
+                });
+
+            modelBuilder.Entity("NetFilmx_Storage.Entities.WalletTransaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<decimal>("BalanceAfter")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("RelatedEntityId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("WalletTransactions");
                 });
 
             modelBuilder.Entity("VideoCategory", b =>
@@ -301,6 +735,70 @@ namespace NetFilmx_Storage.Migrations
                     b.HasIndex("VideoId");
 
                     b.ToTable("VideoTag");
+                });
+
+            modelBuilder.Entity("BundleSeries", b =>
+                {
+                    b.HasOne("NetFilmx_Storage.Entities.Bundle", null)
+                        .WithMany()
+                        .HasForeignKey("BundleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("NetFilmx_Storage.Entities.Series", null)
+                        .WithMany()
+                        .HasForeignKey("SeriesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BundleVideo", b =>
+                {
+                    b.HasOne("NetFilmx_Storage.Entities.Bundle", null)
+                        .WithMany()
+                        .HasForeignKey("BundleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("NetFilmx_Storage.Entities.Video", null)
+                        .WithMany()
+                        .HasForeignKey("VideoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NetFilmx_Storage.Entities.BundlePurchase", b =>
+                {
+                    b.HasOne("NetFilmx_Storage.Entities.Bundle", "Bundle")
+                        .WithMany()
+                        .HasForeignKey("BundleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("NetFilmx_Storage.Entities.Bundle", null)
+                        .WithMany("BundlePurchases")
+                        .HasForeignKey("BundleId1");
+
+                    b.HasOne("NetFilmx_Storage.Entities.User", "User")
+                        .WithMany("BundlePurchases")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Bundle");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("NetFilmx_Storage.Entities.CategoryTranslation", b =>
+                {
+                    b.HasOne("NetFilmx_Storage.Entities.Category", "Category")
+                        .WithMany("Translations")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Category");
                 });
 
             modelBuilder.Entity("NetFilmx_Storage.Entities.Comment", b =>
@@ -360,6 +858,39 @@ namespace NetFilmx_Storage.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("NetFilmx_Storage.Entities.SeriesTranslation", b =>
+                {
+                    b.HasOne("NetFilmx_Storage.Entities.Series", "Series")
+                        .WithMany("Translations")
+                        .HasForeignKey("SeriesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Series");
+                });
+
+            modelBuilder.Entity("NetFilmx_Storage.Entities.TagTranslation", b =>
+                {
+                    b.HasOne("NetFilmx_Storage.Entities.Tag", "Tag")
+                        .WithMany("Translations")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tag");
+                });
+
+            modelBuilder.Entity("NetFilmx_Storage.Entities.UserSession", b =>
+                {
+                    b.HasOne("NetFilmx_Storage.Entities.User", "User")
+                        .WithMany("Sessions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("NetFilmx_Storage.Entities.VideoPurchase", b =>
                 {
                     b.HasOne("NetFilmx_Storage.Entities.User", "User")
@@ -377,6 +908,28 @@ namespace NetFilmx_Storage.Migrations
                     b.Navigation("User");
 
                     b.Navigation("Video");
+                });
+
+            modelBuilder.Entity("NetFilmx_Storage.Entities.VideoTranslation", b =>
+                {
+                    b.HasOne("NetFilmx_Storage.Entities.Video", "Video")
+                        .WithMany("Translations")
+                        .HasForeignKey("VideoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Video");
+                });
+
+            modelBuilder.Entity("NetFilmx_Storage.Entities.WalletTransaction", b =>
+                {
+                    b.HasOne("NetFilmx_Storage.Entities.User", "User")
+                        .WithMany("WalletTransactions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("VideoCategory", b =>
@@ -424,20 +977,43 @@ namespace NetFilmx_Storage.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("NetFilmx_Storage.Entities.Bundle", b =>
+                {
+                    b.Navigation("BundlePurchases");
+                });
+
+            modelBuilder.Entity("NetFilmx_Storage.Entities.Category", b =>
+                {
+                    b.Navigation("Translations");
+                });
+
             modelBuilder.Entity("NetFilmx_Storage.Entities.Series", b =>
                 {
                     b.Navigation("SeriesPurchases");
+
+                    b.Navigation("Translations");
+                });
+
+            modelBuilder.Entity("NetFilmx_Storage.Entities.Tag", b =>
+                {
+                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("NetFilmx_Storage.Entities.User", b =>
                 {
+                    b.Navigation("BundlePurchases");
+
                     b.Navigation("Comments");
 
                     b.Navigation("Likes");
 
                     b.Navigation("SeriesPurchases");
 
+                    b.Navigation("Sessions");
+
                     b.Navigation("VideoPurchases");
+
+                    b.Navigation("WalletTransactions");
                 });
 
             modelBuilder.Entity("NetFilmx_Storage.Entities.Video", b =>
@@ -445,6 +1021,8 @@ namespace NetFilmx_Storage.Migrations
                     b.Navigation("Comments");
 
                     b.Navigation("Likes");
+
+                    b.Navigation("Translations");
 
                     b.Navigation("VideoPurchases");
                 });

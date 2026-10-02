@@ -1,0 +1,31 @@
+@model NetFilmx_Service.Dtos.Category.CategoryAddDto
+
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h1>Dodaj nową kategorię</h1>
+        </div>
+        <div class="card-body">
+            <form method="post" asp-action="Add">
+                <div class="form-group">
+                    <label asp-for="Name" class="admin-label"></label>
+                    <input asp-for="Name" class="admin-input" />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Description" class="admin-label"></label>
+                    <textarea asp-for="Description" class="admin-input"></textarea>
+                    <span asp-validation-for="Description" class="text-danger"></span>
+                </div>
+             
+                <button type="submit" class="nfx-btn nfx-btn-primary" data-i18n="t_dodaj_kategorie">Dodaj Kategorię</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

@@ -17,7 +17,7 @@ namespace NetFilmx_Storage.Entities
         {
             UserId = userId;
             SeriesId = seriesId;
-            PurchaseDate = DateTime.Now;
+            PurchaseDate = DateTime.UtcNow;
         }
 
         [Required]

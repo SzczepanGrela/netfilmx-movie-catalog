@@ -39,7 +39,7 @@ namespace NetFilmx_Service.Command.User
 
                 user.Email = command.Email;
                 user.Username = command.Username;
-                user.UpdatedAt = DateTime.Now;
+                user.UpdatedAt = DateTime.UtcNow;
 
                 await _repository.UpdateUserAsync(user);
 

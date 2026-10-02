@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using NetFilmx_Service.Mappings;
 using MediatR;
 using NetFilmx_Service.Dtos.Series;
 using NetFilmx_Service.Result;
@@ -10,9 +10,9 @@ namespace NetFilmx_Service.Query.Series
          where TDto : ISeriesDto
     {
         private readonly ISeriesRepository _repository;
-        private readonly IMapper _mapper;
+        private readonly ICatalogueMapper _mapper;
 
-        public GetSeriesByIdQueryHandler(ISeriesRepository repository, IMapper mapper)
+        public GetSeriesByIdQueryHandler(ISeriesRepository repository, ICatalogueMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;

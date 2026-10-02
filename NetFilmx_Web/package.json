@@ -1,0 +1,19 @@
+{
+  "name": "netfilmx-browser-dependencies",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "vendor": "node scripts/vendor-browser-dependencies.mjs --write",
+    "vendor:check": "node scripts/vendor-browser-dependencies.mjs --check",
+    "test": "node --test --test-isolation=none scripts/validation.test.mjs"
+  },
+  "dependencies": {
+    "bootstrap": "5.3.8",
+    "jquery": "3.7.1",
+    "jquery-validation": "1.22.1",
+    "jquery-validation-unobtrusive": "4.0.0"
+  },
+  "devDependencies": {
+    "jsdom": "30.1.1"
+  }
+}

@@ -1,43 +1,70 @@
-# NetFilmx Movie Catalog
+# NetFilmx - Premium VOD Platform
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![.NET 8](https://img.shields.io/badge/.NET-8.0-purple.svg)
-![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
+> Trwają przygotowania do migracji na Coolify. Ta gałąź zawiera zachowaną lokalną
+> pracę oraz osobne migracje PostgreSQL. Nie jest jeszcze gotowym wydaniem
+> produkcyjnym. Aktualny zakres, testy i warunki zachowania mediów opisuje
+> [przewodnik baz danych](docs/database-baseline.md).
 
-Movie catalog web application built with ASP.NET Core MVC.
+Zależności są przypięte w lockfile i sprawdzane pod kątem podatności w CI.
+Aktualizacje, audyty NuGet/npm i testy opisuje
+[przewodnik zależności](docs/dependencies.md).
 
-## 📦 Deployment & Architecture
-The application is containerized using Docker and is deployed under a unified Zero-Trust DevOps architecture.
+NetFilmx to zaawansowana aplikacja webowa VOD (Video on Demand) w technologii ASP.NET Core 8 MVC. Głównym celem tego projektu jest zaprezentowanie pełnego, nowoczesnego ekosystemu streamingu wideo z zachowaniem dobrych praktyk architektonicznych.
 
-* **URL:** [https://netfilmx.grela.dev](https://netfilmx.grela.dev)
-* **Infrastructure:** Docker, Nginx Proxy Manager, Cloudflare (Orange Cloud)
-* **CI/CD:** Automated deployment via GitHub Actions (Tailscale OIDC)
-* **Database:** SQLite (Containerized)
+## Główne Funkcjonalności
 
-## 🏗️ Project Structure
-* `NetFilmx_Web` - Presentation layer (ASP.NET Core MVC, Controllers, Views)
-* `NetFilmx_Service` - Business logic layer (Services)
-* `NetFilmx_Storage` - Data access layer (EF Core)
-* `Common` - Shared DTOs and contracts
-* `infra/` - Deployment scripts, Docker configuration, and CI/CD setup
+- **Przetwarzanie wideo (FFmpeg + Hangfire)**: Opcjonalne uploady są konwertowane w tle do HLS. Wymagają prywatnego trwałego katalogu, PostgreSQL i R2; domyślnie są wyłączone. [Konfiguracja i ograniczenia](docs/upload-processing.md).
+- **Zewnętrzny Storage (Cloudflare R2)**: Zoptymalizowane przechowywanie plików statycznych oraz segmentów wideo z wykorzystaniem technologii S3 (AWS SDK).
+- **Architektura CQRS (MediatR)**: Logika biznesowa i operacje wejścia/wyjścia podzielone są na komendy (Commands) i zapytania (Queries), co poprawia testowalność i modularność.
+- **Bezpieczeństwo**:
+  - Hashowanie haseł algorytmem Argon2id.
+  - Generowanie oraz autoryzacja żądań przy użyciu tokenów (JWT przechowywany w ciasteczkach `HttpOnly`).
+  - Restrykcyjny panel administratora (`/admin`) oparty na walidacji roli (`[Authorize(Roles="Admin")]`).
+- **Premium UI (Glassmorphism)**: Kliencki interfejs użytkownika korzystający z motywu dark mode (m.in. `#040814`) ze wstawkami fioletu, karuzelami wideo, responsywnym playerem (Vidstack) oraz trybem Ambient Mode. Płatności są mockowane (wirtualne kredyty).
 
-## 🚀 Quick Start (Docker)
+## Technologie
+
+- **Framework**: .NET 8 (ASP.NET Core MVC)
+- **Architektura**: CQRS (MediatR), Clean Architecture (Storage / Service / Web)
+- **Baza Danych**: Entity Framework Core (osobne migracje SQLite i PostgreSQL;
+  testy InMemory oraz rzeczywistych baz)
+- **Background Jobs**: Hangfire
+- **Frontend**: HTML5, CSS3, Vidstack Player (HLS)
+- **Testy**: xUnit, Moq, FluentAssertions
+- **DevOps**: Docker, GitHub Actions (Tailscale OIDC)
+
+## Uruchomienie lokalne
 
 ```bash
-# Clone the repository
+# 1. Klonowanie repozytorium
 git clone https://github.com/SzczepanGrela/netfilmx-movie-catalog.git
 cd netfilmx-movie-catalog
 
-# Build the Docker image
-docker build -t netfilmx-app -f infra/Dockerfile .
+# 2. Przywrócenie narzędzia EF Core zgodnego z projektem
+dotnet tool restore
 
-# Run the container (maps port 8080)
-docker run -d -p 8080:8080 --name netfilmx-app netfilmx-app
+# 3. Po skonfigurowaniu połączenia i JWT — uruchomienie
+dotnet run --project NetFilmx_Web
 ```
-Then navigate to `http://localhost:8080`.
 
-## 🗄️ Archive
-The original 2024 university coursework version is preserved on the [`archive/original-2024`](https://github.com/SzczepanGrela/netfilmx-movie-catalog/tree/archive/original-2024) branch.
+Przed uruchomieniem ustaw `ConnectionStrings__DefaultConnection` oraz
+`JwtSettings__SecretKey`, `JwtSettings__Issuer` i `JwtSettings__Audience`
+przez zmienne środowiskowe albo .NET User Secrets. Użyj własnego klucza JWT.
+Nie zapisuj sekretów w repozytorium ani obrazie. W tej wersji aplikacja nadal
+wykonuje migracje przy starcie; jawny etap migracji jest częścią dalszych prac.
+Konta demonstracyjne można włączyć wyłącznie w środowisku `Development`,
+ustawiając `Database__SeedDemoData=true`. Szczegóły i ograniczenia opisuje
+[przewodnik baz danych](docs/database-baseline.md).
 
-## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## Dotychczasowe wdrożenie (do zastąpienia)
+
+Repozytorium nadal zawiera starszy proces wdrożenia:
+1. Docker + Docker Compose.
+2. Ukrycie IP serwera przez Cloudflare (Orange Cloud).
+3. Reverse Proxy w postaci Nginx Proxy Manager.
+4. Deploy w ramach zamkniętej sieci Tailscale wyzwalany bezpośrednio z GitHub Actions.
+
+Docelowo: obraz budowany i testowany w CI, niezmienny digest GHCR, wdrożenie
+przez Coolify oraz ruch Cloudflare Tunnel → Traefik → sieć aplikacji.
+Nie należy uruchamiać ani przywracać Nginx Proxy Manager na podstawie
+powyższego opisu historycznego.

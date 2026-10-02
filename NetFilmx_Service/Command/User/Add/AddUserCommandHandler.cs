@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using NetFilmx_Service.Result;
 using NetFilmx_Storage.Repositories;
 
@@ -7,10 +7,12 @@ namespace NetFilmx_Service.Command.User
     public sealed class AddUserCommandHandler : IRequestHandler<AddUserCommand, CResult>
     {
         private readonly IUserRepository _repository;
+        private readonly NetFilmx_Service.Security.IPasswordHasher _passwordHasher;
 
-        public AddUserCommandHandler(IUserRepository repository)
+        public AddUserCommandHandler(IUserRepository repository, NetFilmx_Service.Security.IPasswordHasher passwordHasher)
         {
             _repository = repository;
+            _passwordHasher = passwordHasher;
         }
 
         public async Task<CResult> Handle(AddUserCommand command, CancellationToken cancellationToken)
@@ -35,7 +37,8 @@ namespace NetFilmx_Service.Command.User
                     return CResult.Fail("Username is taken");
                 }
 
-                var user = new NetFilmx_Storage.Entities.User(command.Username, command.Email, command.Password);
+                var passwordHash = _passwordHasher.HashPassword(command.Password);
+                var user = new NetFilmx_Storage.Entities.User(command.Username, command.Email, passwordHash);
                 await _repository.AddUserAsync(user);
 
                 return CResult.Ok();

@@ -1,75 +1,50 @@
-﻿using MediatR;
+using MediatR;
 using NetFilmx_Service.Result;
 using NetFilmx_Storage.Repositories;
-using System.Text.RegularExpressions;
 
 namespace NetFilmx_Service.Command.Video
 {
-    public sealed class AddVideoCommandHandler : IRequestHandler<AddVideoCommand, CResult>
+    public sealed class AddVideoCommandHandler : IRequestHandler<AddVideoCommand, QResult<int>>
     {
         private readonly IVideoRepository _repository;
+        private readonly NetFilmx_Service.Search.ISearchEngine _searchEngine;
 
-        public AddVideoCommandHandler(IVideoRepository repository)
+        public AddVideoCommandHandler(IVideoRepository repository, NetFilmx_Service.Search.ISearchEngine searchEngine)
         {
             _repository = repository;
+            _searchEngine = searchEngine;
         }
 
-        public async Task<CResult> Handle(AddVideoCommand command, CancellationToken cancellationToken)
+        public async Task<QResult<int>> Handle(AddVideoCommand command, CancellationToken cancellationToken)
         {
             if (command == null)
             {
-                return CResult.Fail("Command is null");
+                return QResult<int>.Fail("Command is null");
             }
 
             var validation = new AddVideoCommandValidator().Validate(command);
             if (!validation.IsValid)
             {
-                return CResult.Fail(validation);
+                return QResult<int>.Fail(validation);
             }
 
+            if (command.SourceUploadId is not null &&
+                (command.VideoUrl != "PROCESSING" || !Guid.TryParseExact(command.SourceUploadId, "N", out var uploadId)
+                 || uploadId.ToString("N") != command.SourceUploadId))
+                return QResult<int>.Fail("Invalid upload intent.");
 
-            string ytVideoId = ExtractYouTubeVideoId(command.VideoUrl);
-            if (string.IsNullOrEmpty(ytVideoId))
-            {
-                return CResult.Fail("Invalid YouTube URL");
-            }
-
-
-
-            var video = new NetFilmx_Storage.Entities.Video(command.Title, command.Description, command.Price, ytVideoId, command.ThumbnailUrl);
+            var video = new NetFilmx_Storage.Entities.Video(command.Title, command.Description, command.Price, command.VideoUrl, command.ThumbnailUrl)
+            { SourceUploadId = command.SourceUploadId };
 
             try
             {
                 await _repository.AddVideoAsync(video);
-                return CResult.Ok();
+                _searchEngine.IndexVideo(video);
+                return QResult<int>.Ok(video.Id);
             }
             catch (Exception ex)
             {
-                return CResult.Fail(ex.Message);
-            }
-
-
-
-        }
-
-        public string ExtractYouTubeVideoId(string url)
-        {
-            if (string.IsNullOrEmpty(url))
-                return string.Empty;
-
-            var ytRegex = new Regex(@"(?:https?:\/\/)?(?:www\.)?(youtube\.com|youtu\.be)(\/watch\?v=|\/)([^&]+)?");
-            var isYtLink = ytRegex.Match(url);
-
-            if (isYtLink.Success)
-            {
-                return isYtLink.Groups[3].Value;
-            }
-            else
-            {
-                var linkRegex = new Regex(@"(www|http|https|\.com|\.net|\.org)");
-                var isLink = linkRegex.IsMatch(url);
-
-                return isLink ? string.Empty : url;
+                return QResult<int>.Fail(ex.Message);
             }
         }
 

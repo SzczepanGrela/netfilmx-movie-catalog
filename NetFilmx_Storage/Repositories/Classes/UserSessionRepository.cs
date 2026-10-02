@@ -15,7 +15,7 @@ namespace NetFilmx_Storage.Repositories
 
         public async Task<UserSession?> GetByRefreshTokenHashAsync(string refreshTokenHash)
         {
-            return await _context.UserSessions
+            return await _context.UserSessions.AsNoTracking()
                 .Include(s => s.User)
                 .FirstOrDefaultAsync(s => s.RefreshTokenHash == refreshTokenHash && !s.IsRevoked && s.ExpiresAt > DateTime.UtcNow);
         }
@@ -40,18 +40,30 @@ namespace NetFilmx_Storage.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public async Task<bool> TryRotateSessionAsync(int currentId, UserSession replacement, DateTime now)
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var consumed = await _context.UserSessions
+                .Where(s => s.Id == currentId && s.UserId == replacement.UserId && !s.IsRevoked && s.ExpiresAt > now)
+                .ExecuteUpdateAsync(u => u.SetProperty(s => s.IsRevoked, true));
+            if (consumed != 1) return false;
+
+            _context.UserSessions.Add(replacement);
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return true;
+        }
+
+        public async Task RevokeByRefreshTokenHashAsync(string refreshTokenHash)
+        {
+            await _context.UserSessions.Where(s => s.RefreshTokenHash == refreshTokenHash && !s.IsRevoked)
+                .ExecuteUpdateAsync(u => u.SetProperty(s => s.IsRevoked, true));
+        }
+
         public async Task RevokeAllUserSessionsAsync(int userId)
         {
-            var sessions = await _context.UserSessions
-                .Where(s => s.UserId == userId && !s.IsRevoked)
-                .ToListAsync();
-
-            foreach (var session in sessions)
-            {
-                session.IsRevoked = true;
-            }
-
-            await _context.SaveChangesAsync();
+            await _context.UserSessions.Where(s => s.UserId == userId && !s.IsRevoked)
+                .ExecuteUpdateAsync(u => u.SetProperty(s => s.IsRevoked, true));
         }
     }
 }

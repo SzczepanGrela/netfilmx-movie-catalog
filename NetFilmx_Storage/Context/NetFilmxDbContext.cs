@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.Extensions.Configuration;
 using NetFilmx_Storage.Entities;
 
 namespace NetFilmx_Storage.Context
@@ -23,6 +22,12 @@ namespace NetFilmx_Storage.Context
         public DbSet<SeriesPurchase> SeriesPurchases { get; set; }
         public DbSet<UserSession> UserSessions { get; set; }
         public DbSet<WalletTransaction> WalletTransactions { get; set; }
+        public DbSet<Bundle> Bundles { get; set; }
+        public DbSet<BundlePurchase> BundlePurchases { get; set; }
+        public DbSet<VideoTranslation> VideoTranslations { get; set; }
+        public DbSet<SeriesTranslation> SeriesTranslations { get; set; }
+        public DbSet<CategoryTranslation> CategoryTranslations { get; set; }
+        public DbSet<TagTranslation> TagTranslations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -57,6 +62,24 @@ namespace NetFilmx_Storage.Context
                     j => j.HasOne<Video>().WithMany().HasForeignKey("VideoId"),
                     j => j.HasKey("SeriesId", "VideoId"));
 
+            modelBuilder.Entity<Bundle>()
+                .HasMany(b => b.Videos)
+                .WithMany(v => v.Bundles)
+                .UsingEntity<Dictionary<string, object>>(
+                    "BundleVideo",
+                    j => j.HasOne<Video>().WithMany().HasForeignKey("VideoId"),
+                    j => j.HasOne<Bundle>().WithMany().HasForeignKey("BundleId"),
+                    j => j.HasKey("BundleId", "VideoId"));
+
+            modelBuilder.Entity<Bundle>()
+                .HasMany(b => b.Series)
+                .WithMany(s => s.Bundles)
+                .UsingEntity<Dictionary<string, object>>(
+                    "BundleSeries",
+                    j => j.HasOne<Series>().WithMany().HasForeignKey("SeriesId"),
+                    j => j.HasOne<Bundle>().WithMany().HasForeignKey("BundleId"),
+                    j => j.HasKey("BundleId", "SeriesId"));
+
             // One-to-Many relationships
             modelBuilder.Entity<Like>()
                 .HasOne(l => l.Video)
@@ -79,27 +102,44 @@ namespace NetFilmx_Storage.Context
                 .HasForeignKey(c => c.UserId);
 
             modelBuilder.Entity<VideoPurchase>()
-                .HasOne(uvp => uvp.User)
-                .WithMany(u => u.VideoPurchases)
-                .HasForeignKey(uvp => uvp.UserId);
+                .HasOne(vp => vp.Video)
+                .WithMany(v => v.VideoPurchases)
+                .HasForeignKey(vp => vp.VideoId);
 
             modelBuilder.Entity<VideoPurchase>()
-                .HasOne(uvp => uvp.Video)
-                .WithMany(v => v.VideoPurchases)
-                .HasForeignKey(uvp => uvp.VideoId);
-
-
-            modelBuilder.Entity<SeriesPurchase>()
-                .HasOne(usp => usp.User)
-                .WithMany(u => u.SeriesPurchases)
-                .HasForeignKey(usp => usp.UserId);
+                .HasOne(vp => vp.User)
+                .WithMany(u => u.VideoPurchases)
+                .HasForeignKey(vp => vp.UserId);
 
             modelBuilder.Entity<SeriesPurchase>()
-                .HasOne(usp => usp.Series)
+                .HasOne(sp => sp.Series)
                 .WithMany(s => s.SeriesPurchases)
-                .HasForeignKey(usp => usp.SeriesId);
+                .HasForeignKey(sp => sp.SeriesId);
 
+            modelBuilder.Entity<SeriesPurchase>()
+                .HasOne(sp => sp.User)
+                .WithMany(u => u.SeriesPurchases)
+                .HasForeignKey(sp => sp.UserId);
 
+            modelBuilder.Entity<Bundle>()
+                .HasMany(b => b.Videos)
+                .WithMany(v => v.Bundles)
+                .UsingEntity(j => j.ToTable("BundleVideos"));
+
+            modelBuilder.Entity<Bundle>()
+                .HasMany(b => b.Series)
+                .WithMany(s => s.Bundles)
+                .UsingEntity(j => j.ToTable("BundleSeries"));
+
+            modelBuilder.Entity<BundlePurchase>()
+                .HasOne(bp => bp.User)
+                .WithMany(u => u.BundlePurchases)
+                .HasForeignKey(bp => bp.UserId);
+
+            modelBuilder.Entity<BundlePurchase>()
+                .HasOne(bp => bp.Bundle)
+                .WithMany()
+                .HasForeignKey(bp => bp.BundleId);
 
             // UserSession relationships
             modelBuilder.Entity<UserSession>()
@@ -113,29 +153,57 @@ namespace NetFilmx_Storage.Context
                 .WithMany(u => u.WalletTransactions)
                 .HasForeignKey(wt => wt.UserId);
 
-           // DataSeeder.SeedData(modelBuilder);
+            // Multi-Language Translation Relationships & Unique Compound Indexes
+            modelBuilder.Entity<VideoTranslation>()
+                .HasOne(vt => vt.Video)
+                .WithMany(v => v.Translations)
+                .HasForeignKey(vt => vt.VideoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VideoTranslation>()
+                .HasIndex(vt => new { vt.VideoId, vt.LanguageCode })
+                .IsUnique();
+
+            modelBuilder.Entity<SeriesTranslation>()
+                .HasOne(st => st.Series)
+                .WithMany(s => s.Translations)
+                .HasForeignKey(st => st.SeriesId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<SeriesTranslation>()
+                .HasIndex(st => new { st.SeriesId, st.LanguageCode })
+                .IsUnique();
+
+            modelBuilder.Entity<CategoryTranslation>()
+                .HasOne(ct => ct.Category)
+                .WithMany(c => c.Translations)
+                .HasForeignKey(ct => ct.CategoryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CategoryTranslation>()
+                .HasIndex(ct => new { ct.CategoryId, ct.LanguageCode })
+                .IsUnique();
+
+            modelBuilder.Entity<TagTranslation>()
+                .HasOne(tt => tt.Tag)
+                .WithMany(t => t.Translations)
+                .HasForeignKey(tt => tt.TagId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TagTranslation>()
+                .HasIndex(tt => new { tt.TagId, tt.LanguageCode })
+                .IsUnique();
         }
-
-
-
-
-
     }
 
     public class NetFilmxDbContextFactory : IDesignTimeDbContextFactory<NetFilmxDbContext>
     {
         public NetFilmxDbContext CreateDbContext(string[] args)
         {
-            var configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json")
-                .Build();
-
+            // This assembly owns the legacy SQLite migration history. PostgreSQL
+            // scaffolding uses the factory in NetFilmx_Storage.PostgreSql.
             var optionsBuilder = new DbContextOptionsBuilder<NetFilmxDbContext>();
-            optionsBuilder.UseSqlite(configuration.GetConnectionString("DefaultConnection"));
-
-
-
+            optionsBuilder.UseSqlite("Data Source=netfilmx-design.db");
 
             return new NetFilmxDbContext(optionsBuilder.Options);
         }

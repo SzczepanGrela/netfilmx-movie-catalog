@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NetFilmx_Storage.Context;
 using NetFilmx_Storage.Entities;
 
@@ -16,6 +16,21 @@ namespace NetFilmx_Storage.Repositories
         public async Task<List<User>> GetAllUsersAsync()
         {
             return await _context.Users.ToListAsync();
+        }
+
+        public async Task<(IEnumerable<User>, int totalCount)> GetPagedUsersAsync(int pageNumber, int pageSize, string searchTerm)
+        {
+            var query = _context.Users.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                query = query.Where(u => u.Username.Contains(searchTerm) || u.Email.Contains(searchTerm));
+            }
+
+            var count = await query.CountAsync();
+            var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            return (items, count);
         }
 
         public async Task<List<User>> GetUsersByVideoIdAsync(int videoId)
@@ -110,7 +125,7 @@ namespace NetFilmx_Storage.Repositories
             {
                 throw new ArgumentNullException(nameof(user), "User cannot be null");
             }
-            if (await IsUsernameAvailableAsync(user.Username))
+            if (!await IsUsernameAvailableAsync(user.Username))
             {
                 throw new InvalidOperationException("A user with this username already exists");
             }

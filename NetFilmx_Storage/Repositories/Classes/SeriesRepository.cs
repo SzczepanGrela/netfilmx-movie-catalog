@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NetFilmx_Storage.Context;
 using NetFilmx_Storage.Entities;
 
@@ -15,7 +15,24 @@ namespace NetFilmx_Storage.Repositories
 
         public async Task<List<Series>> GetAllSeriesAsync()
         {
-            return await _context.Series.ToListAsync();
+            return await _context.Series
+                .Include(s => s.Translations)
+                .ToListAsync();
+        }
+
+        public async Task<(IEnumerable<Series>, int totalCount)> GetPagedSeriesAsync(int pageNumber, int pageSize, string searchTerm)
+        {
+            var query = _context.Series.Include(s => s.Translations).AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                query = query.Where(s => s.Name.Contains(searchTerm) || (s.Description != null && s.Description.Contains(searchTerm)));
+            }
+
+            var count = await query.CountAsync();
+            var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            return (items, count);
         }
 
         public async Task<List<Series>> GetSeriesByVideoIdAsync(int videoId)
@@ -34,12 +51,16 @@ namespace NetFilmx_Storage.Repositories
             {
                 throw new ArgumentException("User not found");
             }
-            return await _context.Series.Include(s => s.SeriesPurchases).Where(s => s.SeriesPurchases.Any(p => p.UserId == userId)).ToListAsync();
+            return await _context.Series.Include(s => s.SeriesPurchases).Include(s => s.Translations).Where(s => s.SeriesPurchases.Any(p => p.UserId == userId)).ToListAsync();
         }
 
         public async Task<Series> GetSeriesByIdAsync(int seriesId)
         {
-            var series = await _context.Series.FindAsync(seriesId);
+            var series = await _context.Series
+                .Include(s => s.Translations)
+                .Include(s => s.Videos)
+                    .ThenInclude(v => v.Translations)
+                .FirstOrDefaultAsync(s => s.Id == seriesId);
             return series ?? throw new ArgumentException("Series not found");
         }
 

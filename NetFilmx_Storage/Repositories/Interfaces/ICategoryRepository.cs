@@ -1,10 +1,11 @@
-﻿using NetFilmx_Storage.Entities;
+using NetFilmx_Storage.Entities;
 
 namespace NetFilmx_Storage.Repositories
 {
     public interface ICategoryRepository
     {
         Task<List<Category>> GetAllCategoriesAsync();
+        Task<(IEnumerable<Category>, int totalCount)> GetPagedCategoriesAsync(int pageNumber, int pageSize, string searchTerm);
         Task<List<Category>> GetCategoriesByVideoIdAsync(int videoId);
         Task<List<Category>> GetCategoriesByExcludedVideoIdAsync(int videoId);
 

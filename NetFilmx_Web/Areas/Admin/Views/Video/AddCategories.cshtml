@@ -1,0 +1,31 @@
+@model IEnumerable<NetFilmx_Service.Dtos.Category.CategoryListDto>
+
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h1 class="mb-0">Dodaj kategorie do filmu: @ViewBag.VideoName</h1>
+        </div>
+        <div class="card-body">
+            @if (!Model.Any())
+            {
+                <p>Brak kategorii do dodania</p>
+            }
+            else
+            {
+                <form asp-action="AddCategories" method="post">
+                    <input type="hidden" name="videoId" value="@ViewBag.VideoId" />
+                    <div class="list-group">
+                        @foreach (var category in Model)
+                        {
+                            <label class="list-group-item admin-label">
+                                <input type="checkbox" name="categoryIds" value="@category.Id" />
+                                @category.Name
+                            </label>
+                        }
+                    </div>
+                    <button type="submit" class="nfx-btn nfx-btn-primary mt-3" data-i18n="t_dodaj_wybrane_kategorie">Dodaj wybrane kategorie</button>
+                </form>
+            }
+        </div>
+    </div>
+</div>

@@ -54,6 +54,10 @@ jobs:
               - 'NetFilmx_Web/**'
               - 'NetFilmx_Service/**'
               - 'NetFilmx_Storage/**'
+              - 'NetFilmx_Storage.PostgreSql/**'
+              - '.config/dotnet-tools.json'
+              - 'Directory.Build.props'
+              - 'NuGet.Config'
               - 'NetFilmx_Common/**'
               - 'NetFilmx_Tests/**'
               - 'ST2 NetFilmx.sln'
@@ -70,28 +74,64 @@ jobs:
       (needs.changes.outputs.app == 'true') ||
       (needs.changes.outputs.infra == 'true')
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: netfilmx_db
+          POSTGRES_USER: netfilmx_user
+          POSTGRES_PASSWORD: netfilmx_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Node for browser dependency checks
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: NetFilmx_Web/package-lock.json
+
+      - name: Audit browser dependencies and test form validation
+        working-directory: NetFilmx_Web
+        run: |
+          npm ci --ignore-scripts
+          npm audit --audit-level=low
+          npm run vendor:check
+          npm test
 
       - name: Setup .NET 8 SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
+      - name: Install media test tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', 'ST2 NetFilmx.sln') }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json', 'NuGet.Config', 'Directory.Build.props') }}
           restore-keys: ${{ runner.os }}-nuget-
 
-      - name: Restore
-        run: dotnet restore "ST2 NetFilmx.sln"
+      - name: Restore locked dependencies and audit vulnerabilities
+        run: dotnet restore "ST2 NetFilmx.sln" --locked-mode --force
 
       - name: Build (Release)
         run: dotnet build "ST2 NetFilmx.sln" --no-restore -c Release
 
       - name: Run Tests
+        env:
+          NETFILMX_TEST_POSTGRES: Host=localhost;Port=5432;Database=netfilmx_db;Username=netfilmx_user;Password=netfilmx_pass
         run: dotnet test "ST2 NetFilmx.sln" --no-build -c Release --logger "trx;LogFileName=test-results.trx" --results-directory ./test-results
 
       - name: Upload Test Results

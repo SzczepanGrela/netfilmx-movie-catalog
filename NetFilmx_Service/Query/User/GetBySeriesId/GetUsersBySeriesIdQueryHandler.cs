@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using NetFilmx_Service.Mappings;
 using MediatR;
 using NetFilmx_Service.Dtos.User;
 using NetFilmx_Service.Result;
@@ -10,9 +10,9 @@ namespace NetFilmx_Service.Query.User
         where TDto : IUserDto
     {
         private readonly IUserRepository _repository;
-        private readonly IMapper _mapper;
+        private readonly ICatalogueMapper _mapper;
 
-        public GetUsersBySeriesIdQueryHandler(IUserRepository repository, IMapper mapper)
+        public GetUsersBySeriesIdQueryHandler(IUserRepository repository, ICatalogueMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;
@@ -25,7 +25,7 @@ namespace NetFilmx_Service.Query.User
             try
             {
                 var users = await _repository.GetUsersBySeriesIdAsync(query.SeriesId);
-                usersDto = _mapper.Map<List<TDto>>(users);
+                usersDto = _mapper.MapList<TDto>(users);
                 return QResult<List<TDto>>.Ok(usersDto);
             }
             catch (Exception ex)

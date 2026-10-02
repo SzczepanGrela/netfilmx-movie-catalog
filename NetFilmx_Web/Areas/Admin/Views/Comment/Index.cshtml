@@ -1,0 +1,84 @@
+@model NetFilmx_Service.Result.PaginatedList<NetFilmx_Service.Dtos.Comment.CommentListDto>
+
+@{
+    ViewData["Title"] = "Komentarze";
+}
+
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h4 style="margin: 0;">Zarządzanie Komentarzami</h4>
+        
+        <div class="search-bar">
+            <form method="get" asp-action="Index">
+                <input type="text" name="search" placeholder="Szukaj komentarza..." value="@ViewBag.SearchTerm" />
+                <button type="submit" class="nfx-btn nfx-btn-secondary" style="padding: 0.5rem 1rem;"><i class="fas fa-search"></i></button>
+            </form>
+        </div>
+    </div>
+
+    @if (Model == null || !Model.Items.Any())
+    {
+        <div style="text-align: center; padding: 3rem; color: var(--color-text-secondary);">
+            <i class="fas fa-comments" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+            <p>Brak komentarzy do wyświetlenia.</p>
+        </div>
+    }
+    else
+    {
+        <div style="overflow-x: auto;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Treść</th>
+                        <th>Autor</th>
+                        <th>Wideo</th>
+                        <th>Data</th>
+                        <th style="text-align: right;">Akcje</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var comment in Model.Items)
+                    {
+                        <tr>
+                            <td style="font-weight: 500; max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                @comment.Content
+                            </td>
+                            <td>
+                                <a asp-controller="User" asp-action="Details" asp-route-userId="@comment.UserId" style="color: var(--color-accent-hover); text-decoration: none;">Użytkownik #@comment.UserId</a>
+                            </td>
+                            <td>
+                                <a asp-controller="Video" asp-action="Details" asp-route-videoId="@comment.VideoId" style="color: var(--color-accent-hover); text-decoration: none;">Wideo #@comment.VideoId</a>
+                            </td>
+                            <td>@comment.UpdatedAt.ToString("g")</td>
+                            <td style="text-align: right; display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                <a asp-action="Details" asp-route-commentId="@comment.Id" class="nfx-btn nfx-btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"><i class="fas fa-eye"></i></a>
+                                <form asp-action="Delete" method="post" style="margin: 0;" onsubmit="return confirm('Na pewno usunąć?');">
+                                    <input type="hidden" name="commentId" value="@comment.Id" />
+                                    <button type="submit" class="nfx-btn nfx-btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; background: rgba(220, 53, 69, 0.2); color: #ff6b6b; border-color: rgba(220, 53, 69, 0.3);"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.TotalPages > 1)
+        {
+            <ul class="pagination">
+                <li class="@(Model.HasPreviousPage ? "" : "disabled")">
+                    <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex - 1)" asp-route-search="@ViewBag.SearchTerm" data-i18n="t_poprzednia">Poprzednia</a>
+                </li>
+                @for (int i = 1; i <= Model.TotalPages; i++)
+                {
+                    <li class="@(i == Model.PageIndex ? "active" : "")">
+                        <a asp-action="Index" asp-route-pageNumber="@i" asp-route-search="@ViewBag.SearchTerm">@i</a>
+                    </li>
+                }
+                <li class="@(Model.HasNextPage ? "" : "disabled")">
+                    <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex + 1)" asp-route-search="@ViewBag.SearchTerm" data-i18n="t_nastepna">Następna</a>
+                </li>
+            </ul>
+        }
+    }
+</div>

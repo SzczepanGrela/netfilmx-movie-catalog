@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using NetFilmx_Service.Result;
 using NetFilmx_Storage.Repositories;
 
@@ -8,10 +8,12 @@ namespace NetFilmx_Service.Command.Video
     {
 
         private readonly IVideoRepository _repository;
+        private readonly NetFilmx_Service.Search.ISearchEngine _searchEngine;
 
-        public DeleteVideoCommandHandler(IVideoRepository repository)
+        public DeleteVideoCommandHandler(IVideoRepository repository, NetFilmx_Service.Search.ISearchEngine searchEngine)
         {
             _repository = repository;
+            _searchEngine = searchEngine;
         }
 
 
@@ -23,12 +25,15 @@ namespace NetFilmx_Service.Command.Video
             }
             try
             {
+                // Media can be retained from another database or shared by multiple entries.
+                // Removing catalogue metadata does not authorize deleting any storage objects.
                 await _repository.DeleteVideoAsync(command.Id);
+                _searchEngine.RemoveVideo(command.Id);
                 return CResult.Ok();
             }
             catch (Exception ex)
             {
-                return CResult.Fail(ex.Message);
+                return CResult.Fail(ex.ToString());
             }
 
 
