@@ -122,8 +122,8 @@ jobs:
           tags: tag:ci-vps
       - name: Validate production configuration
         env:
-          COOLIFY_URL: ${{ vars.COOLIFY_URL }}
-          COOLIFY_APPLICATION_UUID: ${{ vars.COOLIFY_APPLICATION_UUID }}
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_APPLICATION_UUID: ${{ secrets.COOLIFY_APPLICATION_UUID }}
           PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
           COOLIFY_CONTRACT_JSON: ${{ secrets.COOLIFY_CONTRACT_JSON }}
@@ -154,8 +154,8 @@ jobs:
         env:
           DIGEST: ${{ inputs.digest }}
           EXPECTED_REVISION: ${{ needs.preflight.outputs.revision }}
-          COOLIFY_URL: ${{ vars.COOLIFY_URL }}
-          COOLIFY_APPLICATION_UUID: ${{ vars.COOLIFY_APPLICATION_UUID }}
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_APPLICATION_UUID: ${{ secrets.COOLIFY_APPLICATION_UUID }}
           PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: |

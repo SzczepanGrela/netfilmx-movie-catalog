@@ -40,12 +40,14 @@ and `COOLIFY_RELEASE_CONTRACT_ACCEPTED` to equal `true`. Manual dispatch also
 requires the accepted-contract flag. Neither flag is configured by this patch.
 Only `main` may run preflight. Before enabling either entry point, configure
 and read back main protection requiring `Quality gate` and a `production`
-environment restricted to main with an independent reviewer and no bypass.
+environment restricted to main with required operator review and no administrator
+bypass. Follow the agreed single-operator review policy.
 Workflow YAML alone does not prove those remote protections exist.
 
-Production uses private environment variables `COOLIFY_URL`,
-`COOLIFY_APPLICATION_UUID`, `PRODUCTION_URL`, and secrets `COOLIFY_TOKEN`,
-`TS_CLIENT_ID`, `TS_AUDIENCE`, `COOLIFY_CONTRACT_JSON`. Keep values out of public
+Production uses environment variable `PRODUCTION_URL` and environment secrets
+`COOLIFY_URL`, `COOLIFY_APPLICATION_UUID`, `COOLIFY_TOKEN`, `TS_CLIENT_ID`,
+`TS_AUDIENCE`, `COOLIFY_CONTRACT_JSON`. Source private API/resource identifiers
+from secrets so runner environment logs mask them. Keep values out of public
 docs, source, command logs and test artifacts. The contract is materialized
 only under ignored `artifacts/`, mode `0600`, and removed after execution.
 
