@@ -52,8 +52,9 @@ upload identity use optimistic concurrency checks when saving worker results.
 The PostgreSQL initial migration inserts no accounts or sample catalogue.
 Runtime demo seeding is disabled by default and can only be enabled with
 `Database__SeedDemoData=true` in `Development`. The legacy SQLite migration
-history is preserved without rewriting existing migrations. Startup now fails if a
-migration fails; it must not serve requests against an incomplete schema.
+history is preserved without rewriting existing migrations. Web startup checks
+readiness without changing the schema; apply migrations through the
+[explicit release operation](release-database.md) before traffic/workers.
 
 ## Regression tests
 
@@ -119,7 +120,7 @@ The branch preserves previously unpublished work, not just the database fix.
 Authentication/antiforgery, patched locked dependencies, durable upload jobs and
 [HTTP/media admission controls](http-security.md) are implemented and tested
 locally. Production qualification still needs exact proxy/edge acceptance,
-shared protected Data Protection keys, readiness, explicit migration execution,
+mounted [Data Protection keys](data-protection.md), live migration/readiness acceptance,
 mounted staging/queue restart and resource tests, media playback/credits/licences,
 and the protected immutable-image Coolify workflow. The legacy SSH deployment
 workflow remains in the repository; **do not merge this draft to trigger it**.

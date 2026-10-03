@@ -16,11 +16,13 @@ namespace NetFilmx_Tests.Integration.Fixtures
         private readonly string _keyRingPath;
         private readonly bool _ownsDatabase;
         private readonly bool _ownsKeyRing;
+        private readonly bool _prepareDatabase;
 
         public TestWebApplicationFactory() : this(null, null) { }
 
-        internal TestWebApplicationFactory(string? databasePath, string? keyRingPath)
+        internal TestWebApplicationFactory(string? databasePath, string? keyRingPath, bool prepareDatabase = true)
         {
+            _prepareDatabase = prepareDatabase;
             _ownsDatabase = databasePath == null;
             _ownsKeyRing = keyRingPath == null;
             _databasePath = databasePath ?? Path.Combine(Path.GetTempPath(), "netfilmx-auth-test-" + Guid.NewGuid().ToString("N") + ".db");
@@ -64,6 +66,13 @@ namespace NetFilmx_Tests.Integration.Fixtures
                 services.Remove(descriptor);
                 services.AddDbContext<NetFilmxDbContext>(options =>
                     options.UseSqlite("Data Source=" + _databasePath + ";Pooling=false"));
+                if (_prepareDatabase)
+                {
+                    // Test setup owns this isolated file; the web startup only checks it.
+                    using var db = new NetFilmxDbContext(new DbContextOptionsBuilder<NetFilmxDbContext>()
+                        .UseSqlite("Data Source=" + _databasePath + ";Pooling=false").Options);
+                    db.Database.Migrate();
+                }
             });
         }
     }

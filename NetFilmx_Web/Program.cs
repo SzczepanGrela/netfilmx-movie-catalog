@@ -7,16 +7,21 @@ using System.Reflection;
 using Hangfire;
 using Hangfire.PostgreSql;
 using NetFilmx_Web.Security;
+using NetFilmx_Web.Runtime;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
-// Administrative bootstrap is explicit and never starts HTTP, Hangfire or
-// automatic startup migrations. The default application path is unchanged.
+// Administrative operations exit before HTTP, Data Protection or workers.
 if (args.Length > 0 && args[0] == "catalogue")
 {
     Environment.ExitCode = await NetFilmx_Web.CatalogueCommand.RunAsync(args[1..]);
+    return;
+}
+if (args.Length > 0 && args[0] == "database")
+{
+    Environment.ExitCode = await NetFilmx_Web.DatabaseCommand.RunAsync(args[1..]);
     return;
 }
 
@@ -143,18 +148,21 @@ foreach (var handler in closedGenericHandlers)
 }
 
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? "Host=localhost;Port=5432;Database=netfilmx_db;Username=netfilmx_user;Password=netfilmx_pass;Include Error Detail=true";
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-bool isPostgreSql = connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase);
+bool isPostgreSql = connectionString?.Contains("Host=", StringComparison.OrdinalIgnoreCase) == true;
 
-builder.Services.AddDbContext<NetFilmxDbContext>(options =>
+builder.Services.AddDbContext<NetFilmxDbContext>((services, options) =>
 {
-    NetFilmxDatabaseOptions.Configure(options, connectionString);
+    var configured = services.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection");
+    if (string.IsNullOrWhiteSpace(configured)) throw new InvalidOperationException("An explicit database connection is required.");
+    NetFilmxDatabaseOptions.Configure(options, configured);
 });
 
 // Uploads are opt-in and need a shared private mount plus durable PostgreSQL jobs.
 var uploadsEnabled = builder.Configuration.GetValue<bool>("Uploads:Enabled");
+var workerEnabled = builder.Configuration.GetValue<bool>("Worker:Enabled");
+if (workerEnabled && !uploadsEnabled) throw new InvalidOperationException("Worker:Enabled requires enabled uploads and their storage contract.");
 var stagingRoot = builder.Configuration["Uploads:StagingPath"];
 if (uploadsEnabled)
 {
@@ -176,16 +184,12 @@ if (uploadsEnabled)
     {
         configuration.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
             .UseSimpleAssemblyNameTypeSerializer().UseRecommendedSerializerSettings()
-            .UsePostgreSqlStorage(c => c.UseNpgsqlConnection(connectionString));
+            .UsePostgreSqlStorage(c => c.UseNpgsqlConnection(connectionString!), new PostgreSqlStorageOptions { PrepareSchemaIfNecessary = false });
     });
-    builder.Services.AddHangfireServer(options =>
+    if (workerEnabled)
     {
-        options.Queues = new[] { "video" };
-        options.WorkerCount = 1;
-        options.CancellationCheckInterval = TimeSpan.FromSeconds(1);
-        options.ShutdownTimeout = TimeSpan.FromSeconds(20);
-    });
-    builder.Services.AddHostedService<NetFilmx_Web.Services.UploadDispatcher>();
+        builder.Services.AddHostedService<NetFilmx_Web.Services.SingletonUploadWorker>();
+    }
 }
 
 
@@ -211,16 +215,16 @@ if (seedDemoData && !app.Environment.IsDevelopment())
     throw new InvalidOperationException("Demo data may only be seeded in Development.");
 }
 
-// Migrate DB on startup
+// Verify the schema before traffic or hosted workers; this path never migrates.
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<NetFilmxDbContext>();
-    if (db.Database.IsRelational())
+    using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+    await ReleaseDatabase.EnsureReadyAsync(db, uploadsEnabled, deadline.Token);
+    if (seedDemoData)
     {
         try
         {
-            db.Database.Migrate();
-            
             // Demo accounts/catalogue are opt-in and never production bootstrap.
             if (seedDemoData && !db.Users.Any())
             {
@@ -238,10 +242,10 @@ using (var scope = app.Services.CreateScope())
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             var logger = scope.ServiceProvider.GetService<ILogger<Program>>();
-            logger?.LogError(ex, "Błąd podczas automatycznej migracji bazy danych.");
+            logger?.LogError("Development demo seeding failed.");
             throw;
         }
     }
@@ -284,6 +288,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
+app.MapReleaseHealth(uploadsEnabled);
 
 if (uploadsEnabled) app.UseHangfireDashboard("/admin/jobs", new DashboardOptions
 {

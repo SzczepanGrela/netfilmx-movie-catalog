@@ -11,7 +11,7 @@ values. This document describes candidate code, not production acceptance.
 at least 32 bytes and be generated randomly. Length validation does not prove
 entropy. There is no built-in fallback key. `Issuer` and `Audience` are required.
 `AccessTokenTtlMinutes` defaults to 15 and accepts 1–60. Startup rejects invalid
-configuration before automatic migration or HTTP traffic. Both JWT validation
+configuration before database readiness checks or HTTP traffic. Both JWT validation
 paths require issuer, audience, lifetime, signature and HS256, with zero clock skew.
 
 Refresh lifetimes retain the configured `RefreshTokenTtlDays` (default 7) and

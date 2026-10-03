@@ -70,6 +70,27 @@ public sealed class DataProtectionTests : IDisposable
     }
 
     [Fact]
+    public async Task IsolatedKeyRingRestore_AcceptsExistingAntiforgeryToken()
+    {
+        var first = new TestWebApplicationFactory<Program>(Database, Keys);
+        using var browser = new AuthBrowser(first);
+        var token = await browser.FormTokenAsync("/auth/login");
+        var restoredPath = Path.Combine(_directory, "restored-keys");
+        if (OperatingSystem.IsWindows()) Directory.CreateDirectory(restoredPath);
+        else Directory.CreateDirectory(restoredPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        foreach (var file in Directory.EnumerateFiles(Keys, "*.xml"))
+        {
+            var destination = Path.Combine(restoredPath, Path.GetFileName(file));
+            File.Copy(file, destination);
+            if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(destination, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        }
+        first.Dispose();
+        using var restored = new TestWebApplicationFactory<Program>(Database, restoredPath);
+        browser.UseInstance(restored);
+        await SubmitLoginAsync(browser, token, HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task SeparateKeyRing_RejectsOldAntiforgeryToken()
     {
         using var first = new TestWebApplicationFactory<Program>(Database, Keys);

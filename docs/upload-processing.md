@@ -15,6 +15,7 @@ targets a single host's local filesystem, not NFS or independent replica disks.
 Set these runtime variables only after the mount/recovery gates are accepted:
 
 - `Uploads__Enabled=true`.
+- `Worker__Enabled=true` only on qualified worker candidates.
 - `Uploads__StagingPath=<absolute private mounted directory>`.
 - `ConnectionStrings__DefaultConnection=<explicit PostgreSQL connection>`.
 - The complete `CloudflareR2` configuration, including `PublicUrl`.
@@ -29,9 +30,10 @@ disabled, the queue, processing server, dispatcher and jobs dashboard are not
 started.
 
 The runtime image includes FFmpeg/ffprobe. Current bounds are 1 GB per input,
-one Hangfire worker per instance, and one conversion across instances sharing
-the staging root. A file lock coordinates those instances and is released by
-the OS on process exit; never unlink `.worker.lock` while workers are running.
+one active Hangfire server/worker and dispatcher across instances sharing
+the staging root. `.server.lock` owns that server, and `.worker.lock` additionally
+serializes conversion. The server is stopped before ownership is released;
+never unlink either lock while workers are running.
 Conversion allows 30 minutes; individual probes allow 15 seconds. Shutdown
 cancels the process tree and the storage transfer. Encoder/probe stdout is
 bounded and stderr is drained without retaining an unbounded log buffer.
@@ -71,7 +73,8 @@ Staging created before an unsuccessful catalogue save, deleted catalogue rows,
 and killed-process work directories can also leave unreferenced local files.
 Retain them for reviewed cleanup; no automatic orphan deletion is installed.
 
-Apply both the application migration and reviewed Hangfire schema setup before
+Use the [explicit migration/readiness operation](release-database.md) for both
+the application migration and reviewed Hangfire schema setup before
 enabling the candidate. Do not roll back by dropping upload columns while jobs
 remain: keep the current database and staging files, and disable uploads/workers
 if a rollback image cannot understand the persisted job method/arguments.
@@ -92,5 +95,5 @@ resource tests, image/decoder scanning and orphan retention policy.
 [HTTP/media admission controls](http-security.md) now bound poster decoding and
 video header admission; they do not certify complete files or production limits.
 Authentication/antiforgery and dependency remediation are locally tested;
-shared protected key persistence and protected delivery remain open. Original
+mounted [key-ring recovery](data-protection.md) and protected delivery remain open. Original
 databases and retained R2 objects are unchanged by these local tests.

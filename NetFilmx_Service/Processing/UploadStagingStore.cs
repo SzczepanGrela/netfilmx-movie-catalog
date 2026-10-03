@@ -77,10 +77,14 @@ public sealed class UploadStagingStore
         return path;
     }
 
-    public async Task<FileStream> AcquireWorkerLockAsync(CancellationToken token)
+    public Task<FileStream> AcquireWorkerLockAsync(CancellationToken token) => AcquireLockAsync(".worker.lock", token);
+
+    public Task<FileStream> AcquireServerLeaseAsync(CancellationToken token) => AcquireLockAsync(".server.lock", token);
+
+    private async Task<FileStream> AcquireLockAsync(string name, CancellationToken token)
     {
         EnsureEnabled();
-        var path = Path.Combine(_root!, ".worker.lock");
+        var path = Path.Combine(_root!, name);
         while (true)
         {
             token.ThrowIfCancellationRequested();
@@ -88,7 +92,9 @@ public sealed class UploadStagingStore
             try
             {
                 // Never unlink the lock file: concurrent workers must lock the same inode.
-                return new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                var options = new FileStreamOptions { Mode = FileMode.OpenOrCreate, Access = FileAccess.ReadWrite, Share = FileShare.None };
+                if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+                return new FileStream(path, options);
             }
             catch (IOException) { await Task.Delay(250, token); }
         }

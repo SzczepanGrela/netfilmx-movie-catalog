@@ -12,18 +12,30 @@ stable application/cookie names and startup validation before HTTP/workers.
 Keys remain separate from JWT/password configuration. There is no at-rest XML
 encryptor; filesystem controls and protected backup/restore still matter.
 
-Local Release suite: **243 passed, 0 failed, 0 skipped**, including isolated
-PostgreSQL, SQLite and synthetic FFmpeg processing. Fourteen added cases cover
+Local Release suite: **256 passed, 0 failed, 0 skipped**, including isolated
+PostgreSQL, SQLite and synthetic FFmpeg processing. Fifteen added key-ring cases cover
 MVC antiforgery after restart, two live hosts, rotation/expired-key retention,
 ring/application isolation and invalid storage. Locked NuGet restore/audit passed.
 Existing compiler/nullability warnings remain. Current changes have not yet
 been tested by GitHub CI or inside the final runtime image.
 
+## Migrations/readiness/worker ownership: implemented and locally tested
+
+The [explicit release operation](release-database.md) prepares application and
+optional Hangfire schemas under a bounded single-owner lock. Web startup checks
+schema readiness without migrating. Runtime queue storage cannot install its
+schema. Both uploads and worker activation are explicit; shared server ownership
+prevents two Hangfire servers/dispatchers during local rolling overlap.
+
+Twelve added release cases cover failed/nonmutating startup, repeat migration,
+PostgreSQL/SQLite races, failed/cancelled DDL, schema-version rejection, health
+dependency loss and ownership transfer between two real Hangfire servers. The
+key-ring suite also demonstrates isolated restoration of existing form tokens.
+
 ## Remaining gates and next step
 
-Next: explicit bounded application/Hangfire migrations, schema/dependency
-readiness and single worker ownership. Then qualify .NET 10 and immutable
-GHCR/Coolify delivery. Keep this PR a draft; merging while the old main-push
+Next: qualify .NET 10 and immutable GHCR/Coolify delivery. Keep this PR a draft;
+merging while the old main-push
 SSH deploy trigger exists is forbidden by the accepted handoff.
 
 Live key mounts/ownership/restore, legacy writer identification and fresh scoped

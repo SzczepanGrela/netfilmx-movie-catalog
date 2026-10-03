@@ -53,7 +53,7 @@ it cannot create a partially available catalogue or substitute a demo stream.
 First complete the data/recovery and application release gates in
 [the database guide](database-baseline.md). Keep the web application and
 workers stopped against the new database during bootstrap. Apply the reviewed
-PostgreSQL migrations explicitly using the pinned EF tool. The import command
+PostgreSQL migrations through the [explicit release operation](release-database.md). The import command
 does not create a database, apply migrations or upgrade a SQLite file.
 
 Supply the separate target database through the runtime environment variable

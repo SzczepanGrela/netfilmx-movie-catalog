@@ -6,6 +6,10 @@ using NetFilmx_Storage.PostgreSql.Catalogue;
 using Hangfire;
 using Hangfire.PostgreSql;
 using NetFilmx_Web.Services;
+using NetFilmx_Web.Runtime;
+using NetFilmx_Service.Processing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace NetFilmx_Tests.Integration;
 
@@ -38,6 +42,118 @@ public sealed class PostgreSqlMigrationTests : IAsyncLifetime
         new DbContextOptionsBuilder<NetFilmxDbContext>()
             .UseNetFilmxDatabase(_testConnection ?? throw new InvalidOperationException("Test database is not configured."))
             .Options);
+
+    [PostgreSqlFact]
+    public async Task ExplicitReleaseMigration_PreparesApplicationAndQueueWithoutWorkers()
+    {
+        await ReleaseDatabase.MigrateAsync(_testConnection!, prepareQueue: true);
+        await using var db = OpenContext();
+        await ReleaseDatabase.EnsureReadyAsync(db, requireQueue: true);
+        Assert.False(await db.Videos.AnyAsync());
+        Assert.False(await db.Users.AnyAsync());
+        await ReleaseDatabase.MigrateAsync(_testConnection!, prepareQueue: true);
+        Assert.Empty(await db.Database.GetPendingMigrationsAsync());
+        await using var connection = new NpgsqlConnection(_testConnection);
+        await connection.OpenAsync();
+        await using var servers = new NpgsqlCommand("SELECT count(*) FROM hangfire.server", connection);
+        Assert.Equal(0L, await servers.ExecuteScalarAsync());
+    }
+
+    [PostgreSqlFact]
+    public async Task MigrationRace_RejectsOtherSessionAndSucceedsAfterLockRelease()
+    {
+        await using var owner = new NpgsqlConnection(_testConnection);
+        await owner.OpenAsync();
+        await using var acquire = new NpgsqlCommand("SELECT pg_advisory_lock(@id)", owner);
+        acquire.Parameters.AddWithValue("id", ReleaseDatabase.MigrationLockId);
+        await acquire.ExecuteNonQueryAsync();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => ReleaseDatabase.MigrateAsync(_testConnection!, false));
+        await using (var db = OpenContext()) Assert.Empty(await db.Database.GetAppliedMigrationsAsync());
+        await owner.CloseAsync();
+        await ReleaseDatabase.MigrateAsync(_testConnection!, false);
+        await using var read = OpenContext();
+        await ReleaseDatabase.EnsureReadyAsync(read, false);
+    }
+
+    [PostgreSqlFact]
+    public async Task QueueReadiness_RejectsMissingOrNewerSchemaWithoutInstallingIt()
+    {
+        await ReleaseDatabase.MigrateAsync(_testConnection!, false);
+        await using var db = OpenContext();
+        await Assert.ThrowsAsync<PostgresException>(() => ReleaseDatabase.EnsureReadyAsync(db, true));
+        await ReleaseDatabase.MigrateAsync(_testConnection!, true);
+        await db.Database.ExecuteSqlRawAsync("UPDATE hangfire.schema SET version = 999");
+        await Assert.ThrowsAsync<InvalidOperationException>(() => ReleaseDatabase.EnsureReadyAsync(db, true));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => ReleaseDatabase.MigrateAsync(_testConnection!, true));
+    }
+
+    [PostgreSqlFact]
+    public async Task FailedDdl_RollsBackMigrationAndReleasesReleaseLock()
+    {
+        await using var db = OpenContext();
+        await db.Database.ExecuteSqlRawAsync("CREATE TABLE \"Videos\" (id integer)");
+        await Assert.ThrowsAsync<PostgresException>(() => ReleaseDatabase.MigrateAsync(_testConnection!, false));
+        Assert.Empty(await db.Database.GetAppliedMigrationsAsync());
+        await db.Database.ExecuteSqlRawAsync("DROP TABLE \"Videos\"");
+        await ReleaseDatabase.MigrateAsync(_testConnection!, false);
+        await ReleaseDatabase.EnsureReadyAsync(db, false);
+    }
+
+    [PostgreSqlFact]
+    public async Task CancelledRelease_DoesNotApplyMigrationsAndReleasesOwnership()
+    {
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ReleaseDatabase.MigrateAsync(_testConnection!, true, cancelled.Token));
+        await using (var db = OpenContext()) Assert.Empty(await db.Database.GetAppliedMigrationsAsync());
+        await ReleaseDatabase.MigrateAsync(_testConnection!, true);
+        await using var read = OpenContext();
+        await ReleaseDatabase.EnsureReadyAsync(read, true);
+    }
+
+    [PostgreSqlFact]
+    public async Task TwoWorkerHosts_StartOneServerAndTransferOwnershipAfterShutdown()
+    {
+        await ReleaseDatabase.MigrateAsync(_testConnection!, true);
+        var path = Path.Combine(Path.GetTempPath(), "netfilmx-worker-lease-" + Guid.NewGuid().ToString("N"));
+        if (OperatingSystem.IsWindows()) Directory.CreateDirectory(path);
+        else Directory.CreateDirectory(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        var options = new PostgreSqlStorageOptions { PrepareSchemaIfNecessary = false };
+        var storage = new PostgreSqlStorage(new Hangfire.PostgreSql.Factories.NpgsqlConnectionFactory(_testConnection, options), options);
+        using var services = new ServiceCollection().AddLogging()
+            .AddDbContext<NetFilmxDbContext>(o => NetFilmxDatabaseOptions.Configure(o, _testConnection!)).BuildServiceProvider();
+        using var first = new SingletonUploadWorker(new UploadStagingStore(true, path), storage,
+            services.GetRequiredService<IServiceScopeFactory>(), services.GetRequiredService<ILogger<SingletonUploadWorker>>());
+        using var second = new SingletonUploadWorker(new UploadStagingStore(true, path), storage,
+            services.GetRequiredService<IServiceScopeFactory>(), services.GetRequiredService<ILogger<SingletonUploadWorker>>());
+        try
+        {
+            await first.StartAsync(CancellationToken.None);
+            await WaitForAsync(() => first.IsOwner && storage.GetMonitoringApi().Servers().Count == 1);
+            await second.StartAsync(CancellationToken.None);
+            await Task.Delay(600);
+            Assert.False(second.IsOwner);
+            Assert.Single(storage.GetMonitoringApi().Servers());
+            await first.StopAsync(CancellationToken.None);
+            await WaitForAsync(() => second.IsOwner && storage.GetMonitoringApi().Servers().Count == 1);
+            Assert.False(first.IsOwner);
+            await second.StopAsync(CancellationToken.None);
+            Assert.Empty(storage.GetMonitoringApi().Servers());
+            Assert.True(File.Exists(Path.Combine(path, ".server.lock")));
+        }
+        finally
+        {
+            await first.StopAsync(CancellationToken.None);
+            await second.StopAsync(CancellationToken.None);
+            Directory.Delete(path, recursive: true);
+        }
+    }
+
+    private static async Task WaitForAsync(Func<bool> predicate)
+    {
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        while (!predicate()) await Task.Delay(50, deadline.Token);
+    }
 
     [PostgreSqlFact]
     public async Task ConcurrentRefresh_OnlyOneTransactionConsumesTheToken()
