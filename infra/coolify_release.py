@@ -273,6 +273,9 @@ def _compare_contract(
     mismatches: list[str] = []
     for key, expected_value in expected.items():
         label = f"{prefix}.{key}" if prefix else key
+        if key not in actual:
+            mismatches.append(label)
+            continue
         actual_value = actual.get(key)
         if isinstance(expected_value, Mapping):
             if not isinstance(actual_value, Mapping):

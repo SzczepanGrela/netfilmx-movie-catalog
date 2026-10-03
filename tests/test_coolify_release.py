@@ -512,6 +512,13 @@ class TestCoolifyTransport(unittest.TestCase):
         self.assertIn("fqdn", str(caught.exception))
         self.assertNotIn("private-topology-value", str(caught.exception))
 
+    def test_missing_nullable_api_field_is_contract_drift(self):
+        expected = sample_contract()
+        actual = expected | {"uuid": APPLICATION_UUID, "status": "running:healthy"}
+        del actual["ports_mappings"]
+        with self.assertRaisesRegex(release.ReleaseError, "ports_mappings"):
+            release.verify_application(actual, expected, APPLICATION_UUID)
+
 
 if __name__ == "__main__":
     unittest.main()
