@@ -1,18 +1,19 @@
 # Dependency maintenance
 
-Reviewed 2026-10-02 for the modernization candidate. These changes have not
+Reviewed 2026-10-03 for the modernization candidate. These changes have not
 been deployed to the VPS. The original local checkout and production data are
 outside this preparation.
 
 ## .NET packages
 
-All projects remain on .NET 8. EF Core packages and the local `dotnet-ef` tool
-are aligned to 8.0.31; the PostgreSQL provider is 8.0.11. The unused web
+All five projects target .NET 10. `global.json` pins SDK 10.0.401 without
+roll-forward. ASP.NET/EF Core packages and the local `dotnet-ef` tool
+are aligned to 10.0.12; the PostgreSQL provider is 10.0.3. The unused web
 code-generation package is removed. The updated xUnit 2/test tooling no longer
 pulls the legacy .NET Standard HTTP/regex packages. Test package wildcards are
 replaced with explicit versions.
 
-EF Core 8 still selects the older native SQLite bundle. An explicit
+Keep the native SQLite version independent of EF's minimum bundle. An explicit
 `SQLitePCLRaw.bundle_e_sqlite3` 3.0.5 reference and `SourceGear.sqlite3` 3.53.4
 replace that library, following the maintainer's
 [v3 upgrade notes](https://github.com/ericsink/SQLitePCL.raw/blob/main/v3.md).
@@ -74,7 +75,13 @@ Git and the Docker context. Do not edit generated third-party files by hand.
 
 ## Verification and limits
 
-The October 2 candidate audit reported **zero NuGet findings across five
+The October 3 .NET 10 locked restore/audit passed across all five projects.
+The Release suite passed **256 .NET tests, none skipped**, including actual
+SQLite/disposable PostgreSQL, native media tools, key-ring recovery and release
+ownership. Existing nullable/compiler warnings remain. The final image is
+qualified independently by the [delivery workflow](release-delivery.md).
+
+Historical evidence: the October 2 candidate audit reported **zero NuGet findings across five
 projects**, including transitives, and **zero npm findings**, including test
 dependencies. The loaded Linux native SQLite reports 3.53.4. Local verification
 passed 187 .NET tests (none skipped) using real SQLite/disposable PostgreSQL and
@@ -91,11 +98,8 @@ A clean package audit establishes absence of currently reported package
 advisories, not absence of application vulnerabilities. It does not qualify
 VPS packages, the full container OS or external CDN resources (including the
 currently unversioned Vidstack loader). Media-player/CDN pinning and playback
-acceptance, image/runtime scanning, rate limiting, trusted proxies, input
-validation, shared Data Protection keys and protected delivery remain release
-work. The unused root-level MVC template is not the built Web project.
-
-Microsoft lists .NET 8 end of support as **2026-11-10** in its
-[support policy](https://dotnet.microsoft.com/en-us/platform/support/policy).
-Plan the move to a supported LTS before that date; this patch does not perform
-a framework-major migration.
+acceptance remain open. Local HTTP controls/shared Data Protection and the
+candidate delivery path have regression coverage; live proxy, mount, recovery
+and rolling acceptance remain separate. The unused root-level MVC template
+is not the built Web project. The .NET 10 base digests, native-tool image smoke
+and vulnerability gate are recorded in the delivery guide/workflow.

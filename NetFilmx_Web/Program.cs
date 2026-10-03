@@ -24,6 +24,11 @@ if (args.Length > 0 && args[0] == "database")
     Environment.ExitCode = await NetFilmx_Web.DatabaseCommand.RunAsync(args[1..]);
     return;
 }
+if (args is ["healthcheck"] or ["smokecheck"])
+{
+    Environment.ExitCode = await RuntimeProbe.RunAsync(args[0] == "smokecheck");
+    return;
+}
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDurableDataProtection();

@@ -27,7 +27,7 @@ The separation follows the [EF Core multiple-provider guidance](https://learn.mi
 The old mixed chain can generate SQL but fails on PostgreSQL when converting
 `CreatedAt` from SQLite-style text to `timestamp with time zone`.
 
-Restore the pinned EF Core 8 tool, then scaffold without loading production
+Restore the pinned EF Core 10 tool, then scaffold without loading production
 configuration or running the web application:
 
 ```bash
@@ -122,8 +122,9 @@ Authentication/antiforgery, patched locked dependencies, durable upload jobs and
 locally. Production qualification still needs exact proxy/edge acceptance,
 mounted [Data Protection keys](data-protection.md), live migration/readiness acceptance,
 mounted staging/queue restart and resource tests, media playback/credits/licences,
-and the protected immutable-image Coolify workflow. The legacy SSH deployment
-workflow remains in the repository; **do not merge this draft to trigger it**.
+and the protected immutable-image Coolify workflow. The candidate replaces
+legacy SSH deployment, but **keep this PR a draft until delivery/stateful
+acceptance**. See the [release delivery guide](release-delivery.md).
 
 The existing model also reports an extra shadow `BundlePurchase.BundleId1`
 relationship. Correcting that relationship needs a separate data-aware change

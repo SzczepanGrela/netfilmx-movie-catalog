@@ -5,11 +5,13 @@
 > produkcyjnym. Aktualny zakres, testy i warunki zachowania mediów opisuje
 > [przewodnik baz danych](docs/database-baseline.md).
 
+Stan kandydata i pozostałe warunki wydania: [work-status](docs/work-status.md).
+
 Zależności są przypięte w lockfile i sprawdzane pod kątem podatności w CI.
 Aktualizacje, audyty NuGet/npm i testy opisuje
 [przewodnik zależności](docs/dependencies.md).
 
-NetFilmx to zaawansowana aplikacja webowa VOD (Video on Demand) w technologii ASP.NET Core 8 MVC. Głównym celem tego projektu jest zaprezentowanie pełnego, nowoczesnego ekosystemu streamingu wideo z zachowaniem dobrych praktyk architektonicznych.
+NetFilmx to aplikacja webowa VOD (Video on Demand) w technologii ASP.NET Core 10 MVC.
 
 ## Główne Funkcjonalności
 
@@ -24,7 +26,7 @@ NetFilmx to zaawansowana aplikacja webowa VOD (Video on Demand) w technologii AS
 
 ## Technologie
 
-- **Framework**: .NET 8 (ASP.NET Core MVC)
+- **Framework**: .NET 10 (ASP.NET Core MVC), SDK z `global.json`
 - **Architektura**: CQRS (MediatR), Clean Architecture (Storage / Service / Web)
 - **Baza Danych**: Entity Framework Core (osobne migracje SQLite i PostgreSQL;
   testy InMemory oraz rzeczywistych baz)
@@ -43,28 +45,33 @@ cd netfilmx-movie-catalog
 # 2. Przywrócenie narzędzia EF Core zgodnego z projektem
 dotnet tool restore
 
-# 3. Po skonfigurowaniu połączenia i JWT — uruchomienie
+# 3. Po skonfigurowaniu połączenia — jawne migracje
+dotnet run --project NetFilmx_Web -- database migrate --confirm-reviewed-migrations
+
+# 4. Po skonfigurowaniu JWT i prywatnego keyringu — uruchomienie
 dotnet run --project NetFilmx_Web
 ```
 
 Przed uruchomieniem ustaw `ConnectionStrings__DefaultConnection` oraz
 `JwtSettings__SecretKey`, `JwtSettings__Issuer` i `JwtSettings__Audience`
 przez zmienne środowiskowe albo .NET User Secrets. Użyj własnego klucza JWT.
-Nie zapisuj sekretów w repozytorium ani obrazie. W tej wersji aplikacja nadal
-wykonuje migracje przy starcie; jawny etap migracji jest częścią dalszych prac.
+Nie zapisuj sekretów w repozytorium ani obrazie. Ustaw też
+`DataProtection__KeyRingPath` na istniejący prywatny katalog poza aplikacją
+(Linux: `0700`, właściciel zgodny z procesem).
+Start aplikacji sprawdza gotowość schematu. Migracje uruchamia się oddzielnie
+zgodnie z [instrukcją wydania bazy](docs/release-database.md).
 Konta demonstracyjne można włączyć wyłącznie w środowisku `Development`,
 ustawiając `Database__SeedDemoData=true`. Szczegóły i ograniczenia opisuje
 [przewodnik baz danych](docs/database-baseline.md).
 
-## Dotychczasowe wdrożenie (do zastąpienia)
+## Wydanie kandydata
 
-Repozytorium nadal zawiera starszy proces wdrożenia:
-1. Docker + Docker Compose.
-2. Ukrycie IP serwera przez Cloudflare (Orange Cloud).
-3. Reverse Proxy w postaci Nginx Proxy Manager.
-4. Deploy w ramach zamkniętej sieci Tailscale wyzwalany bezpośrednio z GitHub Actions.
+CI buduje i testuje jeden obraz. Po przejściu bramek na `main` publikuje ten
+sam obraz do GHCR wraz z poświadczeniem pochodzenia i SBOM.
+Wdrożenie przez Coolify pozostaje wyłączone do zatwierdzenia prywatnego
+kontraktu i warunków odzyskiwania danych. Szczegóły:
+[wydanie przez GHCR i Coolify](docs/release-delivery.md).
 
-Docelowo: obraz budowany i testowany w CI, niezmienny digest GHCR, wdrożenie
-przez Coolify oraz ruch Cloudflare Tunnel → Traefik → sieć aplikacji.
-Nie należy uruchamiać ani przywracać Nginx Proxy Manager na podstawie
-powyższego opisu historycznego.
+Ta gałąź usuwa dawny deploy przez SSH; produkcja nadal wymaga osobnego
+przeglądu i przełączenia. Nie przywracaj Nginx Proxy Manager na podstawie
+historycznych skryptów.

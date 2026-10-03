@@ -111,8 +111,16 @@ public sealed class DataProtectionConfigurationTests : IDisposable
         string protectedValue;
         using (var previous = Provider(Keys, generateKeys: false))
         {
-            previous.GetRequiredService<IKeyManager>().CreateNewKey(DateTimeOffset.UtcNow.AddDays(-120), DateTimeOffset.UtcNow.AddDays(-30));
+            previous.GetRequiredService<IKeyManager>().CreateNewKey(DateTimeOffset.UtcNow.AddDays(-120), DateTimeOffset.UtcNow.AddDays(30));
             protectedValue = previous.GetRequiredService<IDataProtectionProvider>().CreateProtector("expired-key-test").Protect("old token");
+        }
+        // The payload was created while its key was valid. Advance that key's
+        // expiration metadata to simulate elapsed time without waiting 30 days.
+        foreach (var path in Directory.EnumerateFiles(Keys, "key-*.xml"))
+        {
+            var document = System.Xml.Linq.XDocument.Load(path);
+            document.Root!.Element("expirationDate")!.Value = DateTimeOffset.UtcNow.AddDays(-30).ToString("O");
+            document.Save(path);
         }
         using var restarted = Provider(Keys);
         restarted.VerifyKeyRing();

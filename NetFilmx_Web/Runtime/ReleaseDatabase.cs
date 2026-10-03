@@ -86,8 +86,10 @@ public static class ReleaseDatabase
     public static async Task EnsureReadyAsync(NetFilmxDbContext db, bool requireQueue, CancellationToken token = default)
     {
         if (!db.Database.IsRelational()) throw new InvalidOperationException("Readiness requires a relational database.");
+        db.Database.SetCommandTimeout(5);
         if (db.Database.IsSqlite())
         {
+            ((SqliteConnection)db.Database.GetDbConnection()).DefaultTimeout = 5;
             var settings = new SqliteConnectionStringBuilder(db.Database.GetConnectionString());
             if (!File.Exists(settings.DataSource)) throw new InvalidOperationException("SQLite database is missing; migrate explicitly.");
         }

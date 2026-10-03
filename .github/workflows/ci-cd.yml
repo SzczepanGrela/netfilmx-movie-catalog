@@ -7,188 +7,195 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions: {}
+
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: quality-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+env:
+  IMAGE_NAME: ghcr.io/szczepangrela/netfilmx-movie-catalog
+
 jobs:
-  changes:
-    name: Detect path changes
+  test:
+    name: Test and audit (.NET 10)
     runs-on: ubuntu-latest
-    outputs:
-      app: ${{ steps.filter.outputs.app }}
-      infra: ${{ steps.filter.outputs.infra }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Find last successful run as path-filter base
-        id: find-base
-        if: github.event_name == 'push'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          SHA=$(gh run list \
-            --workflow ci-cd.yml \
-            --branch ${{ github.ref_name }} \
-            --status success \
-            --event push \
-            --limit 1 \
-            --json headSha \
-            --jq '.[0].headSha // ""')
-          if [ -z "$SHA" ]; then
-            SHA="${{ github.event.before }}"
-            echo "No previous successful run found, falling back to event.before: $SHA"
-          else
-            echo "Using last green run SHA as base: $SHA"
-          fi
-          echo "base=$SHA" >> "$GITHUB_OUTPUT"
-
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          base: ${{ steps.find-base.outputs.base }}
-          filters: |
-            app:
-              - 'NetFilmx_Web/**'
-              - 'NetFilmx_Service/**'
-              - 'NetFilmx_Storage/**'
-              - 'NetFilmx_Storage.PostgreSql/**'
-              - '.config/dotnet-tools.json'
-              - 'Directory.Build.props'
-              - 'NuGet.Config'
-              - 'NetFilmx_Common/**'
-              - 'NetFilmx_Tests/**'
-              - 'ST2 NetFilmx.sln'
-              - '.github/workflows/ci-cd.yml'
-            infra:
-              - 'infra/**'
-              - '.dockerignore'
-
-  build-and-test:
-    name: Build & Test (.NET 8)
-    needs: [changes]
-    if: |
-      (github.event_name == 'workflow_dispatch') ||
-      (needs.changes.outputs.app == 'true') ||
-      (needs.changes.outputs.infra == 'true')
-    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
         env:
-          POSTGRES_DB: netfilmx_db
-          POSTGRES_USER: netfilmx_user
-          POSTGRES_PASSWORD: netfilmx_pass
+          POSTGRES_DB: netfilmx_test
+          POSTGRES_USER: netfilmx_test
+          POSTGRES_PASSWORD: local-ci-test
         ports:
           - 5432:5432
         options: >-
           --health-cmd pg_isready
-          --health-interval 10s
+          --health-interval 5s
           --health-timeout 5s
-          --health-retries 5
+          --health-retries 10
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node for browser dependency checks
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24'
           cache: npm
           cache-dependency-path: NetFilmx_Web/package-lock.json
-
-      - name: Audit browser dependencies and test form validation
+      - name: Audit and test browser dependencies
         working-directory: NetFilmx_Web
         run: |
           npm ci --ignore-scripts
           npm audit --audit-level=low
           npm run vendor:check
           npm test
-
-      - name: Setup .NET 8 SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-
-      - name: Install media test tools
+      - name: Test release client
+        run: python3 -m unittest discover -s tests -v
+      - name: Install native media tools
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ffmpeg
-
-      - name: Cache NuGet packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json', 'NuGet.Config', 'Directory.Build.props') }}
-          restore-keys: ${{ runner.os }}-nuget-
-
-      - name: Restore locked dependencies and audit vulnerabilities
+      - name: Restore and audit locked NuGet dependencies
         run: dotnet restore "ST2 NetFilmx.sln" --locked-mode --force
-
-      - name: Build (Release)
-        run: dotnet build "ST2 NetFilmx.sln" --no-restore -c Release
-
-      - name: Run Tests
+      - name: Build and test
         env:
-          NETFILMX_TEST_POSTGRES: Host=localhost;Port=5432;Database=netfilmx_db;Username=netfilmx_user;Password=netfilmx_pass
-        run: dotnet test "ST2 NetFilmx.sln" --no-build -c Release --logger "trx;LogFileName=test-results.trx" --results-directory ./test-results
-
-      - name: Upload Test Results
+          NETFILMX_TEST_POSTGRES: Host=localhost;Database=netfilmx_test;Username=netfilmx_test;Password=local-ci-test
+        run: |
+          dotnet build "ST2 NetFilmx.sln" --no-restore -c Release
+          dotnet test "ST2 NetFilmx.sln" --no-build -c Release --logger "trx;LogFileName=tests.trx" --results-directory artifacts/test-results
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: ./test-results/*.trx
+          path: artifacts/test-results/*.trx
+          retention-days: 7
 
-  build-docker-image:
-    name: Build Docker Image
-    needs: [build-and-test, changes]
-    if: |
-      (github.event_name == 'workflow_dispatch') ||
-      (needs.changes.outputs.app == 'true') ||
-      (needs.changes.outputs.infra == 'true')
+  container:
+    name: Qualify exact image
+    needs: test
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker Image
-        run: docker build -f infra/Dockerfile -t netfilmx-movie-catalog:test .
-
-  deploy:
-    name: Deploy to VPS
-    needs: [build-and-test, build-docker-image]
-    if: |
-      always() &&
-      (needs.build-and-test.result == 'success' && needs.build-docker-image.result == 'success') &&
-      github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    concurrency:
-      group: deploy
-      cancel-in-progress: false
+    timeout-minutes: 30
     permissions:
       contents: read
-      id-token: write
     steps:
-      - name: Connect to Tailscale
-        uses: tailscale/github-action@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Build one image with its source revision
+        run: |
+          mkdir -p artifacts/image
+          docker build --provenance=false --file infra/Dockerfile --build-arg "RELEASE_REVISION=${GITHUB_SHA}" --tag "netfilmx:test-${GITHUB_SHA}" .
+      - name: Qualify image, database, private keys, catalogue and restart
+        run: bash infra/image-smoke.sh "netfilmx:test-${GITHUB_SHA}" "$GITHUB_SHA"
+      - name: Scan fixable HIGH and CRITICAL findings
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          oauth-client-id: ${{ secrets.TS_CLIENT_ID }}
-          audience: ${{ secrets.TS_AUDIENCE }}
-          tags: tag:ci-vps
-
-      - name: Setup SSH key
+          image-ref: netfilmx:test-${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Generate image SBOM
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: netfilmx:test-${{ github.sha }}
+          format: spdx-json
+          output: artifacts/image/sbom.spdx.json
+      - name: Save the qualified image without rebuilding
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+          mkdir -p artifacts/image
+          docker save --output artifacts/image/image.tar "netfilmx:test-${GITHUB_SHA}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: qualified-image
+          path: artifacts/image/
+          compression-level: 0
+          retention-days: 3
 
-      - name: Deploy and verify
+  quality-gate:
+    name: Quality gate
+    if: always()
+    needs: [test, container]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require application and image qualification
+        env:
+          TEST_RESULT: ${{ needs.test.result }}
+          IMAGE_RESULT: ${{ needs.container.result }}
         run: |
-          ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            bash /home/${{ secrets.SSH_USER }}/deploy-launcher.sh
+          test "$TEST_RESULT" = success
+          test "$IMAGE_RESULT" = success
+
+  publish:
+    name: Publish tested digest
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: qualified-image
+          path: artifacts/image
+      - name: Publish the same tested image
+        id: push
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker load --input artifacts/image/image.tar
+          docker tag "netfilmx:test-${GITHUB_SHA}" "${IMAGE_NAME}:${GITHUB_SHA}"
+          docker push "${IMAGE_NAME}:${GITHUB_SHA}"
+          image_ref="$(docker image inspect --format '{{index .RepoDigests 0}}' "${IMAGE_NAME}:${GITHUB_SHA}")"
+          digest="${image_ref##*@}"
+          [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+      - name: Attest qualified image provenance
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-name: ${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+      - name: Attest the tested image SBOM
+        uses: actions/attest-sbom@4651f806c01d8637787e274ac3bdf724ef169f34 # v3
+        with:
+          subject-name: ${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          sbom-path: artifacts/image/sbom.spdx.json
+          push-to-registry: true
+      - name: Record artifact for protected promotion
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          echo "Image: ${IMAGE_NAME}@${DIGEST}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Revision: ${GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Production promotion awaits the reviewed private Coolify/stateful contract.' >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Deploy tested digest
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      vars.PRODUCTION_DEPLOY_ENABLED == 'true' &&
+      vars.COOLIFY_RELEASE_CONTRACT_ACCEPTED == 'true'
+    needs: [publish, quality-gate]
+    permissions:
+      contents: read
+      attestations: read
+      id-token: write
+      packages: read
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit
+    with:
+      digest: ${{ needs.publish.outputs.digest }}
+      expected_revision: ${{ github.sha }}

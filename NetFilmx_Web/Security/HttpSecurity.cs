@@ -71,7 +71,7 @@ public static class HttpSecurity
 
     private static void ConfigureForwarding(ForwardedHeadersOptions options, IConfiguration configuration)
     {
-        options.KnownNetworks.Clear();
+        options.KnownIPNetworks.Clear();
         options.KnownProxies.Clear();
         foreach (var entry in configuration.GetSection("Proxy:KnownProxies").GetChildren())
         {
