@@ -9,7 +9,7 @@ namespace NetFilmx_Tests.Integration.Fixtures;
 // Real MVC forms and cookie handling; no authentication bypass or generated JWTs.
 internal sealed class AuthBrowser : IDisposable
 {
-    private readonly HttpClient _client;
+    private HttpClient _client;
     private readonly CookieContainer _cookies = new();
     private static readonly Uri Origin = new("https://localhost");
     public AuthBrowser(TestWebApplicationFactory<Program> factory) => _client = factory.CreateClient(new()
@@ -18,6 +18,11 @@ internal sealed class AuthBrowser : IDisposable
     });
 
     public string Cookie(string name) => _cookies.GetCookies(Origin)[name]?.Value ?? "";
+    public void UseInstance(TestWebApplicationFactory<Program> factory)
+    {
+        _client.Dispose();
+        _client = factory.CreateClient(new() { BaseAddress = Origin, AllowAutoRedirect = false, HandleCookies = false });
+    }
     public void SetCookie(string name, string value) => _cookies.Add(Origin, new Cookie(name, value, "/") { Secure = true });
 
     public async Task<HttpResponseMessage> SendAsync(HttpMethod method, string url, Dictionary<string, string>? form = null, string? csrf = null)

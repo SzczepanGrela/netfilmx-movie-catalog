@@ -21,6 +21,7 @@ if (args.Length > 0 && args[0] == "catalogue")
 }
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddDurableDataProtection();
 builder.Services.AddHttpSecurity(builder.Configuration);
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 1_048_576);
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
@@ -78,6 +79,7 @@ builder.Services.AddControllersWithViews(options =>
 builder.Services.AddAntiforgery(options =>
 {
     options.HeaderName = "X-CSRF-TOKEN";
+    options.Cookie.Name = "__Host-NetFilmx.Antiforgery";
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.Cookie.SameSite = SameSiteMode.Strict;
 });
@@ -193,6 +195,7 @@ _ = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor
     .Get(JwtBearerDefaults.AuthenticationScheme);
 _ = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>>().Value;
 _ = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<Microsoft.AspNetCore.RateLimiting.RateLimiterOptions>>().Value;
+app.Services.VerifyKeyRing();
 
 
 if (uploadsEnabled)

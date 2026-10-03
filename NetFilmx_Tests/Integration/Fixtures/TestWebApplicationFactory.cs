@@ -12,13 +12,32 @@ namespace NetFilmx_Tests.Integration.Fixtures
     public class TestWebApplicationFactory<TProgram>
         : WebApplicationFactory<TProgram> where TProgram : class
     {
-        private readonly string _databasePath = Path.Combine(Path.GetTempPath(), "netfilmx-auth-test-" + Guid.NewGuid().ToString("N") + ".db");
+        private readonly string _databasePath;
+        private readonly string _keyRingPath;
+        private readonly bool _ownsDatabase;
+        private readonly bool _ownsKeyRing;
+
+        public TestWebApplicationFactory() : this(null, null) { }
+
+        internal TestWebApplicationFactory(string? databasePath, string? keyRingPath)
+        {
+            _ownsDatabase = databasePath == null;
+            _ownsKeyRing = keyRingPath == null;
+            _databasePath = databasePath ?? Path.Combine(Path.GetTempPath(), "netfilmx-auth-test-" + Guid.NewGuid().ToString("N") + ".db");
+            _keyRingPath = keyRingPath ?? Path.Combine(Path.GetTempPath(), "netfilmx-test-keys-" + Guid.NewGuid().ToString("N"));
+            if (_ownsKeyRing)
+            {
+                if (OperatingSystem.IsWindows()) Directory.CreateDirectory(_keyRingPath);
+                else Directory.CreateDirectory(_keyRingPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            }
+        }
 
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
-            if (disposing)
+            if (disposing && _ownsDatabase)
                 foreach (var suffix in new[] { "", "-wal", "-shm" }) File.Delete(_databasePath + suffix);
+            if (disposing && _ownsKeyRing && Directory.Exists(_keyRingPath)) Directory.Delete(_keyRingPath, recursive: true);
         }
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -34,6 +53,7 @@ namespace NetFilmx_Tests.Integration.Fixtures
                     {"JwtSettings:AccessTokenTtlMinutes", "15"},
                     {"JwtSettings:RefreshTokenTtlDays", "7"},
                     {"WalletSettings:RegistrationBonus", "100.00"},
+                    {"DataProtection:KeyRingPath", _keyRingPath},
                     {"ConnectionStrings:DefaultConnection", "Data Source=" + _databasePath + ";Pooling=false"}
                 });
             });

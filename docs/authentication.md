@@ -48,6 +48,7 @@ They use isolated migrated SQLite databases. Disposable PostgreSQL tests cover
 simultaneous consumption and transaction rollback. JWT tests reject wrong
 issuer/audience, expired, unsigned and wrongly signed tokens.
 
-Before deployment still qualify login throttling, exact trusted proxy handling,
-TLS/public behavior and a shared protected Data Protection key ring across
-rolling instances (antiforgery/TempData). No live settings or data are changed here.
+The [durable Data Protection contract](data-protection.md) requires a private
+shared key ring and fixed discriminator for antiforgery/TempData. Before deployment
+still qualify mounted key storage/restore, TLS/public behavior, actual rolling
+instances and aggregate login/write limits. No live settings or data are changed here.
