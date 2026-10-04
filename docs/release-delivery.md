@@ -68,7 +68,14 @@ the image tag, reads it back, queues one deployment and polls its UUID. During
 overlap only the old/new revisions are allowed. Three consecutive probe
 failures or a timeout cancel the release and require confirmed termination
 before rollback. An uncertain write/status stops mutations for reconciliation.
-Known failures restore only the saved app digest and verify baseline behavior.
+Before any error-triggered rollback, the client confirms the candidate UUID
+is terminal. A still-active candidate must complete bounded cancellation;
+unknown/unreadable state or an unconfirmed queue reply stops mutations.
+Unknown statuses are classified before public-probe failure handling. Bounded
+HTTP protocol errors count as failed health probes; unexpected errors also pass
+through the terminal-state guard. Rollback polling preserves uncertainty and
+confirms termination on other post-queue failures. Known terminal failures
+restore only the saved app digest and verify baseline behavior.
 
 Stale automatic main releases are skipped. Manual dispatch can select an older
 attested main digest and derive its revision. A healthy matching digest/revision

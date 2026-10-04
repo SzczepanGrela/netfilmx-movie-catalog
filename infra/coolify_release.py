@@ -22,6 +22,7 @@ DIGEST_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 UUID_PATTERN = re.compile(r"^[a-z0-9]{20,32}$")
 ACTIVE_DEPLOYMENT_STATUSES = {"queued", "in_progress"}
 FAILED_DEPLOYMENT_STATUSES = {"cancelled", "cancelled-by-user", "failed"}
+TERMINAL_DEPLOYMENT_STATUSES = FAILED_DEPLOYMENT_STATUSES | {"finished"}
 
 
 class ReleaseError(RuntimeError):
@@ -388,7 +389,7 @@ def read_public_revision(base_url: str, *, timeout: int = 10) -> str:
             if len(data) > 32768:
                 raise ReleaseError("public health payload exceeds probe limit")
             payload = json.loads(data)
-    except (OSError, ValueError, urllib.error.URLError) as exc:
+    except (OSError, ValueError, http.client.HTTPException, urllib.error.URLError) as exc:
         raise ReleaseError("public health request failed") from exc
     if not isinstance(payload, Mapping) or payload.get("status") != "ready":
         raise ReleaseError("public health payload is invalid")
@@ -403,6 +404,8 @@ def read_public_revision(base_url: str, *, timeout: int = 10) -> str:
 def check_public_release(base_url: str, revision: str) -> None:
     try:
         smokecheck.check_release(base_url, revision)
+    except http.client.HTTPException as exc:
+        raise ReleaseError("public smoke transport failed") from exc
     except (OSError, ValueError) as exc:
         raise ReleaseError(f"public smoke test failed: {exc}") from exc
 
@@ -410,6 +413,8 @@ def check_public_release(base_url: str, revision: str) -> None:
 def check_public_baseline(base_url: str, revision: str) -> None:
     try:
         smokecheck.check_baseline_release(base_url, revision)
+    except http.client.HTTPException as exc:
+        raise ReleaseError("public baseline smoke transport failed") from exc
     except (OSError, ValueError) as exc:
         raise ReleaseError(f"public baseline smoke test failed: {exc}") from exc
 
@@ -439,6 +444,13 @@ class Monitor:
             self.consecutive_failures = 0
 
 
+def deployment_status(deployment: Mapping[str, object]) -> str:
+    status = deployment.get("status")
+    if not isinstance(status, str) or status not in ACTIVE_DEPLOYMENT_STATUSES | TERMINAL_DEPLOYMENT_STATUSES:
+        raise UncertainDeployment("Coolify returned unknown deployment status; mutation stopped")
+    return status
+
+
 def wait_for_deployment(
     client: CoolifyClient,
     deployment_uuid: str,
@@ -453,7 +465,9 @@ def wait_for_deployment(
             deployment = client.get_deployment(deployment_uuid)
         except ReleaseError as exc:
             raise UncertainDeployment("Active deployment state could not be confirmed; mutation stopped") from exc
-        status = deployment.get("status")
+        # Classify before probing: a third health failure cannot turn unknown
+        # deployment state into a known failure eligible for rollback.
+        status = deployment_status(deployment)
         monitor.observe()
         if monitor.consecutive_failures >= 3:
             if status in ACTIVE_DEPLOYMENT_STATUSES:
@@ -470,10 +484,6 @@ def wait_for_deployment(
             return
         if status in FAILED_DEPLOYMENT_STATUSES:
             raise ReleaseError(f"Coolify deployment ended with status {status}")
-        if status not in ACTIVE_DEPLOYMENT_STATUSES:
-            raise UncertainDeployment(
-                f"Coolify returned unknown deployment status {status!r}"
-            )
         time.sleep(interval)
 
     cancel_and_confirm(
@@ -492,21 +502,21 @@ def cancel_and_confirm(
     timeout: int,
     interval: float,
 ) -> None:
-    cancellation_error: ReleaseError | None = None
+    cancellation_error: Exception | None = None
     try:
         client.cancel_deployment(deployment_uuid)
-    except ReleaseError as exc:
+    except Exception as exc:
         cancellation_error = exc
 
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
-            status = client.get_deployment(deployment_uuid).get("status")
-        except ReleaseError as exc:
+            status = deployment_status(client.get_deployment(deployment_uuid))
+        except Exception as exc:
             raise UncertainDeployment(
                 f"deployment {deployment_uuid} state after cancellation is unknown"
             ) from exc
-        if status == "finished" or status in FAILED_DEPLOYMENT_STATUSES:
+        if status in TERMINAL_DEPLOYMENT_STATUSES:
             return
         if cancellation_error is not None and not isinstance(
             cancellation_error, UncertainDeployment
@@ -514,15 +524,29 @@ def cancel_and_confirm(
             raise UncertainDeployment(
                 f"deployment {deployment_uuid} cancellation failed"
             ) from cancellation_error
-        if status not in ACTIVE_DEPLOYMENT_STATUSES:
-            raise UncertainDeployment(
-                "Coolify returned unknown deployment status "
-                f"{status!r} after cancellation"
-            )
         time.sleep(interval)
     raise UncertainDeployment(
         f"deployment {deployment_uuid} did not stop after cancellation"
     )
+
+
+def confirm_deployment_terminal(
+    client: CoolifyClient,
+    deployment_uuid: str,
+    *,
+    timeout: int,
+    interval: float,
+) -> None:
+    """Gate further mutations, including failures outside the polling loop."""
+    try:
+        status = deployment_status(client.get_deployment(deployment_uuid))
+        if status in TERMINAL_DEPLOYMENT_STATUSES:
+            return
+        cancel_and_confirm(client, deployment_uuid, timeout=timeout, interval=interval)
+    except UncertainDeployment:
+        raise
+    except Exception as exc:
+        raise UncertainDeployment("Deployment termination could not be confirmed; mutation stopped") from exc
 
 
 def wait_for_revision(
@@ -592,31 +616,29 @@ def rollback(
         expected_tag=previous_tag,
         require_healthy=False,
     )
-    rollback_uuid = client.queue_deployment(application_uuid)
+    try:
+        rollback_uuid = client.queue_deployment(application_uuid)
+    except UncertainDeployment:
+        raise
+    except Exception as exc:
+        raise UncertainDeployment("Rollback queue outcome is unknown; mutation stopped") from exc
     monitor = Monitor(public_url, {previous_revision, failed_revision})
-    wait_for_deployment(
-        client,
-        rollback_uuid,
-        monitor,
-        timeout=timeout,
-        interval=interval,
-    )
-    wait_for_revision(
-        public_url,
-        previous_revision,
-        consecutive_checks=3,
-        interval=interval,
-        attempts=30,
-    )
-    wait_for_healthy_application(
-        client,
-        application_uuid,
-        contract,
-        previous_tag,
-        attempts=health_attempts,
-        interval=interval,
-    )
-    check_public_baseline(public_url, previous_revision)
+    try:
+        wait_for_deployment(
+            client, rollback_uuid, monitor, timeout=timeout, interval=interval,
+        )
+        wait_for_revision(
+            public_url, previous_revision, consecutive_checks=3, interval=interval, attempts=30,
+        )
+        wait_for_healthy_application(
+            client, application_uuid, contract, previous_tag, attempts=health_attempts, interval=interval,
+        )
+        check_public_baseline(public_url, previous_revision)
+    except UncertainDeployment:
+        raise
+    except Exception:
+        confirm_deployment_terminal(client, rollback_uuid, timeout=min(timeout, 60), interval=interval)
+        raise
     return rollback_uuid
 
 
@@ -659,6 +681,7 @@ def deploy_release(args: argparse.Namespace) -> None:
         return
 
     mutation_started = False
+    queue_requested = False
     deployment_uuid = ""
     monitor = Monitor(args.public_url, {previous_revision, args.expected_revision})
     try:
@@ -671,6 +694,7 @@ def deploy_release(args: argparse.Namespace) -> None:
             args.application_uuid,
             expected_tag=target_tag,
         )
+        queue_requested = True
         deployment_uuid = client.queue_deployment(args.application_uuid)
         wait_for_deployment(
             client,
@@ -706,6 +730,12 @@ def deploy_release(args: argparse.Namespace) -> None:
     except Exception as deployment_error:
         if not mutation_started:
             raise
+        if queue_requested:
+            if not deployment_uuid:
+                raise UncertainDeployment("Candidate queue outcome is unknown; mutation stopped") from deployment_error
+            confirm_deployment_terminal(
+                client, deployment_uuid, timeout=min(args.deployment_timeout, 60), interval=args.poll_interval
+            )
         try:
             rollback_uuid = rollback(
                 client,
@@ -719,6 +749,8 @@ def deploy_release(args: argparse.Namespace) -> None:
                 interval=args.poll_interval,
                 health_attempts=args.settle_attempts,
             )
+        except UncertainDeployment:
+            raise
         except Exception as rollback_error:
             raise ReleaseError(
                 f"deployment failed ({deployment_error}); "

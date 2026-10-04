@@ -8,6 +8,8 @@ import sys
 import unittest
 import tempfile
 import urllib.error
+from contextlib import ExitStack
+from itertools import count
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -447,6 +449,174 @@ class TestCoolifyReleaseEdgeCases(unittest.TestCase):
         with patch("infra.coolify_release.time.sleep", return_value=None):
             release.cancel_and_confirm(client, DEPLOYMENT_UUID, timeout=1, interval=0.001)
         self.assertEqual(client.cancelled, [DEPLOYMENT_UUID])
+
+
+class RecordedClient(FakeClient):
+    """Record mutation/status order without hiding an unsafe second deployment."""
+
+    def __init__(self, statuses, cancellation_status="cancelled"):
+        super().__init__(sample_contract(), statuses)
+        self.events = []
+        self.cancellation_status = cancellation_status
+
+    def update_tag(self, application_uuid, tag):
+        super().update_tag(application_uuid, tag)
+        self.events.append(("patch", tag))
+
+    def queue_deployment(self, application_uuid):
+        uuid = super().queue_deployment(application_uuid)
+        self.events.append(("queue", uuid))
+        return uuid
+
+    def get_deployment(self, deployment_uuid):
+        result = super().get_deployment(deployment_uuid)
+        self.events.append(("status", deployment_uuid, result["status"]))
+        return result
+
+    def cancel_deployment(self, deployment_uuid):
+        self.cancelled.append(deployment_uuid)
+        self.events.append(("cancel", deployment_uuid))
+        self.deployment_statuses[deployment_uuid] = [self.cancellation_status]
+
+
+class TestUnresolvedReleaseRollback(unittest.TestCase):
+    setUp = TestCoolifyRelease.setUp
+
+    def execute(self, client, *, probe=None, malformed_health=False, smoke_error=None):
+        args = argparse.Namespace(
+            coolify_url="https://coolify.example.test", application_uuid=APPLICATION_UUID,
+            public_url="https://catalogue.example.test", digest=NEW_DIGEST,
+            expected_revision=NEW_REVISION, contract=self.contract_path,
+            deployment_timeout=1, poll_interval=0.001, settle_checks=1,
+            settle_attempts=3, soak_checks=1,
+        )
+
+        def health_transport(request, timeout):
+            if client.queued == [DEPLOYMENT_UUID]:
+                raise release.http.client.BadStatusLine("synthetic malformed status")
+            response = MagicMock()
+            response.status = 200
+            response.read.return_value = json.dumps({"status": "ready", "revision": client.live_revision}).encode()
+            response.__enter__.return_value = response
+            return response
+
+        with ExitStack() as stack:
+            stack.enter_context(patch.dict(os.environ, {"COOLIFY_TOKEN": "synthetic-token"}))
+            stack.enter_context(patch("infra.coolify_release.CoolifyClient", return_value=client))
+            stack.enter_context(patch("infra.coolify_release.verify_image_revision"))
+            stack.enter_context(patch("infra.coolify_release.check_public_baseline"))
+            stack.enter_context(patch("infra.coolify_release.check_public_release", side_effect=smoke_error))
+            stack.enter_context(patch("infra.coolify_release.time.sleep"))
+            stack.enter_context(patch("infra.coolify_release.time.monotonic", side_effect=count(0, 0.02)))
+            if malformed_health:
+                stack.enter_context(patch("infra.smokecheck._open", side_effect=health_transport))
+            else:
+                stack.enter_context(patch("infra.coolify_release.read_public_revision",
+                                         side_effect=probe or (lambda url: client.live_revision)))
+            release.deploy_release(args)
+
+    def assert_only_candidate_mutations(self, client):
+        self.assertEqual(client.updates, [release.digest_to_tag(NEW_DIGEST)])
+        self.assertEqual(client.queued, [DEPLOYMENT_UUID])
+
+    def assert_terminal_before_restore(self, client, terminal_status):
+        self.assertEqual(client.updates, [release.digest_to_tag(NEW_DIGEST), release.digest_to_tag(OLD_DIGEST)])
+        self.assertEqual(client.queued, [DEPLOYMENT_UUID, ROLLBACK_UUID])
+        terminal = client.events.index(("status", DEPLOYMENT_UUID, terminal_status))
+        restore = client.events.index(("patch", release.digest_to_tag(OLD_DIGEST)))
+        second_queue = client.events.index(("queue", ROLLBACK_UUID))
+        self.assertLess(terminal, restore)
+        self.assertLess(restore, second_queue)
+
+    def test_bad_health_transport_with_active_cancellation_stops_writes(self):
+        client = RecordedClient([["in_progress"], ["finished"]], cancellation_status="in_progress")
+        with self.assertRaises(release.UncertainDeployment):
+            self.execute(client, malformed_health=True)
+        self.assert_only_candidate_mutations(client)
+        self.assertEqual(client.cancelled, [DEPLOYMENT_UUID])
+
+    def test_unknown_status_at_third_failed_probe_stops_writes(self):
+        client = RecordedClient([["in_progress", "in_progress", "future_status"], ["finished"]])
+        replies = iter([OLD_REVISION, release.ReleaseError("down"), release.ReleaseError("down"), release.ReleaseError("down")])
+
+        def probe(url):
+            value = next(replies, OLD_REVISION)
+            if isinstance(value, Exception):
+                raise value
+            return value
+
+        with self.assertRaises(release.UncertainDeployment):
+            self.execute(client, probe=probe)
+        self.assert_only_candidate_mutations(client)
+        self.assertEqual(client.cancelled, [])
+
+    def test_bad_health_transport_confirmed_cancel_allows_rollback(self):
+        client = RecordedClient([["in_progress"], ["finished"]])
+        with self.assertRaises(release.ReleaseError) as caught:
+            self.execute(client, malformed_health=True)
+        self.assertNotIsInstance(caught.exception, release.UncertainDeployment)
+        self.assertIn("restored", str(caught.exception))
+        self.assertEqual(client.cancelled, [DEPLOYMENT_UUID])
+        self.assert_terminal_before_restore(client, "cancelled")
+
+    def test_unexpected_monitor_exception_still_requires_terminal_confirmation(self):
+        client = RecordedClient([["in_progress"], ["finished"]], cancellation_status="in_progress")
+        replies = iter([OLD_REVISION, release.http.client.BadStatusLine("unexpected probe exception")])
+
+        def probe(url):
+            value = next(replies, OLD_REVISION)
+            if isinstance(value, Exception):
+                raise value
+            return value
+
+        with self.assertRaises(release.UncertainDeployment):
+            self.execute(client, probe=probe)
+        self.assert_only_candidate_mutations(client)
+        self.assertEqual(client.cancelled, [DEPLOYMENT_UUID])
+
+    def test_unknown_cancellation_status_stops_writes(self):
+        client = RecordedClient([["in_progress"], ["finished"]], cancellation_status="future_status")
+        with self.assertRaises(release.UncertainDeployment):
+            self.execute(client, malformed_health=True)
+        self.assert_only_candidate_mutations(client)
+        self.assertEqual(client.cancelled, [DEPLOYMENT_UUID])
+
+    def test_finished_candidate_smoke_failure_retains_terminal_rollback(self):
+        client = RecordedClient([["finished"], ["finished"]])
+        with self.assertRaises(release.ReleaseError) as caught:
+            self.execute(client, smoke_error=release.ReleaseError("smoke failed"))
+        self.assertNotIsInstance(caught.exception, release.UncertainDeployment)
+        self.assertIn("restored", str(caught.exception))
+        self.assert_terminal_before_restore(client, "finished")
+        self.assertEqual(client.cancelled, [])
+
+    def test_unexpected_queue_error_does_not_restore_unknown_candidate(self):
+        class LostQueueReply(RecordedClient):
+            def queue_deployment(self, application_uuid):
+                super().queue_deployment(application_uuid)
+                raise RuntimeError("unexpected reply failure after acceptance")
+
+        client = LostQueueReply([["in_progress"], ["finished"]])
+        with self.assertRaises(release.UncertainDeployment):
+            self.execute(client)
+        self.assert_only_candidate_mutations(client)
+        self.assertEqual(client.cancelled, [])
+
+    def test_uncertain_rollback_state_preserves_uncertain_result(self):
+        class LostRollbackStatus(RecordedClient):
+            lost_once = False
+
+            def get_deployment(self, deployment_uuid):
+                if deployment_uuid == ROLLBACK_UUID and not self.lost_once:
+                    self.lost_once = True
+                    raise RuntimeError("unexpected rollback status failure")
+                return super().get_deployment(deployment_uuid)
+
+        client = LostRollbackStatus([["failed"], ["in_progress"]], cancellation_status="in_progress")
+        with self.assertRaises(release.UncertainDeployment):
+            self.execute(client)
+        self.assert_terminal_before_restore(client, "failed")
+        self.assertEqual(client.cancelled, [ROLLBACK_UUID])
 
 
 class TestCoolifyTransport(unittest.TestCase):

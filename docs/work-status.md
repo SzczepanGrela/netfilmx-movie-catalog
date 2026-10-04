@@ -1,9 +1,29 @@
 # NetFilmx candidate status
 
-Observed 2026-10-03 on `codex/netfilmx-preparation`, based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
+Updated 2026-10-04 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
 Work continues in [draft PR #1](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/1).
 Production has not changed. These are implementation/test results, pending
 coordinator review and deployment acceptance.
+
+## Release review R1: corrected, local regressions passed
+
+Review base: `cbf2ec16cac64d2dfe4d85b8b575f4eacdd69578`. Candidate and
+rollback errors after queueing now require a confirmed terminal UUID or stop
+mutations with `UncertainDeployment`. Unknown statuses are classified before
+the public-probe threshold; HTTP protocol failures are normalized without
+printing response content. An active candidate must finish bounded cancellation
+before restoring the saved digest. Missing queue confirmation and uncertain
+rollback outcomes cannot start another release or become ordinary failures.
+
+**34 Python tests pass**, including eight new complete `deploy_release`
+regressions: malformed health transport with active/unconfirmed cancellation,
+unknown status at the third failed probe, confirmed cancellation ordering,
+unexpected monitor/queue errors, unknown cancellation state, finished-candidate
+smoke rollback and uncertain rollback polling. Seven of those eight regressions
+failed on the reviewed base; the terminal smoke rollback control already passed.
+Existing successful/known-failed release tests still pass. These are offline
+fake-client/transport tests; no Coolify or production endpoint was contacted.
+Exact-head CI is pending this corrective commit; keep PR #1 a draft.
 
 ## Durable Data Protection: implemented and locally tested
 
