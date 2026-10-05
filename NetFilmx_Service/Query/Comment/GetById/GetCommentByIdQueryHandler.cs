@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using NetFilmx_Service.Mappings;
 using MediatR;
 using NetFilmx_Service.Dtos.Comment;
 using NetFilmx_Service.Result;
@@ -10,9 +10,9 @@ namespace NetFilmx_Service.Query.Comment
         where TDto : ICommentDto
     {
         private readonly ICommentRepository _repository;
-        private readonly IMapper _mapper;
+        private readonly ICatalogueMapper _mapper;
 
-        public GetCommentByIdQueryHandler(ICommentRepository repository, IMapper mapper)
+        public GetCommentByIdQueryHandler(ICommentRepository repository, ICatalogueMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;

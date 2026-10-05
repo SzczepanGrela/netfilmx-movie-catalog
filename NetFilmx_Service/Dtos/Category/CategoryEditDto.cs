@@ -6,7 +6,7 @@ namespace NetFilmx_Service.Dtos.Category
     {
         public CategoryEditDto() { }
 
-        public CategoryEditDto(string name, string description, int id)
+        public CategoryEditDto(string name, string? description, int id)
         {
             Name = name;
             Description = description;

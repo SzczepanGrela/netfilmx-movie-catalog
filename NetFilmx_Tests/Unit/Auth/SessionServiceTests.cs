@@ -2,7 +2,7 @@ using FluentAssertions;
 using Moq;
 using NetFilmx_Storage.Entities;
 using NetFilmx_Storage.Repositories;
-using NetFilmx_Web.Auth;
+using NetFilmx_Service.Security;
 using Microsoft.Extensions.Configuration;
 
 namespace NetFilmx_Tests.Unit.Auth
@@ -73,6 +73,8 @@ namespace NetFilmx_Tests.Unit.Auth
             _sessionRepoMock.Setup(r => r.GetByRefreshTokenHashAsync(originalHash))
                 .ReturnsAsync(originalSession);
 
+            _sessionRepoMock.Setup(r => r.TryRotateSessionAsync(originalSession.Id, It.IsAny<UserSession>(), It.IsAny<DateTime>()))
+                .ReturnsAsync(true);
             // Act
             var result = await _sessionService.RotateSessionAsync(originalToken);
 
@@ -80,7 +82,10 @@ namespace NetFilmx_Tests.Unit.Auth
             result.Should().NotBeNull();
             var (newToken, newSession) = result!.Value;
             newToken.Should().NotBe(originalToken);
-            originalSession.IsRevoked.Should().BeTrue("old session should be revoked");
+            newSession.ExpiresAt.Should().Be(originalSession.ExpiresAt);
+            _sessionRepoMock.Verify(r => r.TryRotateSessionAsync(originalSession.Id,
+                It.Is<UserSession>(s => s.UserId == originalSession.UserId && s.RefreshTokenHash != originalHash),
+                It.IsAny<DateTime>()), Times.Once);
         }
 
         [Fact]
@@ -95,6 +100,23 @@ namespace NetFilmx_Tests.Unit.Auth
 
             // Assert
             result.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task Logout_HashesRawCookieBeforeRevoking()
+        {
+            await _sessionService.RevokeSessionAsync("cookie-token");
+            _sessionRepoMock.Verify(r => r.RevokeByRefreshTokenHashAsync(_sessionService.HashToken("cookie-token")), Times.Once);
+        }
+
+        [Fact]
+        public async Task Rotation_LosingConcurrentConsumptionDoesNotIssueToken()
+        {
+            var (token, session) = await _sessionService.CreateSessionAsync(1, rememberMe: true);
+            _sessionRepoMock.Setup(r => r.GetByRefreshTokenHashAsync(session.RefreshTokenHash)).ReturnsAsync(session);
+            _sessionRepoMock.Setup(r => r.TryRotateSessionAsync(session.Id, It.IsAny<UserSession>(), It.IsAny<DateTime>())).ReturnsAsync(false);
+            (await _sessionService.RotateSessionAsync(token)).Should().BeNull();
+            _sessionRepoMock.Verify(r => r.AddSessionAsync(It.IsAny<UserSession>()), Times.Once);
         }
 
         [Fact]

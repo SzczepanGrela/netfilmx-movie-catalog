@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using NetFilmx_Service.Result;
 using NetFilmx_Storage.Repositories;
 
@@ -7,10 +7,12 @@ namespace NetFilmx_Service.Command.User
     public sealed class NewPasswordCommandHandler : IRequestHandler<NewPasswordCommand, CResult>
     {
         private readonly IUserRepository _repository;
+        private readonly NetFilmx_Service.Security.IPasswordHasher _passwordHasher;
 
-        public NewPasswordCommandHandler(IUserRepository repository)
+        public NewPasswordCommandHandler(IUserRepository repository, NetFilmx_Service.Security.IPasswordHasher passwordHasher)
         {
             _repository = repository;
+            _passwordHasher = passwordHasher;
         }
 
         public async Task<CResult> Handle(NewPasswordCommand command, CancellationToken cancellationToken)
@@ -32,8 +34,8 @@ namespace NetFilmx_Service.Command.User
 
                 //var user = task.Result;
 
-                user.SetPassword(command.Password);
-                user.UpdatedAt = DateTime.Now;
+                user.PasswordHash = _passwordHasher.HashPassword(command.Password);
+                user.UpdatedAt = DateTime.UtcNow;
 
                 await _repository.UpdateUserAsync(user);
 

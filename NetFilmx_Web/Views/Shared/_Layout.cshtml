@@ -1,64 +1,95 @@
-﻿<!DOCTYPE html>
-<html lang="pl">
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - NetFilmx_Web</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <title>@ViewData["Title"] — NetFilmx</title>
+    <meta name="description" content="NetFilmx — Premium VOD platform with open-source animation and films" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/NetFilmx_Web.styles.css" asp-append-version="true" />
-
-    <script src="~/js/refresh.js"></script>
 </head>
 <body>
+    <nav class="nfx-navbar" id="main-nav">
+        <div class="nfx-navbar-inner">
+            <a class="nfx-logo" href="/">NetFilm<span class="nfx-logo-accent">x</span></a>
+            
+            <!-- Hamburger Icon -->
+            <button class="nfx-menu-toggle" id="menu-toggle" aria-label="Toggle navigation">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
 
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">NetFilmx</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Video" asp-action="Index">Videos</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Category" asp-action="Index">Categories</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Series" asp-action="Index">Series</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Tag" asp-action="Index">Tags</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Comment" asp-action="Index">Comments</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="User" asp-action="Index">Users</a>
-                        </li>
-                    </ul>
+            <div class="nfx-nav-menu" id="nav-menu">
+                <div class="nfx-nav-links">
+                    <a asp-controller="Home" asp-action="Index" class="nfx-nav-link" data-i18n="t_strona_glowna">Home</a>
+                    <a asp-controller="Home" asp-action="Movies" class="nfx-nav-link" data-i18n="t_filmy">Movies</a>
+                    <a asp-controller="Home" asp-action="Series" class="nfx-nav-link" data-i18n="t_serie">Series</a>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="nfx-nav-link" data-i18n="t_panel_admina">Admin Panel</a>
+                    }
+                </div>
+
+                <div class="nfx-nav-auth">
+                    <!-- i18n switcher -->
+                    <div class="lang-selector">
+                        <button id="lang-pl-btn" class="btn-lang" type="button">PL</button>
+                        <button id="lang-en-btn" class="btn-lang active" type="button">EN</button>
+                    </div>
+
+                    @if (User.Identity != null && User.Identity.IsAuthenticated)
+                    {
+                        <span class="nfx-user-greeting"><span data-i18n="t_witaj">Welcome</span>, @User.Identity.Name!</span>
+                        <form asp-area="" asp-controller="Auth" asp-action="Logout" method="post" style="margin: 0;">
+                            <button type="submit" class="nfx-btn nfx-btn-secondary" style="padding: 0.45rem 1rem; font-size: 0.85rem;" data-i18n="t_wyloguj">Logout</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <a asp-controller="Auth" asp-action="Login" class="nfx-nav-link" data-i18n="t_zaloguj_sie">Log In</a>
+                        <a asp-controller="Auth" asp-action="Register" class="nfx-btn nfx-btn-primary" style="padding: 0.45rem 1.2rem; font-size: 0.85rem;" data-i18n="t_zarejestruj_sie">Sign Up</a>
+                    }
                 </div>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
+        </div>
+    </nav>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <main>
+        @RenderBody()
+    </main>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    <footer class="nfx-footer">
+        <div style="max-width: 1400px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+            <p style="margin: 0;">&copy; @DateTime.Now.Year NetFilmx. <span data-i18n="t_wszelkie_prawa_zastrzezone">Wszelkie prawa zastrzeżone.</span></p>
+            <div style="display: flex; gap: 1.5rem; font-size: 0.9rem;">
+                <a asp-controller="Home" asp-action="Privacy" data-i18n="t_polityka_prywatnosci">Polityka Prywatności</a>
+                <a asp-controller="Home" asp-action="Movies" data-i18n="t_filmy">Filmy</a>
+                <a asp-controller="Home" asp-action="Series" data-i18n="t_serie">Serie</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="~/js/i18n.js"></script>
+
+    <script>
+        // Navbar scroll effect — becomes opaque on scroll
+        const nav = document.getElementById('main-nav');
+        window.addEventListener('scroll', () => {
+            nav.classList.toggle('nfx-navbar-scrolled', window.scrollY > 50);
+        });
+
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        const navMenu = document.getElementById('nav-menu');
+        menuToggle.addEventListener('click', () => {
+            navMenu.classList.toggle('active');
+            menuToggle.classList.toggle('active');
+        });
+    </script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

@@ -1,0 +1,40 @@
+@model IEnumerable<NetFilmx_Service.Dtos.User.UserListDto>
+
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h1 class="mb-0">Użytkownicy filmu: @ViewBag.VideoName</h1>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <form asp-action="AddUsers" method="get" class="d-inline">
+                    <input type="hidden" name="videoId" value="@ViewBag.VideoId" />
+                    <input type="hidden" name="videoName" value="@ViewBag.VideoName" />
+                    <button type="submit" class="nfx-btn nfx-btn-primary mb-2">Dodaj użytkowników</button>
+                </form>
+
+                <form asp-action="RemoveUsers" method="get" class="d-inline">
+                    <input type="hidden" name="videoId" value="@ViewBag.VideoId" />
+                    <input type="hidden" name="videoName" value="@ViewBag.VideoName" />
+                    <button type="submit" class="nfx-btn nfx-btn-secondary mb-2" style="background: rgba(220, 53, 69, 0.2); color: #ff6b6b; border-color: rgba(220, 53, 69, 0.3);">Usuń użytkowników</button>
+                </form>
+            </div>
+
+            @if (!Model.Any())
+            {
+                <p data-i18n="t_nie_znaleziono_uzytkownikow">Nie znaleziono użytkowników</p>
+            }
+            else
+            {
+                <ul class="list-group">
+                    @foreach (var user in Model)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <a href="@Url.Action("Details", "User", new { userId = user.Id })">@user.Username</a>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>

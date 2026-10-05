@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NetFilmx_Storage.Context;
 using NetFilmx_Storage.Entities;
 
@@ -15,89 +15,111 @@ namespace NetFilmx_Storage.Repositories
 
         public async Task<List<Video>> GetAllVideosAsync()
         {
-            return await _context.Videos.ToListAsync();
+            return await _context.Videos
+                .Include(v => v.Translations)
+                .Include(v => v.Categories)
+                    .ThenInclude(c => c.Translations)
+                .Include(v => v.Tags)
+                    .ThenInclude(t => t.Translations)
+                .ToListAsync();
+        }
+
+        public async Task<(IEnumerable<Video>, int totalCount)> GetPagedVideosAsync(int pageNumber, int pageSize, string searchTerm)
+        {
+            var query = _context.Videos.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                query = query.Where(v => v.Title.Contains(searchTerm) || (v.Description != null && v.Description.Contains(searchTerm)));
+            }
+
+            var count = await query.CountAsync();
+            var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            return (items, count);
         }
 
         public async Task<List<Video>> GetVideosByCategoryIdAsync(int categoryId)
         {
-            var category = await _context.Categories
-                                         .Include(c => c.Videos)
-                                         .FirstOrDefaultAsync(c => c.Id == categoryId);
-
-            if (category == null)
-            {
+            if (!await _context.Categories.AnyAsync(c => c.Id == categoryId))
                 throw new ArgumentException("Category not found");
-            }
 
-            return category.Videos.ToList();
+            return await _context.Videos
+                .Where(v => v.Categories.Any(c => c.Id == categoryId))
+                .ToListAsync();
         }
 
         public async Task<List<Video>> GetVideosByTagIdAsync(int tagId)
         {
-            var tag = await _context.Tags
-                                    .Include(t => t.Videos)
-                                    .FirstOrDefaultAsync(t => t.Id == tagId) 
-            ?? throw new ArgumentException("Tag not found");
-           
-            return tag.Videos.ToList();
+            if (!await _context.Tags.AnyAsync(t => t.Id == tagId))
+                throw new ArgumentException("Tag not found");
+
+            return await _context.Videos
+                .Where(v => v.Tags.Any(t => t.Id == tagId))
+                .ToListAsync();
         }
 
         public async Task<List<Video>> GetVideosBySeriesIdAsync(int seriesId)
         {
-            var series = await _context.Series
-                                       .Include(s => s.Videos)
-                                       .FirstOrDefaultAsync(s => s.Id == seriesId)
-            ?? throw new ArgumentException("Series not found");
+            if (!await _context.Series.AnyAsync(s => s.Id == seriesId))
+                throw new ArgumentException("Series not found");
 
-            return series.Videos.ToList();
+            return await _context.Videos
+                .Where(v => v.Series.Any(s => s.Id == seriesId))
+                .ToListAsync();
         }
 
         public async Task<List<Video>> GetVideosByUserIdAsync(int userId)
         {
-            var user = await _context.Users
-                                     .Include(u => u.VideoPurchases)
-                                     .ThenInclude(vp => vp.Video)
-                                     .FirstOrDefaultAsync(u => u.Id == userId) 
-            ?? throw new ArgumentException("User not found");
+            if (!await _context.Users.AnyAsync(u => u.Id == userId))
+                throw new ArgumentException("User not found");
 
-            return user.VideoPurchases.Select(vp => vp.Video).ToList();
+            return await _context.VideoPurchases
+                .Where(vp => vp.UserId == userId)
+                .Select(vp => vp.Video)
+                .ToListAsync();
         }
 
         public async Task<Video> GetVideoByVideoPurchaseIdAsync(int videoPurchaseId)
         {
-            var videoPurchase = await _context.VideoPurchases
-                                              .Include(vp => vp.Video)
-                                              .FirstOrDefaultAsync(vp => vp.Id == videoPurchaseId) 
-            ?? throw new ArgumentException("Video purchase not found");
-
-            return videoPurchase.Video;
+            return await _context.VideoPurchases
+                .Where(vp => vp.Id == videoPurchaseId)
+                .Select(vp => vp.Video)
+                .FirstOrDefaultAsync() 
+                ?? throw new ArgumentException("Video purchase not found");
         }
 
         public async Task<Video> GetVideoByCommentIdAsync(int commentId)
         {
-            var comment = await _context.Comments
-                                        .Include(c => c.Video)
-                                        .FirstOrDefaultAsync(c => c.Id == commentId) 
-            ?? throw new ArgumentException("Comment not found");
-            
-            return comment.Video;
+            return await _context.Comments
+                .Where(c => c.Id == commentId)
+                .Select(c => c.Video)
+                .FirstOrDefaultAsync() 
+                ?? throw new ArgumentException("Comment not found");
         }
 
         public async Task<Video> GetVideoByLikeIdAsync(int likeId)
         {
-            var like = await _context.Likes
-                                     .Include(l => l.Video)
-                                     .FirstOrDefaultAsync(l => l.Id == likeId) 
-            ?? throw new ArgumentException("Like not found");
-
-            return like.Video;
+            return await _context.Likes
+                .Where(l => l.Id == likeId)
+                .Select(l => l.Video)
+                .FirstOrDefaultAsync() 
+                ?? throw new ArgumentException("Like not found");
         }
 
         public async Task<Video> GetVideoByIdAsync(int videoId)
         {
-            var video = await _context.Videos.FindAsync(videoId)
+            var video = await _context.Videos
+                .Include(v => v.Translations)
+                .Include(v => v.Categories)
+                    .ThenInclude(c => c.Translations)
+                .Include(v => v.Tags)
+                    .ThenInclude(t => t.Translations)
+                .Include(v => v.Series)
+                    .ThenInclude(s => s.Translations)
+                .FirstOrDefaultAsync(v => v.Id == videoId)
                 ?? throw new ArgumentException("Video not found");
-            return video ;
+            return video;
         }
 
         public async Task AddVideoAsync(Video video)
@@ -127,8 +149,32 @@ namespace NetFilmx_Storage.Repositories
 
         public async Task DeleteVideoAsync(int videoId)
         {
-            var video = await _context.Videos.FindAsync(videoId) 
+            var video = await _context.Videos
+                .Include(v => v.Categories)
+                .Include(v => v.Tags)
+                .Include(v => v.Series)
+                .Include(v => v.Bundles)
+                .Include(v => v.Likes)
+                .Include(v => v.Comments)
+                .Include(v => v.VideoPurchases)
+                .FirstOrDefaultAsync(v => v.Id == videoId)
                 ?? throw new ArgumentException("Video not found");
+
+            // Explicitly delete dependent entities to prevent SQLite foreign key constraint errors
+            if (video.Likes.Any())
+                _context.Likes.RemoveRange(video.Likes);
+
+            if (video.Comments.Any())
+                _context.Comments.RemoveRange(video.Comments);
+
+            if (video.VideoPurchases.Any())
+                _context.VideoPurchases.RemoveRange(video.VideoPurchases);
+
+            video.Categories.Clear();
+            video.Tags.Clear();
+            video.Series.Clear();
+            video.Bundles.Clear();
+
             _context.Videos.Remove(video);
             await _context.SaveChangesAsync();
         }

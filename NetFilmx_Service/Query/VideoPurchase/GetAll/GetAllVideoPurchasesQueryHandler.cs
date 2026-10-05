@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using NetFilmx_Service.Mappings;
 using MediatR;
 using NetFilmx_Service.Dtos.VideoPurchase;
 using NetFilmx_Service.Result;
@@ -10,9 +10,9 @@ namespace NetFilmx_Service.Query.VideoPurchase
         where TDto : IVideoPurchaseDto
     {
         private readonly IVideoPurchaseRepository _repository;
-        private readonly IMapper _mapper;
+        private readonly ICatalogueMapper _mapper;
 
-        public GetAllVideoPurchasesQueryHandler(IVideoPurchaseRepository repository, IMapper mapper)
+        public GetAllVideoPurchasesQueryHandler(IVideoPurchaseRepository repository, ICatalogueMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;
@@ -26,7 +26,7 @@ namespace NetFilmx_Service.Query.VideoPurchase
             try
             {
                 var videoPurchases = await _repository.GetAllVideoPurchasesAsync();
-                videoPurchasesDto = _mapper.Map<List<TDto>>(videoPurchases);
+                videoPurchasesDto = _mapper.MapList<TDto>(videoPurchases);
 
                 return QResult<List<TDto>>.Ok(videoPurchasesDto);
             }

@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using NetFilmx_Service.Mappings;
 using MediatR;
 using NetFilmx_Service.Dtos.Video;
 using NetFilmx_Service.Result;
@@ -10,9 +10,9 @@ namespace NetFilmx_Service.Query.Video
         where TDto : IVideoDto
     {
         private readonly IVideoRepository _repository;
-        private readonly IMapper _mapper;
+        private readonly ICatalogueMapper _mapper;
 
-        public GetVideoByIdQueryHandler(IVideoRepository repository, IMapper mapper)
+        public GetVideoByIdQueryHandler(IVideoRepository repository, ICatalogueMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;

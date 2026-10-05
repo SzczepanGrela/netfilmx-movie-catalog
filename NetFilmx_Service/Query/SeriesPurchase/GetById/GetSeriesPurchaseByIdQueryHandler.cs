@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using NetFilmx_Service.Mappings;
 using MediatR;
 using NetFilmx_Service.Dtos.SeriesPurchase;
 using NetFilmx_Service.Result;
@@ -10,9 +10,9 @@ namespace NetFilmx_Service.Query.SeriesPurchase
     where TDto : ISeriesPurchaseDto
     {
         private readonly ISeriesPurchaseRepository _repository;
-        private readonly IMapper _mapper;
+        private readonly ICatalogueMapper _mapper;
 
-        public GetSeriesPurchaseByIdQueryHandler(ISeriesPurchaseRepository repository, IMapper mapper)
+        public GetSeriesPurchaseByIdQueryHandler(ISeriesPurchaseRepository repository, ICatalogueMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;

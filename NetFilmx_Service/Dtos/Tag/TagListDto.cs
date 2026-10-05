@@ -2,7 +2,7 @@
 {
     public class TagListDto : ITagDto
     {
-        TagListDto(string name, int id)
+        public TagListDto(string name, int id)
         {
             Name = name;
             Id = id;
