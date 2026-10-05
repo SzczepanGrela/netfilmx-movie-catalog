@@ -91,8 +91,10 @@ remain disabled. Review old/new schema compatibility and recovery first.
 This client requires an existing healthy digest-pinned release with the stable
 health/catalogue contract. It cannot bootstrap a nonexistent Coolify resource
 or migrate the legacy SQLite production directly. The first candidate resource,
-private contract, database, mounts, migrations and recovery need a scoped
-operator/coordinator plan. Keep legacy writers/data/media retained.
+private contract, database, mounts, migrations and recovery follow the proposed
+[first-release and acceptance plan](first-release-plan.md). Its protection,
+bootstrap and cutover actions require coordinator/operator review.
+Keep legacy writers/data/media retained.
 
 Uploads and workers default off. Single-worker file locks, process-local HTTP
 limits, bounded transcoding and shared key storage require NetFilmx-specific

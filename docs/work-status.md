@@ -1,11 +1,11 @@
 # NetFilmx candidate status
 
-Updated 2026-10-04 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
+Updated 2026-10-05 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
 Work continues in [draft PR #1](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/1).
 Production has not changed. These are implementation/test results, pending
 coordinator review and deployment acceptance.
 
-## Release review R1: corrected, local regressions passed
+## Release review R1: corrected, regressions and CI passed
 
 Review base: `cbf2ec16cac64d2dfe4d85b8b575f4eacdd69578`. Candidate and
 rollback errors after queueing now require a confirmed terminal UUID or stop
@@ -23,7 +23,21 @@ smoke rollback and uncertain rollback polling. Seven of those eight regressions
 failed on the reviewed base; the terminal smoke rollback control already passed.
 Existing successful/known-failed release tests still pass. These are offline
 fake-client/transport tests; no Coolify or production endpoint was contacted.
-Exact-head CI is pending this corrective commit; keep PR #1 a draft.
+At corrective SHA `51e1ea1d3c56fcd7903981f81fef0dc2279bdd79`,
+[CI/CD 37220691661](https://github.com/SzczepanGrela/netfilmx-movie-catalog/actions/runs/37220691661)
+and [dependency audit 37220691409](https://github.com/SzczepanGrela/netfilmx-movie-catalog/actions/runs/37220691409)
+passed, including image qualification and `Quality gate`. Publication and
+deployment were skipped. Coordinator review remains pending; keep PR #1 a draft.
+
+## First release and data/media acceptance: plan prepared
+
+The [first-release plan](first-release-plan.md) defines protection/access setup,
+seven-title provenance and derivative acceptance, isolated import/restore and
+actual two-container worker/resource qualification. It separates initial Coolify
+bootstrap from promotion, which still requires a healthy saved baseline, and
+assigns legacy-writer backup, cutover and activation actions to the
+coordinator/operator. Limits, recovery policy and media rights remain decisions
+to resolve; preparation does not claim acceptance or authorize production changes.
 
 ## Durable Data Protection: implemented and locally tested
 
@@ -63,7 +77,7 @@ promotion on private settings plus protected main/production. Old SSH deploy
 and diagnosis paths are retired in this candidate. No GHCR digest is published
 by local testing; production promotion remains disabled.
 
-Twenty-six Python regressions cover scoped rollback, active-release conflict,
+Thirty-four Python regressions cover scoped rollback, active-release conflict,
 uncertain mutations/status, bounded API/public replies, private-contract drift,
 revision/catalogue and antiforgery smoke. Workflow validation with actionlint
 passed. Local image qualification covers native H264 tooling and restart on
@@ -76,20 +90,22 @@ gate, SBOM generation and `Quality gate`.
 [Dependency audit 37143896364](https://github.com/SzczepanGrela/netfilmx-movie-catalog/actions/runs/37143896364)
 also passed NuGet and browser audits. Publication and deployment were skipped.
 PR CI builds the merge ref; local qualification uses the branch SHA. Main
-publication/promotion/attestation and live rollback have not run. The follow-up
-adds rejection of a missing nullable API contract field and its 26th Python
-regression; its current CI result remains available in PR Checks.
+publication/promotion/attestation and live rollback have not run. The R1 section
+above records the newer corrective SHA and CI. Subsequent plan-only commit
+checks remain available in PR Checks.
 
 ## Remaining gates and next step
 
-Next: coordinator review of the qualified candidate; keep PR #1 a draft.
+Next: coordinator review of R1 and the prepared first-release plan; keep PR #1 a draft.
 Coordinator/operator must identify the target Coolify resource and review its
 private contract, protected main/environment, first healthy rollback baseline
 and scoped recovery plan before any production action. On 2026-10-03 the
 operator declared that no NetFilmx Coolify resource exists yet; legacy SSH
 deployment on the VPS may remain. Read-only GitHub API checks found `main`
 unprotected, no environments/rulesets and neither activation flag configured.
-No approved deployment window has been supplied to this implementation session.
+October 5 readback still found main unprotected, zero rulesets/environments and
+both activation flags absent. No approved deployment window has been supplied
+to this implementation session.
 
 Browser verification passed **3 DOM tests** and the locked vendor-file check.
 Fresh npm install/audit reported **0 vulnerabilities**.
