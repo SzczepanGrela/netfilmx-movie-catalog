@@ -1,6 +1,6 @@
 # First release and data/media acceptance plan
 
-Prepared 2026-10-05 from the coordinator's current October 4 handoff and review.
+Prepared 2026-10-05; stage boundaries updated 2026-10-13 after coordinator review.
 This is a proposed sequence for review. No resource, protection rule, production
 data or R2 object has been changed. Uploads and workers remain disabled.
 
@@ -9,8 +9,9 @@ R1 is corrected at `51e1ea1d3c56fcd7903981f81fef0dc2279bdd79`:
 and [dependency audit](https://github.com/SzczepanGrela/netfilmx-movie-catalog/actions/runs/37220691409)
 passed. Publication and deployment were skipped. The eight added release-boundary
 regressions bring the Python suite to 34; seven fail on the reviewed base.
-Coordinator review remains pending; [PR #1](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/1)
-stays a draft. Later media/code changes need qualification of their own SHA.
+Coordinator accepted R1 and the preparation plan on October 12;
+[PR #1](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/1) stays a draft.
+Later media/code changes need qualification of their own SHA.
 
 ## 1. Starting facts and unresolved inputs
 
@@ -22,7 +23,17 @@ stays a draft. Later media/code changes need qualification of their own SHA.
 | Media | Manifest has seven entries and two null playback keys | Complete section 3 before an importable image is built |
 | Stateful runtime | Code/tests implemented; production mounts, recovery and actual container overlap unaccepted | Run section 4 locally, then accept the target settings in the agreed window |
 | Recovery policy | Application backup destination, retention, recovery-point and recovery-time targets unresolved | Operator records private destination/access, cadence, retention and measured restore targets |
-| Capacity | Intended app/PG CPU, RAM and disk budgets unresolved | Coordinator/operator supplies proposed limits and overlap headroom before resource tests |
+| Capacity | Local catalogue hypothesis supplied October 12; production/full-film budgets unresolved | Test section 4.1 without increasing limits silently; coordinator/operator selects production budgets from evidence |
+
+### Two acceptance stages
+
+| Stage | Required before activation | Disabled functionality |
+| --- | --- | --- |
+| First catalogue release | Accepted media/credits/browser playback; PG/keyring restore; two actual web containers, session/antiforgery, recreation and resource measurements; public identity/security and protected delivery | Uploads and worker remain false; no staging, queue or encoder is activated |
+| Later upload/worker activation | Shared staging and coherent source/PG/key recovery; queue/retry/duplicate/transfer/orphan cases; actual encoder handover/forced stop; representative full-film/disk budgets and operational visibility | Both flags remain false until this separate gate passes |
+
+Catalogue preparation can proceed while the later encoder gate is open.
+Its disabled state does not waive that later acceptance.
 
 The worker owns app changes and evidence. The coordinator owns private topology,
 platform/access configuration and review records. The operator chooses content,
@@ -152,7 +163,38 @@ An incomplete manifest, nonempty database or pending schema must refuse import;
 retain the existing regressions and add meaningful cases if the manifest changes.
 Then start the isolated web app with private keys and verify catalogue behavior.
 
-## 4. Local stateful and resource qualification
+## 4. Local qualification in two stages
+
+### 4.1 First catalogue: PostgreSQL, keys and two web containers
+
+Use [the catalogue recovery harness](catalogue-recovery.md) with the exact image,
+disposable **persistent** PG storage and a shared private keyring. Both web
+containers run with uploads/worker/demo seeding false. The helper calls the
+candidate's byte-identical importer library with an explicitly synthetic completed
+plan; the shipped manifest and production CLI still refuse pending playback.
+
+Start with each web at 1 CPU / 512 MiB RAM+swap and PG at 1 CPU / 512 MiB RAM,
+with total RAM+swap also 512 MiB (no swap allowance). Limit each PG data directory
+to a monitored 512 MiB budget; record that this is a stop guard, not a filesystem
+quota. Do not use smoke tmpfs for the recovery source. Bound total duration to
+eight minutes, reserve at least 4 GiB available host RAM and 4 GiB free disk, and
+account for the TLS gateway and transient fixture helper in aggregate limits.
+These are local test hypotheses, not accepted VPS or full-film encoder limits.
+
+Require explicit migration, seven synthetic videos/one series/three links and
+healthy generated IDs; zero initial users/history/intents; refusal of repeat and
+account-only nonempty import without partial writes. Verify runtime CRUD/sequence
+grants, denied DDL and role capabilities. Test real HTTPS MVC/session/antiforgery
+requests across both web containers and after recreation, preserving one peer.
+Take a consistent PG dump with web writers stopped and a protected keyring copy;
+restore to a new persistent PG volume and a new key volume. Compare counts/grants
+and use pre-backup session cookies/form tokens against both restored containers.
+A different keyring must reject the old form. Report memory peaks, CPU, PIDs,
+disk, duration and cleanup; failures remain evidence and require a proposed
+budget/code correction. This scope does not certify real media or public Coolify
+rolling/rollback behavior.
+
+### 4.2 Later activation: staging, queue and encoder recovery
 
 Prepare a scoped Docker harness using the exact candidate image, disposable PG,
 private persistent keyring/staging mounts and isolated storage transport. Initially
@@ -192,7 +234,8 @@ evidence. Keep keys/configuration private and separate from the DB archive.
 
 ## 5. Coordinated production window: preserve legacy and prepare target
 
-Only after coordinator review and local evidence, schedule the operator window.
+Only after coordinator review and local catalogue recovery/two-web evidence,
+schedule the operator window. Disabled encoder acceptance is a later gate.
 Its private action block must name target resources, budgets, recovery package,
 stop conditions and rollback owner. Verify current provider recovery and working
 administrative access for the scoped change; unrelated deferred platform recovery
@@ -295,7 +338,7 @@ Quality → protected Deploy caller with its actual OIDC identity and approval.
 Record this final caller test separately from manual dispatch.
 
 Uploads/worker remain false through the first catalogue cutover. Activation needs
-section 4, representative full-film/disk results, target mount/queue/provider
+section 4.2, representative full-film/disk results, target mount/queue/provider
 recovery and rolling acceptance, orphan-retention policy and operational
 visibility. First deploy a disabled compatible image; only enable flags under
 its separately reviewed action. Warnings, i18n and useful worker/release/backup

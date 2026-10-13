@@ -56,6 +56,10 @@ jobs:
           npm test
       - name: Test release client
         run: python3 -m unittest discover -s tests -v
+      - name: Validate local qualification entry points
+        run: |
+          python3 infra/catalogue-recovery.py --help >/dev/null
+          python3 infra/media-review.py --help >/dev/null
       - name: Install native media tools
         run: |
           sudo apt-get update
@@ -90,6 +94,11 @@ jobs:
           docker build --provenance=false --file infra/Dockerfile --build-arg "RELEASE_REVISION=${GITHUB_SHA}" --tag "netfilmx:test-${GITHUB_SHA}" .
       - name: Qualify image, database, private keys, catalogue and restart
         run: bash infra/image-smoke.sh "netfilmx:test-${GITHUB_SHA}" "$GITHUB_SHA"
+      - name: Compile local recovery helper against the qualified image
+        run: |
+          docker build --file qualification/CatalogueRecovery/Dockerfile \
+            --build-arg "CANDIDATE_IMAGE=netfilmx:test-${GITHUB_SHA}" \
+            --tag "netfilmx:catalogue-tools-${GITHUB_SHA}" .
       - name: Scan fixable HIGH and CRITICAL findings
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
