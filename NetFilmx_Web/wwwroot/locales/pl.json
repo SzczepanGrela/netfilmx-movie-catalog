@@ -1,4 +1,10 @@
 {
+  "t_media_credits": "Twórcy i licencje",
+  "t_credit_footer": "Licencje filmów i grafik: Twórcy i licencje.",
+  "t_credit_source": "źródło i autorzy",
+  "t_credit_artwork": "Grafiki",
+  "t_credit_full_roll": "Pełne napisy końcowe zachowano w filmie.",
+  "t_credit_intro": "Autorstwo filmów i grafik zachowanego katalogu, wraz ze źródłami licencji i opisem zmian.",
   "t_strona_glowna": "Strona Główna",
   "t_filmy": "Filmy",
   "t_serie": "Seria",

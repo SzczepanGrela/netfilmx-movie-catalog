@@ -17,7 +17,7 @@
             <a class="nfx-logo" href="/">NetFilm<span class="nfx-logo-accent">x</span></a>
             
             <!-- Hamburger Icon -->
-            <button class="nfx-menu-toggle" id="menu-toggle" aria-label="Toggle navigation">
+            <button class="nfx-menu-toggle" id="menu-toggle" aria-label="Toggle navigation" aria-controls="nav-menu" aria-expanded="false">
                 <span></span>
                 <span></span>
                 <span></span>
@@ -64,9 +64,10 @@
 
     <footer class="nfx-footer">
         <div style="max-width: 1400px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
-            <p style="margin: 0;">&copy; @DateTime.Now.Year NetFilmx. <span data-i18n="t_wszelkie_prawa_zastrzezone">Wszelkie prawa zastrzeżone.</span></p>
-            <div style="display: flex; gap: 1.5rem; font-size: 0.9rem;">
+            <p style="margin: 0;">&copy; @DateTime.Now.Year NetFilmx. <span data-i18n="t_credit_footer">Licencje filmów i grafik: Twórcy i licencje.</span></p>
+            <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; font-size: 0.9rem;">
                 <a asp-controller="Home" asp-action="Privacy" data-i18n="t_polityka_prywatnosci">Polityka Prywatności</a>
+                <a asp-controller="Home" asp-action="Credits" data-i18n="t_media_credits">Twórcy i licencje</a>
                 <a asp-controller="Home" asp-action="Movies" data-i18n="t_filmy">Filmy</a>
                 <a asp-controller="Home" asp-action="Series" data-i18n="t_serie">Serie</a>
             </div>
@@ -86,7 +87,8 @@
         const menuToggle = document.getElementById('menu-toggle');
         const navMenu = document.getElementById('nav-menu');
         menuToggle.addEventListener('click', () => {
-            navMenu.classList.toggle('active');
+            const expanded = navMenu.classList.toggle('active');
+            menuToggle.setAttribute('aria-expanded', String(expanded));
             menuToggle.classList.toggle('active');
         });
     </script>

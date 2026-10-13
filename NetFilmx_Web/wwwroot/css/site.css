@@ -524,7 +524,7 @@ a {
     .nfx-card { flex: 0 0 calc(100% / 3 - 1rem); }
     .nfx-navbar-inner { padding: 1rem; justify-content: space-between; }
     
-    .nfx-nav-menu {
+    .nfx-navbar .nfx-nav-menu {
         display: none;
         position: absolute;
         top: 100%;
@@ -536,7 +536,7 @@ a {
         border-bottom: 1px solid rgba(123, 44, 191, 0.2);
     }
     
-    .nfx-nav-menu.active {
+    .nfx-navbar .nfx-nav-menu.active {
         display: flex;
     }
     
@@ -546,13 +546,13 @@ a {
         margin-bottom: 1rem;
     }
     
-    .nfx-nav-auth {
+    .nfx-navbar .nfx-nav-auth {
         flex-direction: column;
         align-items: stretch;
         margin-left: 0;
     }
     
-    .nfx-menu-toggle {
+    .nfx-navbar .nfx-menu-toggle {
         display: flex;
     }
 }
@@ -705,3 +705,12 @@ select option {
     background-color: var(--color-base);
     color: var(--color-text-primary);
 }
+:root { scroll-padding-top: 6rem; }
+.media-credits-page { max-width: 70rem; margin: 0 auto; padding: 7rem 4% 3rem; }
+.media-credit { margin: 2rem 0; padding: 1.5rem; border: 1px solid var(--color-text-secondary); border-radius: var(--border-radius); background: var(--color-base); color: var(--color-text-primary); overflow-wrap: anywhere; line-height: 1.6; }
+.media-credit h2 { font-size: 1.35rem; }
+.media-credit h3 { font-size: 1.1rem; }
+.media-credit a { color: inherit; text-decoration: underline; text-underline-offset: .2em; }
+.media-credit a:focus-visible { outline: 3px solid currentColor; outline-offset: 4px; }
+.media-credit li { margin-bottom: 1rem; }
+.media-credit-pending { border-left: 3px solid currentColor; padding-left: 1rem; font-weight: 600; }

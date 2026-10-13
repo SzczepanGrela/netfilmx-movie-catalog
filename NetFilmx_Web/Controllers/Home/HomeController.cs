@@ -230,6 +230,8 @@ namespace NetFilmx_Web.Controllers
             return View(viewModel);
         }
 
+        public IActionResult Credits() => View(NetFilmx_Web.Services.RetainedMediaCredits.All);
+
         public async Task<IActionResult> SeriesDetails(int id)
         {
             var seriesResult = await _mediator.Send(new GetSeriesByIdQuery<SeriesCardDto>(id));

@@ -1,6 +1,8 @@
 @model NetFilmx_Web.ViewModels.WatchPageViewModel
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 @{
     ViewData["Title"] = Model.Video.Title;
+    var filmCredit = NetFilmx_Web.Services.RetainedMediaCredits.Find(Model.Video, Configuration["CloudflareR2:PublicUrl"]);
     bool isProcessing = Model.Video.VideoUrl == "PROCESSING";
     bool isFailed = Model.Video.VideoUrl == "FAILED";
 }
@@ -96,6 +98,7 @@
         </div>
 
         <!-- Meta info & Wallet / Payment Section -->
+        @if (filmCredit is not null) { <partial name="_MediaCredit" model="filmCredit" /> }
         <div style="display: flex; flex-wrap: wrap; gap: 2rem; align-items: flex-start; justify-content: space-between;">
             
             <div style="flex: 1; min-width: 300px;">
