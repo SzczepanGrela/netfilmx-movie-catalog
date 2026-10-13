@@ -1,0 +1,138 @@
+# Media acceptance and pending manifest activation
+
+October 13, 2026. Proposed operator decisions; all approval fields remain open.
+The private packet identifies the exact existing bytes/hashes and two-field
+manifest patch. The worker has not reconverted either MP4 or uploaded anything.
+
+## Two existing MP4 proposals
+
+**Recommended:** reuse both prepared MP4s if the checks below pass. Preserve
+their originals. Track selection is a product decision, independent of rights
+evidence and successful decoding.
+
+| Proposal | What is retained / changed | Decision required |
+| --- | --- | --- |
+| Sintel | Complete original H.264 video is copied, with matching compressed payload; no trimming. AC-3 5.1 becomes AAC stereo. Complete credits and duration remain. Ten embedded SubRip tracks are omitted | Accept stereo after listening, and explicitly choose whether first release may omit subtitles. If captions are required, prepare and review WebVTT sidecars without re-encoding this video |
+| Llama Drama | Complete Theora video becomes H.264/yuv420p; Vorbis stereo becomes AAC stereo. Ogg Skeleton data is omitted. Complete credits and duration remain | Accept the converted picture, audible sound and source-card readability. Skeleton is container metadata rather than a subtitle or extra film scene |
+
+AAC stereo was selected for a common browser/mobile playback path. Sintel's
+downmix trades discrete surround channels for that compatibility; it does not
+improve the source and cannot replace listening for clear dialogue, balanced
+music/effects, distortion or sync. Llama Drama was already stereo, so no surround
+mix is lost. Both outputs put MP4 metadata before media data for fast start.
+
+The omitted Sintel languages are German, English, Spanish, French, Italian,
+Dutch, Polish, Portuguese, Russian and Vietnamese. Embedded SubRip in MKV does
+not automatically become selectable HTML text tracks when the video is remuxed
+to MP4. The current player has no reviewed sidecar mapping. Copying subtitle
+streams into MP4 alone would not qualify browser captions. Preserve all ten in
+the original; select the required languages and native-player tests before any
+caption work. Missing captions are an explicit acceptance gap.
+
+Confirm the Llama Drama source's `fishead` signature and selected video/audio
+against the private probe: Skeleton describes Ogg stream mapping/timing. Its
+omission does not certify audible quality, but it does not omit a subtitle track.
+The [Xiph Skeleton specification](https://xiph.org/ogg/doc/skeleton.html) explains
+its container role. The proposal's selected video/audio and complete credits
+are preserved independently of this data stream.
+
+The private timing follow-up also explains Llama Drama's shorter MP4 video
+stream: the source ends with zero-byte Theora repeat packets after its final
+distinct image. The [Theora decoder contract](https://theora.org/doc/libtheora-1.2/theoradec_8h.html)
+identifies these as duplicate frames. The MP4 retains that final image while its
+audio continues to the container end; a new local Chromium/Firefox check seeks
+into this tail and reaches normal playback completion. This is local evidence,
+not a substitute for the manual sync/complete-ending check below.
+
+Sintel exceeds the public uploader ceiling. Any later accepted publication is
+an operator-owned offline operation, with exact length/hash verification and new
+keys. It must not go through the public uploader or replace an original.
+
+Reconversion requires a recorded failure/decision: rejected downmix, visible
+encoding artefact, unsupported codec/profile or a chosen alternative format.
+Caption sidecars alone do not require video reconversion. No such reconversion
+was performed in this assignment.
+
+## Local automated evidence
+
+The extended runner checks seven local files and thirteen artwork images in
+Firefox, using the same bounded loopback Range fixture. It records its engine,
+Playwright/browser versions, codec capabilities, frame counters, seeks, per-title
+failure states and nonzero decoded Web Audio samples. Output gain is zero:
+this demonstrates audio decoding, not human listening. Public-origin requests
+remain denied. Browser launches and the optional private Linux codec libraries
+are recorded in restricted evidence; the host OS was not modified.
+
+The actual MVC credits page was also checked at 375, 768 and 1440 CSS pixels in
+PL/EN: seven notices/thirteen artwork entries, no horizontal overflow, readable
+contrast and visible keyboard focus. An existing CSS override that exposed the
+mobile menu over the credits was fixed; open/close behavior and its expanded
+state were checked. This desktop-engine viewport check does not qualify a real
+mobile device's playback.
+
+Chromium's earlier local pass remains accepted. The common runner's new audio
+measurement is separately checked on Chromium. These are native desktop engines
+in a local Linux fixture, not native Safari/iOS or the app's real HTTPS delivery.
+Unavailable checks stay pending. [Playwright's browser guidance](https://playwright.dev/docs/browsers)
+also distinguishes its patched engines and platform-specific media support.
+
+## Short manual acceptance
+
+Use the exact private files first, then the published proposed objects through
+the actual reviewed application/player and HTTPS origin. Fill one row per film
+in the private checklist; never mark a missing browser/device as passed.
+
+| Film | Native Safari desktop | Native supported mobile | Audible sound | Full closing credits / notices | Actual HTTPS playback |
+| --- | --- | --- | --- | --- | --- |
+| Sintel | pending | pending | pending | pending; subtitle decision open | pending |
+| Tears of Steel | pending | pending | pending | pending | pending |
+| Charge | pending | pending | pending | pending | pending |
+| Elephants Dream | pending | pending | pending | pending | pending |
+| Llama Drama | pending | pending | pending | pending | pending |
+| Gran Dillama | pending | pending | pending | pending; own edition card established | pending |
+| Llamigos | pending | pending | pending | pending | pending |
+
+For each title, record date, exact browser/OS/device, tested artifact identity and:
+
+1. Start with a user gesture; picture, sound, pause/resume and fullscreen work.
+   Test the chosen mobile orientation/background-resume behavior on a real device.
+2. Seek near start, middle, end and the private credit timestamps. Listen on the
+   selected speaker/headphone path for clear dialogue/music/effects and sync;
+   watch the complete ending. Sintel needs explicit surround-to-stereo review.
+3. Read the whole credit scroll and the site's film/artwork notices at desktop
+   and mobile widths. Confirm licence/source links, crop notices and full poster
+   credit strips. Gran Dillama’s notice must use the retained edition’s BY 3.0 card.
+4. Through actual HTTPS, use normal playback and explicit bounded Range probes:
+   correct MIME, 206 and matching Content-Range/length, start/middle/end seeks,
+   all thirteen images, no mixed content, expected cache behavior. Record browser
+   errors and the request Origin plus relevant CORS headers. Cross-origin plain
+   media playback and JavaScript/crossorigin-enabled access have different CORS
+   needs; test the actual player's requests rather than inventing a blanket rule.
+
+Native Safari desktop and Safari on a real supported iPhone/iPad remain operator
+checks. Select any supported Android browser/device explicitly. Chromium device
+emulation and Linux WebKit do not complete native Safari/mobile acceptance.
+The read-only original-object probes are dated partial evidence; their failed
+whole GET and synthetic-Origin result cannot be converted into delivery approval.
+
+## Activate the prepared manifest only after publication
+
+The restricted proposal and unified patch change only the two pending playback
+fields. The shipped manifest retains both nulls; existing import refusal remains.
+No runtime proposal override or new import bypass was added.
+
+1. Resolve rights, track choices and local/manual review. Operator publishes only
+   the two accepted new objects, leaving originals intact. Record exact identity,
+   MIME/Range/cache and actual-origin readback. Rights for all seven films and
+   thirteen graphics must be resolved; publication does not itself establish them.
+2. Worker verifies that the two-field patch matches the accepted/publication
+   record and current manifest; commits the exact accepted keys. If an operator
+   chooses another artifact, regenerate the proposal rather than applying stale
+   keys. No activation is authorized by this preparation step.
+3. Requalify the final-image real-media import, seven videos/one series/three
+   links, empty initial accounts/history, URLs/artwork and playback. Keep that
+   result separate from the already accepted synthetic recovery rehearsal.
+
+Repository protection, production capacity/recovery and cutover stay with the
+coordinator. This document adds no new platform assignment. Uploads and worker
+remain disabled; PR #1 remains draft.

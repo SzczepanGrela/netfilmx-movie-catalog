@@ -2,13 +2,15 @@
 
 Updated 2026-10-13 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
 Work continues in [draft PR #1](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/1).
-Production has not changed. These are implementation/test results, pending
-coordinator review and deployment acceptance.
+Production has not changed. The October 13 local recovery/source milestone is
+accepted. The media/credits follow-up below remains preparation for operator review.
 
-## Current stage: local catalogue recovery and media preparation
+## Current stage: visible credits and media/browser acceptance proposal
 
-Coordinator accepted R1 and the preparation plan on October 12. The next local
-assignment is implemented; PR #1 stays draft. No VPS action, R2 write, deployment,
+Coordinator accepted R1 October 12 and the local recovery/source milestone
+October 13 at `35e32d78f38622571dd086a905ed67a0468f7ca0`. This follow-up adds
+visible credits, artwork provenance and Firefox evidence; PR #1 stays draft.
+No VPS action, R2 write, deployment,
 merge or production activation occurred. Cloudflare domain metadata and retained
 public media were read only. Private documentation/roadmap and the divergent dirty
 parent checkout are preserved.
@@ -32,14 +34,42 @@ PG disk **54.87 MiB**. Source PG stops before restored PG starts. These peaks
 include cache/startup and do not qualify production load or encoding capacity.
 Scoped resources and synthetic secrets were removed; images/results retained.
 
-[Media review](media-review.md): all seven retained originals and thirteen
-artwork files have private checksums/probes. Two offline derivatives and a
-content-versioned manifest proposal are prepared privately. Chromium passed
-local audio/video decode, start/middle/end seeks and artwork for all seven;
-licence/credit cards were inspected separately. Gran Dillama's exact edition
-licence, the individual artwork/credit ledger, track/quality choices, Firefox/
-Safari/mobile and actual HTTPS/CDN/CORS/cache delivery remain open. Real media
-import is not claimed. Full media hashes/keys/measurements stay private.
+[Media review](media-review.md): the [artwork ledger](media-rights-ledger.md)
+now identifies all thirteen sources: four exact source publications and nine
+pixel-identical frame extractions. Required author/licence/crop notices are
+visible at `/Home/Credits`, linked in the footer, and on matching film detail/watch
+pages. Gran Dillama's retained-edition licence is now established by its own
+brief card at 02:24.5: CC BY 3.0, Blender Foundation / www.caminandes.org. The
+retained MP4 matches the official archive member byte-for-byte. Earlier isolated
+samples missed that card; a final-26-second contact sheet and full-resolution
+capture provide the missing primary evidence. The current Studio BY 4.0 copy
+has different video/audio payloads and is not used as the archive's licence.
+No catalogue object or manifest entry was replaced. Operator acceptance of
+notices, source/licence evidence and marks remains open.
+
+Local Firefox 153.0 passes seven films/thirteen images, using a versioned private
+codec fixture from the already-qualified local image; no OS libraries were
+installed. The common runner adds nonzero decoded audio samples with output gain
+zero, also checked on Chromium. A focused final-tail check explains Llama Drama's
+Theora repeat frames and confirms the held image until normal MP4 completion.
+These checks do not establish human listening, native Safari/mobile or real HTTPS
+media delivery. The credits page passes local PL/EN checks at 375/768/1440 pixels,
+including keyboard focus and menu open/close; the mobile CSS overlap is corrected.
+Seven new .NET credits/identity/rendering tests pass locally. Final-head CI is
+recorded in PR Checks and the restricted checkpoint; existing warnings remain.
+
+The [acceptance proposal](media-acceptance.md) reuses the two existing offline
+MP4s, explains Sintel stereo/ten omitted subtitles and Llama's Skeleton omission,
+and gives a per-title manual Safari/mobile/audio/credits/HTTPS checklist. No
+reconversion occurred. A freshly validated private two-field manifest patch and
+an unapproved publication record identify the existing bytes. Shipping playback
+keys remain null; real-media import remains refused. Full hashes, measurements,
+proposed keys and private evidence remain in ignored artifacts.
+
+The coordinator accepted the preserved-source comparison: 77 expanded paths,
+51 identical, 25 intentionally developed further, one shared deletion, no omitted
+feature. The parent was not copied, reset, cleaned or stashed again. Previously
+accepted R1 and PostgreSQL/keyring/two-web recovery were not repeated.
 
 Earlier local harness attempts exposed fixture ingress, host-filter and CookieJar
 attribute-case issues, corrected without changing app security or resource limits.
@@ -145,8 +175,11 @@ checks remain available in PR Checks.
 
 ## Remaining gates and next step
 
-Next: coordinator review of this local milestone and the concrete media/recovery
-inputs; keep PR #1 a draft. R1 is already accepted.
+Next: review the new credits/media packet and Gran Dillama’s exact BY 3.0 card; accept
+stereo/subtitle choices and complete the pending native/manual/HTTPS checks.
+Only operator publication and recorded acceptance can authorize a later manifest
+activation/final-image real-media rehearsal. Keep PR #1 draft. R1 and the scoped
+synthetic recovery/source milestone are already accepted.
 Coordinator/operator must identify the target Coolify resource and review its
 private contract, protected main/environment, first healthy rollback baseline
 and scoped recovery plan before any production action. On 2026-10-03 the
@@ -161,9 +194,11 @@ Browser verification passed **3 DOM tests** and the locked vendor-file check.
 Fresh npm install/audit reported **0 vulnerabilities**.
 
 Live key mounts/ownership/restore, legacy writer identification and fresh scoped
-data recovery remain open. The two derivatives and local Chromium checks are
-prepared; rights/artwork/public playback acceptance, approved keys and a real
-fresh-catalogue import remain open. Uploads and worker remain disabled pending
+data recovery remain open. The existing derivatives, visible notices and local
+Chromium/Firefox checks are
+prepared; operator rights/notice review, native/manual/public
+playback acceptance, published keys and a real fresh-catalogue import remain open.
+Uploads and worker remain disabled pending
 their separate mounted staging/queue/encoder recovery, rolling, capacity and
 visibility acceptance. Production budgets, backup destination/access,
 cadence/retention/RPO/RTO and the coordinated legacy readback remain operator inputs.
