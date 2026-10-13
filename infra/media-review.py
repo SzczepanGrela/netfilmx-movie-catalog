@@ -78,18 +78,21 @@ def main():
                     parser.error("Media read wall budget exhausted")
                 url = origin + "/" + key
                 remote = {"key": key}
+                operation = "head"
                 try:
                     request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "NetFilmx-media-review"})
                     with opener.open(request, timeout=15) as response:
                         remote.update(status=response.status, bytes=response.headers.get("Content-Length"),
                             content_type=response.headers.get("Content-Type"), etag=response.headers.get("ETag"),
                             accept_ranges=response.headers.get("Accept-Ranges"))
+                    operation = "prefix"
                     request = urllib.request.Request(url, headers={"Range": "bytes=0-4095", "User-Agent": "NetFilmx-media-review"})
                     with opener.open(request, timeout=15) as response:
                         prefix = response.read(4097)
                         remote.update(range_status=response.status, content_range=response.headers.get("Content-Range"),
                             prefix_bytes=len(prefix), range_bounded=len(prefix) <= 4096)
                     if args.download_originals and key == entry["sourceObjectKey"]:
+                        operation = "download"
                         declared = int(remote.get("bytes") or 0)
                         if declared <= 0 or declared > 1536*1024**2 or downloaded + declared > report["download_budget_bytes"]:
                             raise ValueError("Object outside declared download budget")
@@ -102,8 +105,10 @@ def main():
                             count = 0
                             descriptor = os.open(partial, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
                             try:
-                                with os.fdopen(descriptor, "wb") as file, opener.open(url, timeout=15) as response:
-                                    if response.status != 200:
+                                request = urllib.request.Request(url, headers={"Range": f"bytes=0-{declared-1}",
+                                    "User-Agent": "NetFilmx-media-review"})
+                                with os.fdopen(descriptor, "wb") as file, opener.open(request, timeout=15) as response:
+                                    if response.status != 206 or response.headers.get("Content-Range") != f"bytes 0-{declared-1}/{declared}":
                                         raise ValueError("Unexpected original download response")
                                     while chunk := response.read(1024*1024):
                                         count += len(chunk)
@@ -120,10 +125,13 @@ def main():
                         downloaded += declared
                         remote["download"] = {"file": destination.name, "bytes": declared, "sha256": checksum(destination), "probe": probe(destination)}
                 except urllib.error.HTTPError as error:
-                    remote["status"] = error.code
+                    remote[operation + "_error_status"] = error.code
                     error.close()
                 except Exception as error:
                     remote["unresolved"] = type(error).__name__
+                    if isinstance(error, urllib.error.URLError):
+                        remote["cause_type"] = type(error.reason).__name__
+                        remote["cause_errno"] = getattr(error.reason, "errno", None)
                 record["remote"].append(remote)
         report["entries"].append(record)
         print(entry["slug"] + ": local inventory/read-only probes recorded", flush=True)

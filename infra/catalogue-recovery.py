@@ -15,6 +15,7 @@ import ssl
 import subprocess
 import threading
 import time
+import traceback
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -79,10 +80,12 @@ class Harness:
         self.image, self.revision = image, revision
         self.scope = "netfilmx-catalogue-" + uuid.uuid4().hex[:12]
         self.network = self.scope + "-network"
+        self.ingress_network = self.scope + "-loopback"
         self.tools = "netfilmx:catalogue-tools-" + revision[:12]
         self.output = output
         self.containers, self.volumes = [], []
         self.active, self.metrics = {}, {}
+        self.previous = {}
         self.lock, self.stop = threading.Lock(), threading.Event()
         self.guard_error = None
         self.deadline = time.monotonic() + 480
@@ -139,9 +142,9 @@ class Harness:
             "-c", "chown 10001:10001 /keys && chmod 0700 /keys")
         return name
 
-    def start(self, suffix, args, *, database=False):
+    def start(self, suffix, args, *, database=False, network=None):
         name = self.scope + "-" + suffix
-        cid = self.docker("run", "--detach", "--name", name, "--network", self.network,
+        cid = self.docker("run", "--detach", "--name", name, "--network", network or self.network,
             "--label", "netfilmx.qualification=" + self.scope, *args).stdout.decode().strip()
         self.containers.append(cid)
         with self.lock:
@@ -151,6 +154,7 @@ class Harness:
         return name, cid
 
     def retire(self, cid):
+        self.sample(cid)
         with self.lock:
             self.active.pop(cid, None)
         self.docker("stop", "--time", "25", cid)
@@ -163,8 +167,53 @@ class Harness:
         self.docker("rm", cid)
         self.containers.remove(cid)
 
+    def sample(self, cid):
+        state = subprocess.run(["docker", "inspect", "--format",
+            '{{.State.Running}} {{.State.OOMKilled}}', cid], capture_output=True, timeout=5)
+        sample = subprocess.run(["docker", "exec", cid, "sh", "-c",
+            "cat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/pids.current "
+            "/sys/fs/cgroup/memory.max /sys/fs/cgroup/memory.swap.max "
+            "/sys/fs/cgroup/cpu.max /sys/fs/cgroup/cpu.stat"], capture_output=True, timeout=5)
+        with self.lock:
+            # An intentional stop/remove may overlap reads on the monitor thread.
+            spec = self.active.get(cid)
+            if spec is None:
+                return
+            if state.returncode or state.stdout.strip() != b"true false" or sample.returncode:
+                raise Failure("Unexpected container exit/OOM or unreadable cgroup sample")
+            lines = sample.stdout.decode().splitlines()
+            memory = (256 if spec["name"] == "gateway" else 512) * MIB
+            quota, period = map(int, lines[4].split())
+            cpu = 0.5 if spec["name"] == "gateway" else 1
+            if int(lines[2]) != memory or int(lines[3]) != 0 or quota / period != cpu:
+                raise Failure("Effective cgroup memory/swap/CPU limits differ")
+            metric = self.metrics[cid]
+            metric.update(memory_max_bytes=memory, swap_max_bytes=0, cpu_quota=quota, cpu_period=period)
+            metric["peak_memory_bytes"] = max(metric["peak_memory_bytes"], int(lines[0]))
+            metric["peak_pids"] = max(metric["peak_pids"], int(lines[1]))
+            usage = int(dict(line.split() for line in lines[5:])["usage_usec"])
+            now = time.monotonic()
+            if cid in self.previous:
+                old_usage, old_time = self.previous[cid]
+                if usage >= old_usage and now > old_time:
+                    metric["maximum_sample_cpu_percent"] = round(max(metric["maximum_sample_cpu_percent"],
+                        (usage-old_usage)/(now-old_time)/10000), 2)
+            self.previous[cid] = usage, now
+            metric["cpu_usage_usec"] = max(metric["cpu_usage_usec"], usage)
+        if spec["database"]:
+            disk = subprocess.run(["docker", "exec", cid, "du", "-sb", "/var/lib/postgresql/data"],
+                capture_output=True, timeout=5)
+            with self.lock:
+                if cid not in self.active:
+                    return
+                if disk.returncode:
+                    raise Failure("PG disk budget unreadable")
+                size = int(disk.stdout.split()[0])
+                metric["peak_pg_disk_bytes"] = max(metric["peak_pg_disk_bytes"], size)
+                if size > 512*MIB:
+                    raise Failure("PG monitored disk budget reached")
+
     def monitor(self):
-        previous = {}
         while not self.stop.wait(1):
             try:
                 info = dict(line.split(":", 1) for line in Path("/proc/meminfo").read_text().splitlines())
@@ -174,42 +223,8 @@ class Harness:
                     raise Failure("Host free disk guard reached")
                 with self.lock:
                     active = dict(self.active)
-                for cid, spec in active.items():
-                    state = subprocess.run(["docker", "inspect", "--format",
-                        '{{.State.Running}} {{.State.OOMKilled}}', cid], capture_output=True, timeout=5)
-                    sample = subprocess.run(["docker", "exec", cid, "sh", "-c",
-                        "cat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/pids.current /sys/fs/cgroup/cpu.stat"],
-                        capture_output=True, timeout=5)
-                    with self.lock:
-                        # Recheck lifecycle after reads: an intentional stop/remove may overlap them.
-                        if cid not in self.active:
-                            continue
-                        if state.returncode or state.stdout.strip() != b"true false" or sample.returncode:
-                            raise Failure("Unexpected container exit/OOM or unreadable cgroup sample")
-                        lines = sample.stdout.decode().splitlines()
-                        metric = self.metrics[cid]
-                        metric["peak_memory_bytes"] = max(metric["peak_memory_bytes"], int(lines[0]))
-                        metric["peak_pids"] = max(metric["peak_pids"], int(lines[1]))
-                        usage = int(dict(line.split() for line in lines[2:])["usage_usec"])
-                        now = time.monotonic()
-                        if cid in previous:
-                            old_usage, old_time = previous[cid]
-                            metric["maximum_sample_cpu_percent"] = round(max(metric["maximum_sample_cpu_percent"],
-                                (usage-old_usage)/(now-old_time)/10000), 2)
-                        previous[cid] = usage, now
-                        metric["cpu_usage_usec"] = usage
-                    if spec["database"]:
-                        disk = subprocess.run(["docker", "exec", cid, "du", "-sb", "/var/lib/postgresql/data"],
-                            capture_output=True, timeout=5)
-                        with self.lock:
-                            if cid not in self.active:
-                                continue
-                            if disk.returncode:
-                                raise Failure("PG disk budget unreadable")
-                            size = int(disk.stdout.split()[0])
-                            metric["peak_pg_disk_bytes"] = max(metric["peak_pg_disk_bytes"], size)
-                            if size > 512*MIB:
-                                raise Failure("PG monitored disk budget reached")
+                for cid in active:
+                    self.sample(cid)
             except Exception as error:
                 self.guard_error = str(error) if isinstance(error, Failure) else "Resource monitor failed"
                 return
@@ -263,7 +278,7 @@ class Harness:
             "JwtSettings__Issuer": "qualification", "JwtSettings__Audience": "qualification",
             "CloudflareR2__PublicUrl": "https://media.example.test", "Uploads__Enabled": "false",
             "Worker__Enabled": "false", "Database__SeedDemoData": "false",
-            "AllowedHosts": "netfilmx.test;localhost", "Proxy__KnownProxies__0": gateway_ip,
+            "AllowedHosts": "netfilmx.test;localhost;127.0.0.1", "Proxy__KnownProxies__0": gateway_ip,
             "Proxy__ForwardLimit": "1"}
         env = self.env("web-" + instance + "-" + uuid.uuid4().hex[:6], values)
         name,cid = self.start("web-" + instance, ["--network-alias", "web-" + instance, "--cpus", "1",
@@ -338,11 +353,18 @@ class Harness:
             self.docker("run","--rm","--network","none","--user","0:0","--entrypoint","sh",
                 "--mount",f"type=volume,source={tls_volume},target=/tls","--mount",f"type=bind,source={tls},target=/input,readonly",self.image,
                 "-c","cp /input/server.pfx /tls/server.pfx && chown 10001:10001 /tls/server.pfx && chmod 0600 /tls/server.pfx")
+            # An internal bridge does not allocate the loopback publication on this engine.
+            # Only the fixture gateway joins this second owned network; PG/web stay internal.
+            self.docker("network","create","--label","netfilmx.qualification="+self.scope,self.ingress_network)
             gateway,gateway_cid = self.start("gateway",["--cpus","0.5","--memory","256m","--memory-swap","256m",
                 "--pids-limit","128","--cap-drop","ALL","--init","--no-healthcheck","--publish","127.0.0.1::8443",
-                "--mount",f"type=volume,source={tls_volume},target=/tls,readonly",self.tools,"gateway"])
-            gateway_ip = self.docker("inspect","--format",'{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}',gateway_cid).stdout.decode().strip()
-            binding=json.loads(self.docker("inspect","--format",'{{json (index .NetworkSettings.Ports "8443/tcp")}}',gateway_cid).stdout)[0]
+                "--mount",f"type=volume,source={tls_volume},target=/tls,readonly",self.tools,"gateway"],network=self.ingress_network)
+            self.docker("network","connect",self.network,gateway_cid)
+            gateway_ip = self.docker("inspect","--format",'{{with index .NetworkSettings.Networks "'+self.network+'"}}{{.IPAddress}}{{end}}',gateway_cid).stdout.decode().strip()
+            bindings=json.loads(self.docker("inspect","--format",'{{json (index .NetworkSettings.Ports "8443/tcp")}}',gateway_cid).stdout)
+            if not gateway_ip or not bindings:
+                raise Failure("Fixture gateway IP/loopback publication missing")
+            binding=bindings[0]
             if binding["HostIp"] != "127.0.0.1":raise Failure("Gateway exposed beyond loopback")
             url="https://127.0.0.1:"+binding["HostPort"]
             browser=Browser(url,str(tls/"cert.pem"))
@@ -357,7 +379,11 @@ class Harness:
             token=browser.token("a","/auth/register")
             browser.request("b","/auth/register",form={"Username":"qualification_user","Email":"qualification@example.test",
                 "Password":"Qualification123!","__RequestVerificationToken":token},status=302)
-            if not all(any(c.name==name and c.secure and c.has_nonstandard_attr("HttpOnly") for c in browser.jar) for name in ["access_token","refresh_token"]):
+            cookie_flags=[{"name":c.name,"secure":c.secure,
+                "http_only":c.has_nonstandard_attr("HttpOnly") or c.has_nonstandard_attr("httponly")} for c in browser.jar]
+            self.result["session_cookie_flags"]=cookie_flags
+            if not all(any(c["name"]==name and c["secure"] and c["http_only"] for c in cookie_flags)
+                for name in ["access_token","refresh_token"]):
                 raise Failure("Secure session cookies missing")
             browser.request("a","/admin/category",status=403)
             browser.request("b","/auth/refresh",form={},csrf=browser.csrf("a"))
@@ -422,6 +448,9 @@ class Harness:
             browser.request("a","/auth/logout",form={},csrf=browser.csrf("b"),status=302)
             replay.request("b","/auth/refresh",form={},csrf=replay.csrf("a"),status=401)
             self.phase("Wrong restored keyring rejects old form; correct ring recovers; cross-web logout revokes restored refresh session")
+            for cid in list(self.active):
+                self.sample(cid)
+            self.check()
             self.result["status"]="passed"
         finally:
             self.stop.set();thread.join(timeout=15)
@@ -439,13 +468,16 @@ class Harness:
             label=subprocess.run(["docker","volume","inspect","--format",'{{index .Labels "netfilmx.qualification"}}',volume],capture_output=True,timeout=10)
             if label.returncode==0 and label.stdout.decode().strip()==self.scope:
                 subprocess.run(["docker","volume","rm",volume],capture_output=True,timeout=15,check=True)
-        subprocess.run(["docker","network","rm",self.network],capture_output=True,timeout=15)
+        for network in [self.ingress_network,self.network]:
+            owned=subprocess.run(["docker","network","inspect","--format",'{{index .Labels "netfilmx.qualification"}}',network],capture_output=True,timeout=10)
+            if owned.returncode==0 and owned.stdout.decode().strip()==self.scope:
+                subprocess.run(["docker","network","rm",network],capture_output=True,timeout=15,check=True)
         for path in self.output.glob("*.env"):path.unlink()
         # Synthetic recovery material still contains private keys/session hashes.
         for name in ["keyring.tar","catalogue.dump"]:
             (self.output/name).unlink(missing_ok=True)
         shutil.rmtree(self.output/"tls",ignore_errors=True)
-        self.result["temporary_resources"]="scoped containers/volumes/network and synthetic secrets removed; images retained"
+        self.result["temporary_resources"]="scoped containers/volumes/networks and synthetic secrets removed; images retained"
 
 
 def main():
@@ -470,6 +502,8 @@ def main():
     except Exception as error:
         harness.result["status"]="failed"
         harness.result["failure"]=str(error) if isinstance(error,Failure) else type(error).__name__
+        harness.result["failure_frames"]=[{"file":Path(frame.filename).name,"line":frame.lineno,"function":frame.name}
+            for frame in traceback.extract_tb(error.__traceback__)]
         print("Local qualification stopped: "+harness.result["failure"],flush=True)
     finally:
         try:harness.cleanup()

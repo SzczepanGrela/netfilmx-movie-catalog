@@ -21,6 +21,7 @@ step. Docker/cgroup v2, Python 3.11+, OpenSSL and the pinned PG image are requir
 
 Each actual web and PG container is capped at 1 CPU / 512 MiB memory, with total
 RAM+swap 512 MiB. Both original and restored PG use disposable persistent volumes,
+with cgroup readback of memory.max, memory.swap.max=0 and cpu.max;
 with a monitored 512 MiB disk budget per active PG; this guard is not a filesystem
 quota. PG also has bounded WAL/temp-file settings. The local TLS gateway has
 0.5 CPU / 256 MiB and transient tools 1 CPU / 512 MiB. A conservative maximum
@@ -47,7 +48,9 @@ no original/playback/licence acceptance is inferred from this import.
    runtime import/read/write operations and prove CREATE TABLE is denied.
 3. Run two actual web containers with the same private 0700 key volume and stable
    JWT settings. A loopback-only TLS fixture gateway forwards to either container;
-   each trusts only its exact gateway peer. The Python client verifies the local
+   each trusts only its exact gateway peer. PG/web use an internal network; only
+   the gateway joins a second owned network for the loopback publication.
+   The Python client verifies the local
    test certificate, handles Secure cookies and uses real MVC tokens/forms.
 4. Register through one web using the other's form, verify the regular-user
    session/CSRF refresh across peers, recreate one web while its peer remains
