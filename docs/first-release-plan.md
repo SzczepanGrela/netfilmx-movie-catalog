@@ -92,7 +92,8 @@ from effective runtime evidence.
 ### Seven required records
 
 Use the [embedded manifest](../NetFilmx_Storage.PostgreSql/Catalogue/retained-media.json)
-as the proposed mapping, with [catalogue details](retained-catalogue.md).
+as the proposed mapping, with [catalogue details](retained-catalogue.md) and the
+[October 13 media evidence and remaining decisions](media-review.md).
 
 | Title | Original R2 key | Current playback proposal |
 | --- | --- | --- |

@@ -1,11 +1,58 @@
 # NetFilmx candidate status
 
-Updated 2026-10-05 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
+Updated 2026-10-13 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
 Work continues in [draft PR #1](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/1).
 Production has not changed. These are implementation/test results, pending
 coordinator review and deployment acceptance.
 
-## Release review R1: corrected, regressions and CI passed
+## Current stage: local catalogue recovery and media preparation
+
+Coordinator accepted R1 and the preparation plan on October 12. The next local
+assignment is implemented; PR #1 stays draft. No VPS action, R2 write, deployment,
+merge or production activation occurred. Cloudflare domain metadata and retained
+public media were read only. Private documentation/roadmap and the divergent dirty
+parent checkout are preserved.
+
+[Catalogue recovery](catalogue-recovery.md) passed against local image/source
+`986e9aa947a58f18a405fbb59a3fec05df2bad30`: two actual webs, disposable persistent
+PG and shared/restored private keys, uploads/worker off. The importer uses an
+explicitly synthetic completed plan; the real embedded manifest still refuses
+its two pending playback entries. Checks cover seven videos/one series/three
+links/generated IDs, empty history, repeat/account refusal, runtime grants and
+DDL denial, real HTTPS session/MVC antiforgery across peers/recreation/restore,
+wrong-keyring rejection and restored refresh revocation after logout.
+
+Each web/PG used 1 CPU / 512 MiB RAM, with total RAM+swap 512 MiB;
+cgroup readback verifies CPU quota and zero additional swap. PG data uses a
+monitored 512 MiB stop budget, not a hard filesystem quota. Eight-minute wall
+and 4 GiB host available-memory/free-disk guards remained in force. Final local
+run: **96.634 seconds total; dump-to-restored DB/keys/counts 13.487 seconds**.
+Peak web memory was **441.76 MiB**, PG **146.59 MiB**, gateway **34.36 MiB**;
+PG disk **54.87 MiB**. Source PG stops before restored PG starts. These peaks
+include cache/startup and do not qualify production load or encoding capacity.
+Scoped resources and synthetic secrets were removed; images/results retained.
+
+[Media review](media-review.md): all seven retained originals and thirteen
+artwork files have private checksums/probes. Two offline derivatives and a
+content-versioned manifest proposal are prepared privately. Chromium passed
+local audio/video decode, start/middle/end seeks and artwork for all seven;
+licence/credit cards were inspected separately. Gran Dillama's exact edition
+licence, the individual artwork/credit ledger, track/quality choices, Firefox/
+Safari/mobile and actual HTTPS/CDN/CORS/cache delivery remain open. Real media
+import is not claimed. Full media hashes/keys/measurements stay private.
+
+Earlier local harness attempts exposed fixture ingress, host-filter and CookieJar
+attribute-case issues, corrected without changing app security or resource limits.
+An initial browser fixture timeout was also corrected. The final passing reports
+and failed attempts remain in the ignored private checkpoint/report.
+
+CI compiles the external recovery helper against its exact qualified image and
+checks the local entry points. The full six-core local recovery/media exercise
+is reproduced separately; ordinary PR CI does not pretend to run that scope.
+The pushed final-head run is recorded in PR Checks and the private checkpoint;
+publication and deployment must remain skipped.
+
+## Release review R1: accepted October 12
 
 Review base: `cbf2ec16cac64d2dfe4d85b8b575f4eacdd69578`. Candidate and
 rollback errors after queueing now require a confirmed terminal UUID or stop
@@ -27,13 +74,15 @@ At corrective SHA `51e1ea1d3c56fcd7903981f81fef0dc2279bdd79`,
 [CI/CD 37220691661](https://github.com/SzczepanGrela/netfilmx-movie-catalog/actions/runs/37220691661)
 and [dependency audit 37220691409](https://github.com/SzczepanGrela/netfilmx-movie-catalog/actions/runs/37220691409)
 passed, including image qualification and `Quality gate`. Publication and
-deployment were skipped. Coordinator review remains pending; keep PR #1 a draft.
+deployment were skipped. Coordinator accepted this correction October 12;
+keep PR #1 a draft.
 
 ## First release and data/media acceptance: plan prepared
 
 The [first-release plan](first-release-plan.md) defines protection/access setup,
 seven-title provenance and derivative acceptance, isolated import/restore and
-actual two-container worker/resource qualification. It separates initial Coolify
+two-web qualification for the first catalogue stage. Queue/staging/encoder and
+full-film capacity remain mandatory for later upload/worker activation. It separates initial Coolify
 bootstrap from promotion, which still requires a healthy saved baseline, and
 assigns legacy-writer backup, cutover and activation actions to the
 coordinator/operator. Limits, recovery policy and media rights remain decisions
@@ -96,7 +145,8 @@ checks remain available in PR Checks.
 
 ## Remaining gates and next step
 
-Next: coordinator review of R1 and the prepared first-release plan; keep PR #1 a draft.
+Next: coordinator review of this local milestone and the concrete media/recovery
+inputs; keep PR #1 a draft. R1 is already accepted.
 Coordinator/operator must identify the target Coolify resource and review its
 private contract, protected main/environment, first healthy rollback baseline
 and scoped recovery plan before any production action. On 2026-10-03 the
@@ -111,8 +161,11 @@ Browser verification passed **3 DOM tests** and the locked vendor-file check.
 Fresh npm install/audit reported **0 vulnerabilities**.
 
 Live key mounts/ownership/restore, legacy writer identification and fresh scoped
-data recovery remain open. Media needs two browser derivatives, playback/seek,
-credits/licences and an actual fresh-catalogue import. Uploads remain disabled
-pending mounted staging/queue recovery, rolling and resource acceptance.
+data recovery remain open. The two derivatives and local Chromium checks are
+prepared; rights/artwork/public playback acceptance, approved keys and a real
+fresh-catalogue import remain open. Uploads and worker remain disabled pending
+their separate mounted staging/queue/encoder recovery, rolling, capacity and
+visibility acceptance. Production budgets, backup destination/access,
+cadence/retention/RPO/RTO and the coordinated legacy readback remain operator inputs.
 Public cutover, cleanup and UI follow those gates. No operator production action
 is requested at this implementation checkpoint.

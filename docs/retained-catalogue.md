@@ -42,6 +42,9 @@ migrations. It prints seven entries and two pending playback derivatives:
 
 "Candidate" is not browser-playback acceptance. Review media identity, codecs,
 seeking/range requests, thumbnails and browser compatibility before importing.
+The [October 13 media review](media-review.md) records seven local Chromium checks
+and two private offline proposals; provider publication and rights acceptance
+remain open, and the embedded null keys are preserved.
 Prepare MP4/HLS derivatives for pending entries under new reviewed keys,
 retaining the source objects, then commit their playback keys in the manifest.
 No conversion, provider request or upload runs from the catalogue command.
