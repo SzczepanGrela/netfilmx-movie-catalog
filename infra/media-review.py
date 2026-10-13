@@ -36,6 +36,7 @@ def main():
     parser.add_argument("--local-assets", type=Path, required=True)
     parser.add_argument("--origin-manifest", type=Path, help="Private legacy manifest; reads only cdn_base")
     parser.add_argument("--download-originals", action="store_true")
+    parser.add_argument("--download-artwork", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     output = args.output.resolve()
@@ -50,7 +51,7 @@ def main():
         parsed = urllib.parse.urlsplit(origin)
         if parsed.scheme != "https" or not parsed.hostname or parsed.path not in {"", "/"} or parsed.username or parsed.password or parsed.query or parsed.fragment:
             parser.error("Media origin must be HTTPS without credentials, path or query")
-    elif args.download_originals:
+    elif args.download_originals or args.download_artwork:
         parser.error("Original download requires a reviewed public origin")
     opener = urllib.request.build_opener(NoRedirect())
     report = {"observed_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -80,23 +81,27 @@ def main():
                 remote = {"key": key}
                 operation = "head"
                 try:
-                    request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "NetFilmx-media-review"})
+                    request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "NetFilmx-media-review",
+                        "Origin": "https://netfilmx.test"})
                     with opener.open(request, timeout=15) as response:
                         remote.update(status=response.status, bytes=response.headers.get("Content-Length"),
                             content_type=response.headers.get("Content-Type"), etag=response.headers.get("ETag"),
-                            accept_ranges=response.headers.get("Accept-Ranges"))
+                            accept_ranges=response.headers.get("Accept-Ranges"), cache_control=response.headers.get("Cache-Control"),
+                            cors_fixture_origin="https://netfilmx.test",
+                            access_control_allow_origin=response.headers.get("Access-Control-Allow-Origin"))
                     operation = "prefix"
                     request = urllib.request.Request(url, headers={"Range": "bytes=0-4095", "User-Agent": "NetFilmx-media-review"})
                     with opener.open(request, timeout=15) as response:
                         prefix = response.read(4097)
                         remote.update(range_status=response.status, content_range=response.headers.get("Content-Range"),
                             prefix_bytes=len(prefix), range_bounded=len(prefix) <= 4096)
-                    if args.download_originals and key == entry["sourceObjectKey"]:
+                    original = key == entry["sourceObjectKey"]
+                    if (args.download_originals and original) or (args.download_artwork and key.startswith(("posters/", "backdrops/"))):
                         operation = "download"
                         declared = int(remote.get("bytes") or 0)
                         if declared <= 0 or declared > 1536*1024**2 or downloaded + declared > report["download_budget_bytes"]:
                             raise ValueError("Object outside declared download budget")
-                        destination = output / (entry["slug"] + Path(key).suffix)
+                        destination = output / ((entry["slug"] if original else Path(key).stem) + Path(key).suffix)
                         if destination.exists():
                             if destination.stat().st_size != declared:
                                 raise ValueError("Existing retained copy differs in length")
@@ -123,7 +128,9 @@ def main():
                                 partial.unlink(missing_ok=True)
                                 raise
                         downloaded += declared
-                        remote["download"] = {"file": destination.name, "bytes": declared, "sha256": checksum(destination), "probe": probe(destination)}
+                        remote["download"] = {"file": destination.name, "bytes": declared, "sha256": checksum(destination)}
+                        if original:
+                            remote["download"]["probe"] = probe(destination)
                 except urllib.error.HTTPError as error:
                     remote[operation + "_error_status"] = error.code
                     error.close()
