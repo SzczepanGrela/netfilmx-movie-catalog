@@ -1,0 +1,1 @@
+import{HTMLMediaProvider as e}from"../chunks/vidstack-DcNnEBZ0.js";export{e as HTMLMediaProvider};

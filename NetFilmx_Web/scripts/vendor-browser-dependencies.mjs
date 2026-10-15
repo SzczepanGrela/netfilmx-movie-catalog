@@ -53,3 +53,4 @@ for (const [name, license] of [
   }
 }
 console.log(write ? 'Browser dependencies regenerated.' : 'Browser dependencies match the locked packages.');
+await import('./vendor-player.mjs');

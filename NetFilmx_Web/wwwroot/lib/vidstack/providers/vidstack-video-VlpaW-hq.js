@@ -1,0 +1,1 @@
+import{VideoProvider as e}from"../chunks/vidstack-DayvuNNG.js";export{e as VideoProvider};

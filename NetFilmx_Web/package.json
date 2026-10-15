@@ -8,10 +8,14 @@
     "test": "node --test --test-isolation=none scripts/validation.test.mjs"
   },
   "dependencies": {
+    "@vidstack/cdn": "1.15.7",
     "bootstrap": "5.3.8",
+    "hls.js": "1.7.3",
     "jquery": "3.7.1",
     "jquery-validation": "1.22.1",
-    "jquery-validation-unobtrusive": "4.0.0"
+    "jquery-validation-unobtrusive": "4.0.0",
+    "media-captions": "1.0.4",
+    "media-icons": "1.1.5"
   },
   "devDependencies": {
     "jsdom": "30.1.1"

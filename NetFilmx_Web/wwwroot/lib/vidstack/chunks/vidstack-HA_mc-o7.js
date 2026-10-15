@@ -1,0 +1,1 @@
+const e={getItem(e){try{return localStorage.getItem(e)}catch{return null}},setItem(e,t){try{localStorage.setItem(e,t)}catch{}},removeItem(e){try{localStorage.removeItem(e)}catch{}}};export{e as LocalStorage};
