@@ -6,6 +6,12 @@ outside this preparation.
 
 ## .NET packages
 
+October 15 image qualification found fixable HIGH/CRITICAL findings in the old
+10.0.12 shared runtime. The runtime image now pins ASP.NET **10.0.13** by verified
+MCR manifest digest, following Microsoft's [October security release](https://github.com/dotnet/core/blob/main/release-notes/10.0/10.0.13/10.0.13.md).
+Build SDK and package locks remain at the versions described below. CI checks
+the new exact image with the same smoke test and unsuppressed vulnerability gate.
+
 All five projects target .NET 10. `global.json` pins SDK 10.0.401 without
 roll-forward. ASP.NET/EF Core packages and the local `dotnet-ef` tool
 are aligned to 10.0.12; the PostgreSQL provider is 10.0.3. The unused web
@@ -50,6 +56,8 @@ by disabling `NuGetAudit` or suppressing advisories.
 libraries: Bootstrap 5.3.8, jQuery 3.7.1, jQuery Validation 1.22.1 and Microsoft
 unobtrusive validation 4.0.0. npm and Node are development/CI tools; the deployed
 ASP.NET app serves the committed files and needs no Node process.
+The [subtitle player](subtitles.md) additionally pins local Vidstack, captions,
+icons and HLS libraries, with licence files and deterministic vendor checks.
 
 The previous jQuery Validation 1.19.5 is affected by
 [CVE-2025-3573](https://github.com/advisories/GHSA-rrj2-ph5q-jxw2).
