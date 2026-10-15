@@ -110,6 +110,7 @@ namespace NetFilmx_Storage.Repositories
         public async Task<Video> GetVideoByIdAsync(int videoId)
         {
             var video = await _context.Videos
+                .Include(v => v.Subtitles)
                 .Include(v => v.Translations)
                 .Include(v => v.Categories)
                     .ThenInclude(c => c.Translations)

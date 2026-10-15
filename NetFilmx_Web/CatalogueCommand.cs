@@ -23,7 +23,9 @@ public static class CatalogueCommand
                 videos = plan.Videos.Length,
                 series = plan.Series.Length,
                 pendingPlayback = plan.Videos.Where(v => v.PlaybackObjectKey is null).Select(v => v.Slug),
-                entries = plan.Videos.Select(v => new { v.Slug, v.SourceObjectKey, v.PlaybackObjectKey })
+                subtitleTracks = plan.Videos.Sum(v => v.Subtitles?.Length ?? 0),
+                pendingSubtitles = plan.Videos.SelectMany(v => (v.Subtitles ?? []).Where(s => s.ObjectKey is null).Select(s => new { video = v.Slug, s.TrackKey, s.Language })),
+                entries = plan.Videos.Select(v => new { v.Slug, v.SourceObjectKey, v.PlaybackObjectKey, v.Subtitles })
             }));
             return 0;
         }

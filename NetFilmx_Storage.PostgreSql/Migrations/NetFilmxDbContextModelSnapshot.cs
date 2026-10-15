@@ -17,7 +17,7 @@ namespace NetFilmx_Storage.PostgreSql.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.7")
+                .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -575,6 +575,14 @@ namespace NetFilmx_Storage.PostgreSql.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18, 2)");
 
+                    b.Property<string>("ProcessedUploadId")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ProcessingError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("QualityBadge")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
@@ -644,6 +652,48 @@ namespace NetFilmx_Storage.PostgreSql.Migrations
                     b.HasIndex("VideoId");
 
                     b.ToTable("VideoPurchases");
+                });
+
+            modelBuilder.Entity("NetFilmx_Storage.Entities.VideoSubtitle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(35)
+                        .HasColumnType("character varying(35)");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TrackKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<int>("VideoId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VideoId", "TrackKey")
+                        .IsUnique();
+
+                    b.ToTable("VideoSubtitles");
                 });
 
             modelBuilder.Entity("NetFilmx_Storage.Entities.VideoTranslation", b =>
@@ -949,6 +999,17 @@ namespace NetFilmx_Storage.PostgreSql.Migrations
                     b.Navigation("Video");
                 });
 
+            modelBuilder.Entity("NetFilmx_Storage.Entities.VideoSubtitle", b =>
+                {
+                    b.HasOne("NetFilmx_Storage.Entities.Video", "Video")
+                        .WithMany("Subtitles")
+                        .HasForeignKey("VideoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Video");
+                });
+
             modelBuilder.Entity("NetFilmx_Storage.Entities.VideoTranslation", b =>
                 {
                     b.HasOne("NetFilmx_Storage.Entities.Video", "Video")
@@ -1060,6 +1121,8 @@ namespace NetFilmx_Storage.PostgreSql.Migrations
                     b.Navigation("Comments");
 
                     b.Navigation("Likes");
+
+                    b.Navigation("Subtitles");
 
                     b.Navigation("Translations");
 

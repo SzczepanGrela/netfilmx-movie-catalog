@@ -19,9 +19,11 @@ public sealed class CatalogueMapperTests
     [MemberData(nameof(DtoContracts))]
     public void AllDtoContracts_PreserveScalarValues_WithoutRequiringLoadedRelations(Type dtoType)
     {
-        var entityName = dtoType.Namespace!.Split('.').Last();
+        var entityName = dtoType == typeof(VideoSubtitleDto) ? nameof(VideoSubtitle) : dtoType.Namespace!.Split('.').Last();
         var entityType = typeof(Video).Assembly.GetType("NetFilmx_Storage.Entities." + entityName)!;
-        var entity = RuntimeHelpers.GetUninitializedObject(entityType);
+        var entity = dtoType == typeof(VideoSubtitleDto)
+            ? new VideoSubtitle("stream-2", "pl", "Polski", "https://media.example.test/subtitles/pl.vtt", 0)
+            : RuntimeHelpers.GetUninitializedObject(entityType);
         var number = 10;
         foreach (var property in entityType.GetProperties().Where(p => p.SetMethod?.IsPublic == true))
         {
@@ -33,13 +35,14 @@ public sealed class CatalogueMapperTests
                 : null;
             if (value != null) property.SetValue(entity, value);
         }
-        // Navigation properties remain null, as with unloaded data; mapping must not walk them.
+        // Unloaded relations remain null; subtitle DTO lists must safely default to empty.
         var mapper = new CatalogueMapper();
         var dto = typeof(CatalogueMapper).GetMethod(nameof(CatalogueMapper.Map))!
             .MakeGenericMethod(dtoType).Invoke(mapper, new[] { entity });
         foreach (var property in dtoType.GetProperties())
         {
             if (property.Name == "Password") Assert.Equal(string.Empty, property.GetValue(dto));
+            else if (property.Name == "Subtitles") Assert.Empty((IEnumerable<VideoSubtitleDto>)property.GetValue(dto)!);
             else Assert.Equal(entityType.GetProperty(property.Name)!.GetValue(entity), property.GetValue(dto));
         }
     }

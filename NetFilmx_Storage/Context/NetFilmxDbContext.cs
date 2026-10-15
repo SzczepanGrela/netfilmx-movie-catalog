@@ -12,6 +12,7 @@ namespace NetFilmx_Storage.Context
         }
 
         public DbSet<Video> Videos { get; set; }
+        public DbSet<VideoSubtitle> VideoSubtitles { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Tag> Tags { get; set; }
@@ -31,6 +32,9 @@ namespace NetFilmx_Storage.Context
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<VideoSubtitle>().HasOne(s => s.Video).WithMany(v => v.Subtitles)
+                .HasForeignKey(s => s.VideoId).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<VideoSubtitle>().HasIndex(s => new { s.VideoId, s.TrackKey }).IsUnique();
             base.OnModelCreating(modelBuilder);
 
             // Many-to-Many relationships

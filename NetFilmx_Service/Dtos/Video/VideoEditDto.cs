@@ -19,6 +19,7 @@ namespace NetFilmx_Service.Dtos.Video
 
 
         public int Id { get; set; }
+        public string? ProcessingError { get; set; }
 
         [StringLength(100, ErrorMessage = "The {0} must be at most {1} characters long.")]
         public string Title { get; set; }

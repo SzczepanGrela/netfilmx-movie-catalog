@@ -17,6 +17,33 @@ public sealed class CataloguePlanTests
     }
 
     [Theory]
+    [InlineData("subtitles/../private.vtt")]
+    [InlineData("subtitles/track.srt")]
+    [InlineData("https://other.example.test/track.vtt")]
+    [InlineData("subtitles/track.vtt?token=private")]
+    public void PlanRejectsUnreviewedSubtitleKeys(string key)
+    {
+        var plan=CataloguePlan.Load();var videos=plan.Videos.ToArray();
+        var tracks=videos[0].Subtitles!.ToArray();tracks[0]=tracks[0] with {ObjectKey=key};
+        videos[0]=videos[0] with {Subtitles=tracks};
+        Assert.Throws<CatalogueImportException>(()=>(plan with {Videos=videos}).Validate());
+    }
+
+    [Fact]
+    public void SintelRequiresAllTenLanguagesAndUnpublishedSidecarsBlockImport()
+    {
+        var plan=CataloguePlan.Load();var tracks=plan.Videos[0].Subtitles!;
+        Assert.Equal(new[]{"de","en","es","fr","it","nl","pl","pt","ru","vi"},tracks.Select(t=>t.Language));
+        Assert.All(tracks,t=>Assert.Null(t.ObjectKey));
+        var playbackOnly=plan with {Videos=plan.Videos.Select(v=>v.PlaybackObjectKey is null?v with {PlaybackObjectKey=$"videos/test/{v.Slug}.mp4"}:v).ToArray()};
+        Assert.Contains("pending subtitle",Assert.Throws<CatalogueImportException>(playbackOnly.EnsureReadyForImport).Message);
+        var complete=playbackOnly with {Videos=playbackOnly.Videos.Select(v=>v with {Subtitles=v.Subtitles?.Select(t=>t with {ObjectKey=$"subtitles/test/{v.Slug}/{t.TrackKey}.vtt"}).ToArray()}).ToArray()};
+        complete.EnsureReadyForImport();
+        var videos=complete.Videos.ToArray();videos[0]=videos[0] with {Subtitles=[tracks[0],tracks[0]]};
+        Assert.Throws<CatalogueImportException>(()=>(complete with {Videos=videos}).Validate());
+    }
+
+    [Theory]
     [InlineData("videos/../private/file.mp4")]
     [InlineData("videos/%2e%2e/private.mp4")]
     [InlineData("https://other.example.test/file.mp4")]

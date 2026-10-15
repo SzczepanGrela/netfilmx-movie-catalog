@@ -44,6 +44,9 @@ public static class CatalogueImporter
                 BackdropUrl = item.BackdropObjectKey is null ? null : new Uri(origin, item.BackdropObjectKey).AbsoluteUri
             };
             if (item.SeriesSlug is not null) video.Series.Add(series[item.SeriesSlug]);
+            foreach (var track in item.Subtitles ?? [])
+                video.Subtitles.Add(new VideoSubtitle(track.TrackKey, track.Language, track.Label,
+                    new Uri(origin, track.ObjectKey!).AbsoluteUri, track.Position));
             db.Videos.Add(video);
         }
         // Database-generated identities keep sequences in step. No seed accounts,

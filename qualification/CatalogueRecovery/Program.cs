@@ -33,7 +33,8 @@ internal static class Entry
             // This completed plan is synthetic. The shipped resource remains unchanged/null.
             var fixture = plan with { Videos = plan.Videos.Select(v => v with
             {
-                PlaybackObjectKey = $"videos/qualification/{v.Slug}.mp4"
+                PlaybackObjectKey = $"videos/qualification/{v.Slug}.mp4",
+                Subtitles = v.Subtitles?.Select(s => s with { ObjectKey = $"subtitles/qualification/{v.Slug}/{s.TrackKey}.vtt" }).ToArray()
             }).ToArray() };
             switch (args.Single())
             {

@@ -40,6 +40,13 @@ namespace NetFilmx_Service.Command.Video
                 video.Price = command.Price;
                 video.Title = command.Title;
                 video.Description = command.Description;
+                if (video.VideoUrl != command.Video_url)
+                {
+                    // Captions belong to a source, not merely to the row's title.
+                    // Detach stale links while retaining all physical objects.
+                    video.Subtitles.Clear();
+                    video.ProcessingError = null;
+                }
                 video.VideoUrl = command.Video_url;
                 video.ThumbnailUrl = command.Thumbnail_url;
                 video.UpdatedAt = DateTime.UtcNow;

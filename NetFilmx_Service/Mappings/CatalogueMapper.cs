@@ -17,8 +17,8 @@ public interface ICatalogueMapper
     List<TDto> MapList<TDto>(IEnumerable<object> source);
 }
 
-// Only scalar catalogue fields are copied. No reflection, recursive graph mapping,
-// navigation-property enumeration, password hashes or refresh sessions.
+// Explicit catalogue scalars and loaded subtitle metadata only. No recursive
+// graph mapping, password hashes or refresh sessions.
 public sealed class CatalogueMapper : ICatalogueMapper
 {
     public List<TDto> MapList<TDto>(IEnumerable<object> source) => source.Select(Map<TDto>).ToList();
@@ -85,13 +85,14 @@ public sealed class CatalogueMapper : ICatalogueMapper
             (Video v, var target) when target == typeof(VideoAddDto) =>
                 new VideoAddDto(v.Title, v.Price, v.VideoUrl, v.ThumbnailUrl, v.Description),
             (Video v, var target) when target == typeof(VideoCardDto) =>
-                new VideoCardDto(v.Id, v.Title, v.Description, v.VideoUrl, v.ThumbnailUrl, v.Price, v.BackdropUrl, v.LogoUrl, v.TrailerUrl, v.ReleaseYear, v.DurationMinutes, v.Director, v.Cast, v.AgeRating, v.QualityBadge, v.MaturityWarning),
+                new VideoCardDto(v.Id, v.Title, v.Description, v.VideoUrl, v.ThumbnailUrl, v.Price, v.BackdropUrl, v.LogoUrl, v.TrailerUrl, v.ReleaseYear, v.DurationMinutes, v.Director, v.Cast, v.AgeRating, v.QualityBadge, v.MaturityWarning) { Subtitles = SubtitleDtos(v) },
             (Video v, var target) when target == typeof(VideoDetailsDto) =>
-                new VideoDetailsDto(v.Id, v.Title, v.Description, v.VideoUrl, v.ThumbnailUrl, v.Price, v.CreatedAt, v.UpdatedAt),
+                new VideoDetailsDto(v.Id, v.Title, v.Description, v.VideoUrl, v.ThumbnailUrl, v.Price, v.CreatedAt, v.UpdatedAt) { Subtitles = SubtitleDtos(v), ProcessingError = v.ProcessingError },
             (Video v, var target) when target == typeof(VideoEditDto) =>
-                new VideoEditDto(v.Id, v.Title, v.VideoUrl, v.ThumbnailUrl, v.Description, v.Price),
+                new VideoEditDto(v.Id, v.Title, v.VideoUrl, v.ThumbnailUrl, v.Description, v.Price) { ProcessingError = v.ProcessingError },
             (Video v, var target) when target == typeof(VideoListDto) =>
                 new VideoListDto(v.Id, v.Title, v.ThumbnailUrl, v.Price),
+            (VideoSubtitle v, var target) when target == typeof(VideoSubtitleDto) => SubtitleDto(v),
             (VideoPurchase v, var target) when target == typeof(VideoPurchaseAddDto) =>
                 new VideoPurchaseAddDto(v.UserId, v.VideoId),
             (VideoPurchase v, var target) when target == typeof(VideoPurchaseDetailsDto) =>
@@ -102,4 +103,11 @@ public sealed class CatalogueMapper : ICatalogueMapper
         };
         return (TDto)dto;
     }
+
+    private static VideoSubtitleDto SubtitleDto(VideoSubtitle subtitle) =>
+        new(subtitle.TrackKey, subtitle.Language, subtitle.Label, subtitle.Url, subtitle.Position);
+
+    private static VideoSubtitleDto[] SubtitleDtos(Video video) => (video.Subtitles ?? [])
+        .OrderBy(s => s.Position).ThenBy(s => s.TrackKey)
+        .Select(SubtitleDto).ToArray();
 }

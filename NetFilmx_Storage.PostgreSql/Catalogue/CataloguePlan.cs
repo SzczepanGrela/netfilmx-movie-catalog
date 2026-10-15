@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using NetFilmx_Storage.Entities;
 
 namespace NetFilmx_Storage.PostgreSql.Catalogue;
 
@@ -9,7 +10,9 @@ public sealed class CatalogueImportException(string message) : Exception(message
 public sealed record CatalogueVideo(
     string Slug, string Title, string Description, decimal Price, int ReleaseYear,
     string SourceObjectKey, string? PlaybackObjectKey, string PosterObjectKey,
-    string? BackdropObjectKey = null, string? SeriesSlug = null);
+    string? BackdropObjectKey = null, string? SeriesSlug = null, CatalogueSubtitle[]? Subtitles = null);
+
+public sealed record CatalogueSubtitle(string TrackKey, string Language, string Label, string? ObjectKey, int Position);
 
 public sealed record CatalogueSeries(string Slug, string Name, string Description, decimal Price);
 
@@ -29,7 +32,7 @@ public sealed record CataloguePlan(int SchemaVersion, CatalogueSeries[] Series, 
 
     public void Validate()
     {
-        if (SchemaVersion != 1 || Videos is null || Videos.Length == 0 || Series is null)
+        if (SchemaVersion != 2 || Videos is null || Videos.Length == 0 || Series is null)
             throw new CatalogueImportException("Unsupported or empty catalogue plan.");
         var slugs = new HashSet<string>(StringComparer.Ordinal);
         foreach (var series in Series)
@@ -43,6 +46,7 @@ public sealed record CataloguePlan(int SchemaVersion, CatalogueSeries[] Series, 
         var videoSlugs = new HashSet<string>(StringComparer.Ordinal);
         var sources = new HashSet<string>(StringComparer.Ordinal);
         var playbacks = new HashSet<string>(StringComparer.Ordinal);
+        var subtitleKeys = new HashSet<string>(StringComparer.Ordinal);
         foreach (var video in Videos)
         {
             ValidateSlug(video.Slug);
@@ -64,6 +68,20 @@ public sealed record CataloguePlan(int SchemaVersion, CatalogueSeries[] Series, 
             }
             if (video.SeriesSlug is not null && !slugs.Contains(video.SeriesSlug))
                 throw new CatalogueImportException("Unknown series reference.");
+            var tracks = video.Subtitles ?? [];
+            if (tracks.Length > 32) throw new CatalogueImportException("Too many subtitle tracks.");
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            var positions = new HashSet<int>();
+            foreach (var track in tracks)
+            {
+                if (!VideoSubtitle.ValidMetadata(track.TrackKey, track.Language, track.Label, track.Position) ||
+                    !ids.Add(track.TrackKey) || !positions.Add(track.Position))
+                    throw new CatalogueImportException("Invalid or duplicate subtitle metadata.");
+                if (track.ObjectKey is null) continue;
+                ValidateKey(track.ObjectKey, "subtitles/");
+                if (Path.GetExtension(track.ObjectKey) != ".vtt" || !subtitleKeys.Add(track.ObjectKey))
+                    throw new CatalogueImportException("Subtitle objects must be distinct reviewed WebVTT files.");
+            }
         }
     }
 
@@ -72,6 +90,8 @@ public sealed record CataloguePlan(int SchemaVersion, CatalogueSeries[] Series, 
         Validate();
         if (Videos.Any(v => v.PlaybackObjectKey is null))
             throw new CatalogueImportException("Catalogue has pending playback derivatives; nothing was imported.");
+        if (Videos.Any(v => (v.Subtitles ?? []).Any(s => s.ObjectKey is null)))
+            throw new CatalogueImportException("Catalogue has pending subtitle objects; nothing was imported.");
     }
 
     public static Uri ValidateBaseUrl(string value)
@@ -92,6 +112,7 @@ public sealed record CataloguePlan(int SchemaVersion, CatalogueSeries[] Series, 
     {
         // An object key, never a remote URL, filesystem traversal or signed URL.
         if (key is null || !key.StartsWith(prefix, StringComparison.Ordinal) || key.Length > 300 ||
+            key.Any(char.IsControl) ||
             !Regex.IsMatch(key, "^[a-zA-Z0-9_./-]+$") ||
             key.Split('/').Any(p => p is "" or "." or ".."))
             throw new CatalogueImportException("Invalid catalogue object key.");

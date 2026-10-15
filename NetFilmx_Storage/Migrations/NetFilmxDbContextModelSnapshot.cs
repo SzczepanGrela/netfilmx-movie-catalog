@@ -15,7 +15,7 @@ namespace NetFilmx_Storage.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "8.0.7");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.12");
 
             modelBuilder.Entity("BundleSeries", b =>
                 {
@@ -542,6 +542,14 @@ namespace NetFilmx_Storage.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18, 2)");
 
+                    b.Property<string>("ProcessedUploadId")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProcessingError")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("QualityBadge")
                         .HasMaxLength(20)
                         .HasColumnType("TEXT");
@@ -609,6 +617,46 @@ namespace NetFilmx_Storage.Migrations
                     b.HasIndex("VideoId");
 
                     b.ToTable("VideoPurchases");
+                });
+
+            modelBuilder.Entity("NetFilmx_Storage.Entities.VideoSubtitle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(35)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("TrackKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("VideoId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VideoId", "TrackKey")
+                        .IsUnique();
+
+                    b.ToTable("VideoSubtitles");
                 });
 
             modelBuilder.Entity("NetFilmx_Storage.Entities.VideoTranslation", b =>
@@ -910,6 +958,17 @@ namespace NetFilmx_Storage.Migrations
                     b.Navigation("Video");
                 });
 
+            modelBuilder.Entity("NetFilmx_Storage.Entities.VideoSubtitle", b =>
+                {
+                    b.HasOne("NetFilmx_Storage.Entities.Video", "Video")
+                        .WithMany("Subtitles")
+                        .HasForeignKey("VideoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Video");
+                });
+
             modelBuilder.Entity("NetFilmx_Storage.Entities.VideoTranslation", b =>
                 {
                     b.HasOne("NetFilmx_Storage.Entities.Video", "Video")
@@ -1021,6 +1080,8 @@ namespace NetFilmx_Storage.Migrations
                     b.Navigation("Comments");
 
                     b.Navigation("Likes");
+
+                    b.Navigation("Subtitles");
 
                     b.Navigation("Translations");
 

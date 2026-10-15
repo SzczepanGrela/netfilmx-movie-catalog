@@ -30,6 +30,8 @@
         public DateTime CreatedAt { get; }
 
         public DateTime UpdatedAt { get; }
+        public IReadOnlyList<VideoSubtitleDto> Subtitles { get; init; } = Array.Empty<VideoSubtitleDto>();
+        public string? ProcessingError { get; init; }
 
 
     }

@@ -1,0 +1,10 @@
+@model NetFilmx_Service.Dtos.Video.VideoCardDto
+<media-player id="main-video-player" src="@Model.VideoUrl" title="@Model.Title" view-type="video" stream-type="on-demand" playsinline crossorigin="anonymous" style="width: 100%; height: 100%;">
+    <media-provider>
+        @foreach (var subtitle in Model.Subtitles)
+        {
+            <track id="subtitle-@subtitle.TrackKey" src="@subtitle.Url" kind="subtitles" srclang="@subtitle.Language" label="@subtitle.Label" data-type="vtt" />
+        }
+    </media-provider>
+    <media-video-layout></media-video-layout>
+</media-player>

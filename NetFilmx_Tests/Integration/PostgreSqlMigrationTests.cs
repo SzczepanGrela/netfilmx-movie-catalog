@@ -255,7 +255,7 @@ public sealed class PostgreSqlMigrationTests : IAsyncLifetime
         await using var db = OpenContext();
         await db.Database.MigrateAsync();
         var migrations = (await db.Database.GetAppliedMigrationsAsync()).ToArray();
-        Assert.Equal(2, migrations.Length);
+        Assert.Equal(3, migrations.Length);
         Assert.EndsWith("_InitialPostgreSql", migrations[0]);
         Assert.False(await db.Users.AnyAsync());
         Assert.False(await db.Videos.AnyAsync());
@@ -314,6 +314,16 @@ public sealed class PostgreSqlMigrationTests : IAsyncLifetime
         await CatalogueImporter.ImportAsync(db, plan, "https://media.example.test");
         db.ChangeTracker.Clear();
         Assert.Equal(7, await db.Videos.CountAsync());
+        Assert.Equal(10, await db.VideoSubtitles.CountAsync());
+        await using (var reopened=OpenContext())
+        {
+            var sintel=await reopened.Videos.Include(v=>v.Subtitles).SingleAsync(v=>v.Title=="Sintel");
+            Assert.Equal(10,sintel.Subtitles.Count);
+            Assert.Equal("Polski",sintel.Subtitles.Single(s=>s.Language=="pl").Label);
+            Assert.All(sintel.Subtitles,s=>Assert.StartsWith("https://media.example.test/subtitles/test/sintel/",s.Url));
+            reopened.VideoSubtitles.Add(new VideoSubtitle("stream-2","de","Duplicate","https://media.example.test/subtitles/duplicate.vtt",0){VideoId=sintel.Id});
+            await Assert.ThrowsAsync<DbUpdateException>(()=>reopened.SaveChangesAsync());
+        }
         Assert.False(await db.Users.AnyAsync());
         Assert.False(await db.Bundles.AnyAsync());
         Assert.Equal(3, (await db.Series.Include(s => s.Videos).SingleAsync()).Videos.Count);
@@ -326,6 +336,7 @@ public sealed class PostgreSqlMigrationTests : IAsyncLifetime
         await Assert.ThrowsAsync<CatalogueImportException>(() =>
             CatalogueImporter.ImportAsync(db, plan, "https://other.example.test"));
         Assert.Equal(originals, await db.Videos.OrderBy(v => v.Id).Select(v => v.VideoUrl).ToArrayAsync());
+        Assert.Equal(10,await db.VideoSubtitles.CountAsync());
         var maxId = await db.Videos.MaxAsync(v => v.Id);
         var next = new Video("Additional film", "Test", 0, "/next.mp4", "/next.jpg");
         db.Videos.Add(next);
@@ -359,7 +370,8 @@ public sealed class PostgreSqlMigrationTests : IAsyncLifetime
         return plan with
         {
             Videos = plan.Videos.Select(v => v.PlaybackObjectKey is null
-                ? v with { PlaybackObjectKey = $"videos/test-derivatives/{v.Slug}.mp4" } : v).ToArray()
+                ? v with { PlaybackObjectKey = $"videos/test-derivatives/{v.Slug}.mp4" } : v).Select(v => v with
+                { Subtitles = v.Subtitles?.Select(s => s with { ObjectKey = $"subtitles/test/{v.Slug}/{s.TrackKey}.vtt" }).ToArray() }).ToArray()
         };
     }
 

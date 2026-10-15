@@ -43,5 +43,6 @@ namespace NetFilmx_Service.Dtos.Video
         public string? AgeRating { get; set; }
         public string? QualityBadge { get; set; }
         public string? MaturityWarning { get; set; }
+        public IReadOnlyList<VideoSubtitleDto> Subtitles { get; set; } = Array.Empty<VideoSubtitleDto>();
     }
 }

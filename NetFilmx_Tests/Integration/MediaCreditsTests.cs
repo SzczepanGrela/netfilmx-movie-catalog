@@ -20,7 +20,7 @@ public class MediaCreditsTests
         Assert.Contains("caminandes_gran_dillama.mp4.zip", html);
         Assert.Contains("www.caminandes.org", html);
         Assert.Contains("licence and attribution follow its closing card", html);
-        Assert.Contains("ten subtitle tracks omitted", html);
+        Assert.Contains("WebVTT sidecars preserve all ten original subtitle languages", html);
         Assert.Contains("CC BY 2.5", html);
         Assert.Contains("https://durian.blender.org/news/movie-poster/", html);
     }

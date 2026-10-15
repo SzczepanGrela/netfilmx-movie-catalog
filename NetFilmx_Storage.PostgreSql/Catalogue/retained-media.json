@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "series": [
     { "slug": "caminandes", "name": "Caminandes", "description": "Przygody lamy Koro w Patagonii.", "price": 250 }
   ],
@@ -10,7 +10,19 @@
       "releaseYear": 2010,
       "sourceObjectKey": "videos/sintel.mkv",
       "playbackObjectKey": null,
-      "posterObjectKey": "posters/sintel_poster.jpg"
+      "posterObjectKey": "posters/sintel_poster.jpg",
+      "subtitles": [
+        { "trackKey": "stream-2", "language": "de", "label": "Deutsch", "position": 0, "objectKey": null },
+        { "trackKey": "stream-3", "language": "en", "label": "English", "position": 1, "objectKey": null },
+        { "trackKey": "stream-4", "language": "es", "label": "Español", "position": 2, "objectKey": null },
+        { "trackKey": "stream-5", "language": "fr", "label": "Français", "position": 3, "objectKey": null },
+        { "trackKey": "stream-6", "language": "it", "label": "Italiano", "position": 4, "objectKey": null },
+        { "trackKey": "stream-7", "language": "nl", "label": "Nederlands", "position": 5, "objectKey": null },
+        { "trackKey": "stream-8", "language": "pl", "label": "Polski", "position": 6, "objectKey": null },
+        { "trackKey": "stream-9", "language": "pt", "label": "Português", "position": 7, "objectKey": null },
+        { "trackKey": "stream-10", "language": "ru", "label": "Русский", "position": 8, "objectKey": null },
+        { "trackKey": "stream-11", "language": "vi", "label": "Tiếng Việt", "position": 9, "objectKey": null }
+      ]
     },
     {
       "slug": "tears-of-steel", "title": "Tears of Steel", "price": 180,

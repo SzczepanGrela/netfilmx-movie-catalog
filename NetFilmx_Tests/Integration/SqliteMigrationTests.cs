@@ -74,7 +74,7 @@ public sealed class SqliteMigrationTests
         }
 
         await db.Database.MigrateAsync();
-        Assert.Equal(10, (await db.Database.GetAppliedMigrationsAsync()).Count());
+        Assert.Equal(11, (await db.Database.GetAppliedMigrationsAsync()).Count());
         Assert.Empty(await db.Database.GetPendingMigrationsAsync());
         Assert.Equal(3, await db.Videos.CountAsync());
         Assert.Equal(3, await db.Series.CountAsync());
@@ -82,6 +82,7 @@ public sealed class SqliteMigrationTests
         Assert.Equal(3, await db.Tags.CountAsync());
         Assert.False(await db.Bundles.AnyAsync());
         Assert.False(await db.Users.AnyAsync());
+        Assert.False(await db.VideoSubtitles.AnyAsync());
         foreach (var item in media)
         {
             var restored = await db.Videos.Include(v => v.Categories).Include(v => v.Series)
@@ -92,6 +93,8 @@ public sealed class SqliteMigrationTests
             Assert.Equal(17, restored.Views);
             Assert.Equal(createdAt, restored.CreatedAt);
             Assert.Equal(createdAt, restored.UpdatedAt);
+            Assert.Null(restored.ProcessingError);
+            Assert.Null(restored.ProcessedUploadId);
             Assert.Equal(item.Id, Assert.Single(restored.Categories).Id);
             Assert.Equal(item.Id, Assert.Single(restored.Series).Id);
             Assert.Equal(item.Id, Assert.Single(restored.Tags).Id);

@@ -9,9 +9,10 @@
 
 @section Scripts {
     <!-- Vidstack -->
-    <link rel="stylesheet" href="https://cdn.vidstack.io/player/theme.css" />
-    <link rel="stylesheet" href="https://cdn.vidstack.io/player/video.css" />
-    <script type="module" src="https://cdn.vidstack.io/player"></script>
+    <link rel="stylesheet" href="~/lib/vidstack/styles/player/default/theme.css" />
+    <link rel="stylesheet" href="~/lib/vidstack/styles/player/default/layouts/video.css" />
+    <script src="~/js/video-player.js" asp-append-version="true"></script>
+    <script type="module" src="~/lib/vidstack/player.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const player = document.querySelector('media-player');
@@ -75,10 +76,7 @@
             }
             else
             {
-                <media-player id="main-video-player" src="@Model.Video.VideoUrl" title="@Model.Video.Title" autoplay playsinline style="width: 100%; height: 100%;">
-                    <media-provider></media-provider>
-                    <media-video-layout></media-video-layout>
-                </media-player>
+                <partial name="_VideoPlayer" model="Model.Video" />
 
                 <div id="player-error-fallback" style="display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem;">
                     <i class="fas fa-exclamation-circle" style="font-size: 3.5rem; color: var(--color-accent-hover); margin-bottom: 1rem;"></i>
@@ -96,6 +94,8 @@
             }
 
         </div>
+
+        <p id="subtitle-status" role="status" hidden data-i18n="t_subtitle_unavailable">A subtitle track could not be loaded. Try another language or retry playback.</p>
 
         <!-- Meta info & Wallet / Payment Section -->
         @if (filmCredit is not null) { <partial name="_MediaCredit" model="filmCredit" /> }

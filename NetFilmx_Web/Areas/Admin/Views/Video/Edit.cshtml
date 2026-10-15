@@ -11,6 +11,10 @@
     </div>
     
     <div style="padding: 2rem;">
+        @if (Model.ProcessingError is not null)
+        {
+            <p role="alert">@Model.ProcessingError</p>
+        }
         <form method="post" id="editForm">
             <input type="hidden" asp-for="Id" />
             

@@ -58,6 +58,15 @@ namespace NetFilmx_Storage.Entities
         [MaxLength(100)]
         public string? UploadJobId { get; set; }
 
+        [MaxLength(500)]
+        public string? ProcessingError { get; set; }
+
+        // Written atomically with playback and every required subtitle link.
+        [MaxLength(32)]
+        public string? ProcessedUploadId { get; set; }
+
+        public ICollection<VideoSubtitle> Subtitles { get; set; } = new List<VideoSubtitle>();
+
         [Required]
         public int Views { get; set; } = 0;
 

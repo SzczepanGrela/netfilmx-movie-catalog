@@ -21,7 +21,7 @@ public static class RetainedMediaCredits
     {
         new("sintel", "Sintel", "© Blender Foundation · Durian", "Director: Colin Levy. Music and sound: Jan Morgenstern.",
             "https://durian.blender.org/sharing/", "CC BY 3.0", By30,
-            "Complete video retained. Surround audio downmixed to stereo AAC; ten subtitle tracks omitted from MP4. Original MKV retained.", null,
+            "Complete video retained. Surround audio downmixed to stereo AAC. WebVTT sidecars preserve all ten original subtitle languages; availability follows reviewed catalogue publication. Original MKV retained.", null,
             [new("Poster", "© Blender Foundation · durian.blender.org. Concept and paint-over: David Revoy; character poses: Lee Salvemini; lighting/render: Pablo Vazquez.",
                 "https://durian.blender.org/news/movie-poster/", "CC BY 3.0", By30,
                 "Published poster retained unchanged; display sizing may resize it. Embedded logos have separate rights; no endorsement is implied.")]),
