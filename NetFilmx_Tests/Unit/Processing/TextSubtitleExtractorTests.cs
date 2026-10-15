@@ -34,12 +34,21 @@ public sealed class TextSubtitleExtractorTests : IDisposable
     public async Task Mp4MovTextClearPacketsDoNotLoseOrInventVisibleCues()
     {
         string source=await SubtitleFixture.CreateAsync(root),input=await SubtitleFixture.MovTextAsync(source),output=Path.Combine(root,"mov-vtt");
+        // FFmpeg versions differ in AAC priming/edit-list handling when making
+        // this MP4. Compare against its actual packet timeline, not the pre-remux SRT.
+        var expected=await SubtitleFixture.MovTextCueTimesAsync(input);
         var tracks=await new TextSubtitleExtractor().ExtractAsync(input,output,CancellationToken.None);
         Assert.Equal(new[]{"pl","en","ru"},tracks.Select(t=>t.Language));
         foreach(var track in tracks)
         {
             var cues=await WebVttFile.ReadAsync(Path.Combine(output,track.FileName),CancellationToken.None);
-            Assert.Equal(2,cues.Count);Assert.Equal(.5,cues[0].Start);Assert.Equal(2,cues[0].End);
+            var original=expected[int.Parse(track.TrackKey["stream-".Length..])];
+            Assert.Equal(2,cues.Count);Assert.Equal(original.Length,cues.Count);
+            for(int i=0;i<cues.Count;i++)
+            {
+                Assert.Equal(original[i].Start,cues[i].Start,precision:3);
+                Assert.Equal(original[i].End,cues[i].End,precision:3);
+            }
         }
         Assert.Contains(SubtitleFixture.Polish,await File.ReadAllTextAsync(Path.Combine(output,tracks[0].FileName)));
     }

@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
+using System.Text.Json;
 
 namespace NetFilmx_Tests.Helpers;
 
@@ -58,6 +60,23 @@ public static class SubtitleFixture
         return output;
     }
 
+    public static async Task<Dictionary<int, (double Start, double End)[]>> MovTextCueTimesAsync(string source)
+    {
+        string json = await RunAsync(["-v", "error", "-select_streams", "s", "-show_packets",
+            "-show_entries", "packet=stream_index,pts_time,duration_time,size", "-of", "json", source], "ffprobe");
+        using var document = JsonDocument.Parse(json);
+        // mov_text packets with only a two-byte length clear the display.
+        return document.RootElement.GetProperty("packets").EnumerateArray()
+            .Where(p => int.Parse(p.GetProperty("size").GetString()!, CultureInfo.InvariantCulture) > 2)
+            .GroupBy(p => p.GetProperty("stream_index").GetInt32())
+            .ToDictionary(g => g.Key, g => g.Select(p =>
+            {
+                double start = double.Parse(p.GetProperty("pts_time").GetString()!, CultureInfo.InvariantCulture);
+                double duration = double.Parse(p.GetProperty("duration_time").GetString()!, CultureInfo.InvariantCulture);
+                return (start, start + duration);
+            }).ToArray());
+    }
+
     private static void Replace(byte[] source, byte[] before, byte[] after)
     {
         if (before.Length != after.Length) throw new InvalidOperationException("Fixture replacement length differs.");
@@ -66,9 +85,9 @@ public static class SubtitleFixture
         after.CopyTo(source, at);
     }
 
-    private static async Task RunAsync(string[] arguments)
+    private static async Task<string> RunAsync(string[] arguments, string executable = "ffmpeg")
     {
-        var start = new ProcessStartInfo("ffmpeg") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
+        var start = new ProcessStartInfo(executable) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
         foreach (string argument in arguments) start.ArgumentList.Add(argument);
         using var process = Process.Start(start)!;
         var output = process.StandardOutput.ReadToEndAsync();
@@ -76,7 +95,9 @@ public static class SubtitleFixture
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         try { await process.WaitForExitAsync(deadline.Token); }
         catch { if (!process.HasExited) process.Kill(true); await process.WaitForExitAsync(); throw; }
-        await output;
+        string stdout = await output;
         if (process.ExitCode != 0) throw new IOException("Synthetic fixture generation failed: " + await error);
+        await error;
+        return stdout;
     }
 }
