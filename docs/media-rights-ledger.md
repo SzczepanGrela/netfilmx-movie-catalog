@@ -2,7 +2,8 @@
 
 Observed October 13, 2026. This ledger separates source identity, a source's
 licence notice and operator acceptance. Source mapping does not approve release.
-The retained seven-entry manifest is unchanged; two playback keys remain null.
+Retained media keys remain unchanged. The subtitle follow-up adds ten pending
+WebVTT requirements; those and the two playback keys remain null.
 
 ## Exact Gran Dillama edition: CC BY 3.0
 
@@ -62,7 +63,9 @@ series views. Detail/watch pages additionally show their own notice when both
 playback and artwork match the shipped manifest and configured media origin.
 Unrelated uploads, a matching title or a generated database ID cannot acquire
 these retained-film notices. Pending derivatives do not resolve until their
-accepted manifest keys are committed. No database schema change was introduced.
+accepted manifest keys are committed. The credits follow-up introduced no database
+schema change; the later [subtitle implementation](subtitles.md) adds explicit
+metadata migrations and describes Sintel's ten preserved WebVTT sidecars.
 
 Charge and Llamigos both credit Torin Borrowdale for music and Sander Houtman
 for sound; their full scrolls remain intact. Llama Drama credits its own named

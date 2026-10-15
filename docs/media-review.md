@@ -44,11 +44,14 @@ does not establish distribution approval. Sintel has no mapped backdrop.
 Two proposals were made directly from retained original copies, using the
 qualified local application's FFmpeg. Originals and the dirty parent checkout
 remain unchanged. Sintel copies the complete video stream and converts its
-surround audio to stereo AAC; its subtitle tracks remain in the original MKV.
+surround audio to stereo AAC. The [subtitle follow-up](subtitles.md) preserves
+all ten original tracks as separate WebVTT files; the MKV also remains intact.
 Llama Drama converts the complete original video/audio to H264/AAC. Both proposals
 have MP4 fast start, retain the complete duration and closing credits, and use
 new content-versioned keys recorded only in the private manifest proposal.
 The complete Sintel compressed video payload also matches the original.
+Adding those sidecars reuses the existing prepared MP4 without re-encoding
+its picture or sound. Subtitle quality and publication remain operator checks.
 
 Each sequential offline container used 1 CPU / 512 MiB RAM, zero additional
 swap, no network, read-only input/root filesystem and a 128 PID cap. Wall guards

@@ -34,7 +34,8 @@ one active Hangfire server/worker and dispatcher across instances sharing
 the staging root. `.server.lock` owns that server, and `.worker.lock` additionally
 serializes conversion. The server is stopped before ownership is released;
 never unlink either lock while workers are running.
-Conversion allows 30 minutes; individual probes allow 15 seconds. Shutdown
+Video conversion allows 30 minutes; video/audio probes allow 15 seconds.
+Subtitle probes allow 30 seconds each and text conversion two minutes. Shutdown
 cancels the process tree and the storage transfer. Encoder/probe stdout is
 bounded and stderr is drained without retaining an unbounded log buffer.
 CPU/RAM/disk limits and representative full-length media remain production
@@ -58,11 +59,20 @@ acceptance work; a byte/time limit is not a disk quota or sandbox.
    It converts in a private work directory and uploads to a fresh R2 prefix.
    Before saving it rereads the row and uses optimistic concurrency to avoid
    overwriting an intervening catalogue edit/deletion.
+   [Subtitle preservation](subtitles.md) checks every declared text stream before
+   video work. Unsupported/image or damaged subtitles fail explicitly with a
+   visible administrator error and retain the source. WebVTT files transfer with
+   explicit MIME before the master playlist. Playback, subtitle links and the
+   completed-upload marker commit together; duplicate delivery cannot add links.
 5. Delete the staged source only after a committed result. Conversion/transfer
    failure throws for Hangfire retries (three automatic retries), keeping the
    source. A graceful shutdown cancels work and preserves the intent/source.
    After retries are exhausted, diagnose the failed job before a manual retry.
    Restoring a missing source must preserve its exact upload identity.
+
+Only the first audio stream is selected and encoded as stereo AAC. Multiple audio
+choices are not implemented. The viewer can choose a preserved subtitle language
+or Off in Vidstack. No-subtitle files remain supported.
 
 Hangfire documents [identifier-sized arguments](https://docs.hangfire.io/en/latest/background-methods/passing-arguments.html)
 and [cancellation/requeue behavior](https://docs.hangfire.io/en/latest/background-methods/using-cancellation-tokens.html).

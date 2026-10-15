@@ -28,7 +28,8 @@ dotnet run --project NetFilmx_Web --no-launch-profile -- catalogue plan
 
 For a published application, use `dotnet NetFilmx_Web.dll catalogue plan`.
 This administrative path exits before starting HTTP, Hangfire or startup
-migrations. It prints seven entries and two pending playback derivatives:
+migrations. Schema 2 prints seven entries, two pending playback derivatives and
+ten pending Sintel subtitle tracks (language, label, stable track key and order):
 
 | Film/episode | Retained source key | Playback candidate |
 | --- | --- | --- |
@@ -42,13 +43,14 @@ migrations. It prints seven entries and two pending playback derivatives:
 
 "Candidate" is not browser-playback acceptance. Review media identity, codecs,
 seeking/range requests, thumbnails and browser compatibility before importing.
-The [October 13 media review](media-review.md) records seven local Chromium checks
-and two private offline proposals; provider publication and rights acceptance
-remain open, and the embedded null keys are preserved.
-Prepare MP4/HLS derivatives for pending entries under new reviewed keys,
-retaining the source objects, then commit their playback keys in the manifest.
+The [media review](media-review.md) records the seven retained films. The
+[subtitle follow-up](subtitles.md) preserves all ten Sintel tracks separately as
+WebVTT and reuses the two prepared MP4s. Provider publication and manual media
+acceptance remain open; the embedded twelve null keys are preserved.
+Publish accepted MP4s and WebVTT sidecars under reviewed new keys, retaining
+source objects, then commit those keys in the manifest.
 No conversion, provider request or upload runs from the catalogue command.
-Nullable playback keys keep the current plan intentionally non-importable;
+Nullable playback and subtitle keys keep the current plan intentionally non-importable;
 it cannot create a partially available catalogue or substitute a demo stream.
 
 ## Import only into a prepared, separate, empty PostgreSQL database
@@ -71,9 +73,9 @@ dotnet NetFilmx_Web.dll catalogue import \
   --confirm-empty-database --confirm-reviewed-media
 ```
 
-The command refuses pending playback entries, pending database migrations and
+The command refuses pending playback/subtitle entries, pending database migrations and
 an existing catalogue or account. It takes PostgreSQL table locks with a bounded
-wait, checks emptiness and commits all catalogue rows and series links in one
+wait, checks emptiness and commits all catalogue rows, series and subtitle links in one
 transaction. It uses generated IDs without resetting sequences. Running it
 again refuses to replace or duplicate the imported catalogue. It does not
 create accounts, import user history, schedule jobs, delete rows or mutate
@@ -93,7 +95,8 @@ were a temporary-upload or backup bucket.
 New uploads allocate fresh random keys, independent of the catalogue IDs:
 
 - Posters: `uploads/posters/<uuid>.jpg|.png|.webp`.
-- HLS: `uploads/videos/<uuid>/hls/master.m3u8` and its sibling playlists/segments.
+- HLS: `uploads/videos/<uuid>/hls/master.m3u8` and its sibling playlists/segments
+  and `subtitle-<source-stream-index>.vtt` sidecars.
 
 Each upload attempt uses a new namespace, including retries for the same film.
 The storage service returns a URL from the configured HTTPS media origin only

@@ -1,8 +1,9 @@
 # Media acceptance and pending manifest activation
 
-October 13, 2026. Proposed operator decisions; all approval fields remain open.
-The private packet identifies the exact existing bytes/hashes and two-field
-manifest patch. The worker has not reconverted either MP4 or uploaded anything.
+Updated October 15, 2026. Proposed operator decisions; approval fields remain open.
+The private packet identifies the exact existing bytes/hashes and twelve-field
+manifest patch: two MP4s and ten WebVTT sidecars. Neither MP4 was reconverted;
+no objects were uploaded. See [subtitle implementation and checks](subtitles.md).
 
 ## Two existing MP4 proposals
 
@@ -12,7 +13,7 @@ evidence and successful decoding.
 
 | Proposal | What is retained / changed | Decision required |
 | --- | --- | --- |
-| Sintel | Complete original H.264 video is copied, with matching compressed payload; no trimming. AC-3 5.1 becomes AAC stereo. Complete credits and duration remain. Ten embedded SubRip tracks are omitted | Accept stereo after listening, and explicitly choose whether first release may omit subtitles. If captions are required, prepare and review WebVTT sidecars without re-encoding this video |
+| Sintel | Complete original H.264 video is copied, with matching compressed payload; no trimming. AC-3 5.1 becomes AAC stereo. Complete credits and duration remain. All ten original subtitle tracks are preserved as separate WebVTT files | Review the existing stereo mix and picture, plus text, timing and labels of all ten sidecars in the player |
 | Llama Drama | Complete Theora video becomes H.264/yuv420p; Vorbis stereo becomes AAC stereo. Ogg Skeleton data is omitted. Complete credits and duration remain | Accept the converted picture, audible sound and source-card readability. Skeleton is container metadata rather than a subtitle or extra film scene |
 
 AAC stereo was selected for a common browser/mobile playback path. Sintel's
@@ -21,13 +22,12 @@ improve the source and cannot replace listening for clear dialogue, balanced
 music/effects, distortion or sync. Llama Drama was already stereo, so no surround
 mix is lost. Both outputs put MP4 metadata before media data for fast start.
 
-The omitted Sintel languages are German, English, Spanish, French, Italian,
-Dutch, Polish, Portuguese, Russian and Vietnamese. Embedded SubRip in MKV does
-not automatically become selectable HTML text tracks when the video is remuxed
-to MP4. The current player has no reviewed sidecar mapping. Copying subtitle
-streams into MP4 alone would not qualify browser captions. Preserve all ten in
-the original; select the required languages and native-player tests before any
-caption work. Missing captions are an explicit acceptance gap.
+The preserved Sintel languages are German, English, Spanish, French, Italian,
+Dutch, Polish, Portuguese, Russian and Vietnamese. Persistent catalogue mapping
+supplies WebVTT tracks to the actual Vidstack player, with language selection and
+Off. Caption extraction reuses the prepared MP4 without changing video/audio.
+Local synthetic MP4/HLS checks in Chromium and Firefox cover selection and seeking;
+review of these real sidecars, native devices and target HTTPS remains open.
 
 Confirm the Llama Drama source's `fishead` signature and selected video/audio
 against the private probe: Skeleton describes Ogg stream mapping/timing. Its
@@ -84,7 +84,7 @@ in the private checklist; never mark a missing browser/device as passed.
 
 | Film | Native Safari desktop | Native supported mobile | Audible sound | Full closing credits / notices | Actual HTTPS playback |
 | --- | --- | --- | --- | --- | --- |
-| Sintel | pending | pending | pending | pending; subtitle decision open | pending |
+| Sintel | pending | pending | pending | pending; all ten sidecars prepared | pending |
 | Tears of Steel | pending | pending | pending | pending | pending |
 | Charge | pending | pending | pending | pending | pending |
 | Elephants Dream | pending | pending | pending | pending | pending |
@@ -118,14 +118,15 @@ whole GET and synthetic-Origin result cannot be converted into delivery approval
 ## Activate the prepared manifest only after publication
 
 The restricted proposal and unified patch change only the two pending playback
-fields. The shipped manifest retains both nulls; existing import refusal remains.
+fields and ten subtitle object keys. The shipped manifest retains all twelve nulls;
+import refuses missing playback or subtitle objects.
 No runtime proposal override or new import bypass was added.
 
-1. Resolve rights, track choices and local/manual review. Operator publishes only
-   the two accepted new objects, leaving originals intact. Record exact identity,
+1. Complete local/manual review. Operator publishes the two accepted MP4 objects
+   and ten WebVTT sidecars, leaving originals intact. Record exact identity,
    MIME/Range/cache and actual-origin readback. Rights for all seven films and
    thirteen graphics must be resolved; publication does not itself establish them.
-2. Worker verifies that the two-field patch matches the accepted/publication
+2. Executor verifies that the twelve-field patch matches the accepted/publication
    record and current manifest; commits the exact accepted keys. If an operator
    chooses another artifact, regenerate the proposal rather than applying stale
    keys. No activation is authorized by this preparation step.

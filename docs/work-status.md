@@ -1,11 +1,37 @@
 # NetFilmx candidate status
 
-Updated 2026-10-13 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
+Updated 2026-10-15 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
 Work continues in [draft PR #1](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/1).
 Production has not changed. The October 13 local recovery/source milestone is
 accepted. The media/credits follow-up below remains preparation for operator review.
 
-## Current stage: visible credits and media/browser acceptance proposal
+## Current stage: subtitle preservation and player support
+
+The accepted media follow-up is `9601fd1c5fbde30114484f22cc470ba15581cc17`.
+The new [subtitle implementation](subtitles.md) preserves all ten Sintel tracks
+as WebVTT without re-encoding its prepared MP4. Explicit PostgreSQL/SQLite
+migrations persist ordered language/label/URL links, including catalogue import.
+Actual locally served Vidstack supports language selection and Off for MP4/HLS;
+films without subtitle links retain playback. A missing sidecar produces a message.
+
+New uploads extract supported text subtitles before adaptive H.264/AAC HLS work.
+Unsupported/damaged tracks fail visibly and retain the staged source. All files
+must finish before readiness and links commit together; retries, cancellation and
+duplicate delivery are covered. First-audio/stereo remains an explicit limitation.
+
+The current local Chromium/Firefox player checks cover multiple languages,
+UTF-8 text/timing, Off, seeking, keyboard selection, real decoded frames, adaptive
+HLS and missing-sidecar recovery. Backend tests exercise actual FFmpeg and
+persistence/restart. The local full suite passed 294 tests with no failures/skips,
+including disposable PostgreSQL. CI links are in PR Checks and the private
+checkpoint. Native Safari/mobile, listening and target HTTPS/CORS stay open.
+
+The shipped manifest requires ten sidecars but retains their null keys, alongside
+the two pending playback keys. An inactive twelve-field publication proposal
+supersedes the earlier two-field packet. Nothing has been published or activated;
+uploads/worker stay off, both checkouts/originals and accepted R1 stay preserved.
+
+## Accepted earlier milestones
 
 Coordinator accepted R1 October 12 and the local recovery/source milestone
 October 13 at `35e32d78f38622571dd086a905ed67a0468f7ca0`. This follow-up adds
@@ -59,11 +85,11 @@ Seven new .NET credits/identity/rendering tests pass locally. Final-head CI is
 recorded in PR Checks and the restricted checkpoint; existing warnings remain.
 
 The [acceptance proposal](media-acceptance.md) reuses the two existing offline
-MP4s, explains Sintel stereo/ten omitted subtitles and Llama's Skeleton omission,
+MP4s, explains Sintel stereo and Llama's Skeleton omission,
 and gives a per-title manual Safari/mobile/audio/credits/HTTPS checklist. No
-reconversion occurred. A freshly validated private two-field manifest patch and
-an unapproved publication record identify the existing bytes. Shipping playback
-keys remain null; real-media import remains refused. Full hashes, measurements,
+reconversion occurred. The former two-field packet is superseded by the subtitle
+proposal above. Shipping playback and subtitle keys remain null; real-media import
+remains refused. Full hashes, measurements,
 proposed keys and private evidence remain in ignored artifacts.
 
 The coordinator accepted the preserved-source comparison: 77 expanded paths,
