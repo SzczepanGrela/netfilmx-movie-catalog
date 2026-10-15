@@ -70,13 +70,29 @@ public sealed class R2StorageService : ICloudStorageService, IDisposable
 
         // Each attempt publishes into a fresh namespace, including retries for the same video.
         string prefix = $"uploads/videos/{Guid.NewGuid():N}/hls";
-        await _transfer!.UploadDirectoryAsync(new TransferUtilityUploadDirectoryRequest
+        // Expose the master only after its segments and sidecars have transferred.
+        var files = Directory.GetFiles(directoryPath, "*", SearchOption.AllDirectories)
+            .OrderBy(file => Path.GetFileName(file) == "master.m3u8" ? 1 : 0).ThenBy(file => file).ToArray();
+        foreach (var file in files)
         {
-            Directory = directoryPath,
-            BucketName = _bucket,
-            KeyPrefix = prefix,
-            SearchOption = SearchOption.AllDirectories
-        }, token);
+            token.ThrowIfCancellationRequested();
+            string relative = Path.GetRelativePath(directoryPath, file).Replace(Path.DirectorySeparatorChar, '/');
+            if ((File.GetAttributes(file) & FileAttributes.ReparsePoint) != 0 || relative.Split('/').Any(p => p is ".." or "." or ""))
+                throw new IOException("Invalid generated media path.");
+            string type = Path.GetExtension(file) switch
+            {
+                ".m3u8" => "application/vnd.apple.mpegurl",
+                ".ts" => "video/mp2t",
+                ".vtt" => "text/vtt; charset=utf-8",
+                _ => throw new IOException("Unsupported generated media file.")
+            };
+            // Await every transfer, including sidecars, before declaring readiness.
+            await _transfer!.UploadAsync(new TransferUtilityUploadRequest
+            {
+                FilePath = file, BucketName = _bucket, Key = $"{prefix}/{relative}",
+                ContentType = type, DisablePayloadSigning = true
+            }, token);
+        }
         return $"{_publicOrigin}/{prefix}/master.m3u8";
     }
 

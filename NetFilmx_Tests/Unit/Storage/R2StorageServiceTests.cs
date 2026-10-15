@@ -17,12 +17,42 @@ public class R2StorageServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task HlsAndSubtitleUploadsUseExplicitTypesAndOneAttemptNamespace()
+    {
+        await File.WriteAllTextAsync(Path.Combine(_directory,"stream_0_data000.ts"),"synthetic segment");
+        await File.WriteAllTextAsync(Path.Combine(_directory,"subtitle-2.vtt"),"WEBVTT\n\n00:00.500 --> 00:01.000\nPolski\n");
+        var requests=new List<TransferUtilityUploadRequest>();var transfer=new Mock<ITransferUtility>();
+        transfer.Setup(t=>t.UploadAsync(It.IsAny<TransferUtilityUploadRequest>(),It.IsAny<CancellationToken>()))
+            .Callback<TransferUtilityUploadRequest,CancellationToken>((request,_)=>requests.Add(request)).Returns(Task.CompletedTask);
+        var storage=new R2StorageService(transfer.Object,"test","https://media.example.test");
+        string master=await storage.UploadHlsAsync(_directory);
+        Assert.Equal(3,requests.Count);
+        Assert.Equal("text/vtt; charset=utf-8",requests.Single(r=>r.Key.EndsWith(".vtt")).ContentType);
+        Assert.Equal("video/mp2t",requests.Single(r=>r.Key.EndsWith(".ts")).ContentType);
+        string prefix=master[..master.LastIndexOf('/')];
+        Assert.All(requests,r=>Assert.Equal(prefix+"/"+Path.GetFileName(r.FilePath),"https://media.example.test/"+r.Key));
+    }
+
+    [Fact]
+    public async Task FailedRequiredVttTransferCannotReturnReadyMasterUrl()
+    {
+        await File.WriteAllTextAsync(Path.Combine(_directory,"subtitle-2.vtt"),"WEBVTT\n\n00:00.500 --> 00:01.000\nPolski\n");
+        var transfer=new Mock<ITransferUtility>();
+        transfer.Setup(t=>t.UploadAsync(It.IsAny<TransferUtilityUploadRequest>(),It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        transfer.Setup(t=>t.UploadAsync(It.Is<TransferUtilityUploadRequest>(r=>r.Key.EndsWith(".vtt")),It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new IOException("Synthetic VTT transfer failure"));
+        var storage=new R2StorageService(transfer.Object,"test","https://media.example.test");
+        await Assert.ThrowsAsync<IOException>(()=>storage.UploadHlsAsync(_directory));
+        transfer.Verify(t=>t.UploadAsync(It.Is<TransferUtilityUploadRequest>(r=>r.Key.EndsWith("master.m3u8")),It.IsAny<CancellationToken>()),Times.Never);
+    }
+
+    [Fact]
     public async Task Hls_RetryAllocatesAnotherPrefix_AndUsesConfiguredOrigin()
     {
-        var requests = new List<TransferUtilityUploadDirectoryRequest>();
+        var requests = new List<TransferUtilityUploadRequest>();
         var transfer = new Mock<ITransferUtility>(MockBehavior.Strict);
-        transfer.Setup(t => t.UploadDirectoryAsync(It.IsAny<TransferUtilityUploadDirectoryRequest>(), It.IsAny<CancellationToken>()))
-            .Callback<TransferUtilityUploadDirectoryRequest, CancellationToken>((request, _) => requests.Add(request))
+        transfer.Setup(t => t.UploadAsync(It.IsAny<TransferUtilityUploadRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<TransferUtilityUploadRequest, CancellationToken>((request, _) => requests.Add(request))
             .Returns(Task.CompletedTask);
         var storage = new R2StorageService(transfer.Object, "test-bucket", "https://media.example.test/");
 
@@ -30,16 +60,17 @@ public class R2StorageServiceTests : IDisposable
         var second = await storage.UploadHlsAsync(_directory);
 
         requests.Should().HaveCount(2);
-        requests.Select(r => r.KeyPrefix).Should().OnlyHaveUniqueItems();
+        requests.Select(r => r.Key).Should().OnlyHaveUniqueItems();
         foreach (var request in requests)
         {
             request.BucketName.Should().Be("test-bucket");
-            request.KeyPrefix.Should().MatchRegex("^uploads/videos/[a-f0-9]{32}/hls$");
-            request.Directory.Should().Be(_directory);
+            request.Key.Should().MatchRegex("^uploads/videos/[a-f0-9]{32}/hls/master\\.m3u8$");
+            request.FilePath.Should().Be(Path.Combine(_directory, "master.m3u8"));
+            request.ContentType.Should().Be("application/vnd.apple.mpegurl");
         }
-        first.Should().Be($"https://media.example.test/{requests[0].KeyPrefix}/master.m3u8");
-        second.Should().Be($"https://media.example.test/{requests[1].KeyPrefix}/master.m3u8");
-        transfer.Verify(t => t.UploadDirectoryAsync(It.IsAny<TransferUtilityUploadDirectoryRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        first.Should().Be($"https://media.example.test/{requests[0].Key}");
+        second.Should().Be($"https://media.example.test/{requests[1].Key}");
+        transfer.Verify(t => t.UploadAsync(It.IsAny<TransferUtilityUploadRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
         transfer.VerifyNoOtherCalls();
     }
 
@@ -48,7 +79,7 @@ public class R2StorageServiceTests : IDisposable
     {
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var transfer = new Mock<ITransferUtility>();
-        transfer.Setup(t => t.UploadDirectoryAsync(It.IsAny<TransferUtilityUploadDirectoryRequest>(), It.IsAny<CancellationToken>()))
+        transfer.Setup(t => t.UploadAsync(It.IsAny<TransferUtilityUploadRequest>(), It.IsAny<CancellationToken>()))
             .Returns(completion.Task);
         var storage = new R2StorageService(transfer.Object, "test-bucket", "https://media.example.test");
 

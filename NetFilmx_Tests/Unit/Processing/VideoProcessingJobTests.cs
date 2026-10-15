@@ -31,7 +31,7 @@ public sealed class VideoProcessingJobTests : IDisposable
         _storage.Setup(s => s.IsConfigured).Returns(true);
         _storage.Setup(s => s.UploadHlsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(PublishedUrl);
         _ffmpeg.Setup(f => f.RunFFmpegHlsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(Array.Empty<SubtitleFile>());
     }
 
     private NetFilmxDbContext OpenDb() => new(new DbContextOptionsBuilder<NetFilmxDbContext>()
@@ -82,7 +82,7 @@ public sealed class VideoProcessingJobTests : IDisposable
         var item = await AddUpload();
         using var cancellation = new CancellationTokenSource();
         _ffmpeg.Setup(f => f.RunFFmpegHlsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns<string,string,CancellationToken>((_, _, token) => { cancellation.Cancel(); return Task.FromCanceled(token); });
+            .Returns<string,string,CancellationToken>((_, _, token) => { cancellation.Cancel(); return Task.FromCanceled<IReadOnlyList<SubtitleFile>>(token); });
         await using var db = OpenDb();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Worker(db).ProcessVideoAsync(item.Id, item.Upload, cancellation.Token));
         (await db.Videos.SingleAsync()).VideoUrl.Should().Be("PROCESSING");

@@ -7,12 +7,16 @@ namespace NetFilmx_Service.Processing
 {
     public class FFmpegService : IFFmpegService
     {
-        public async Task RunFFmpegHlsAsync(string inputPath, string outputDir, CancellationToken token)
+        public async Task<IReadOnlyList<SubtitleFile>> RunFFmpegHlsAsync(string inputPath, string outputDir, CancellationToken token)
         {
             if (!File.Exists(inputPath))
             {
                 throw new FileNotFoundException("Video source is missing.");
             }
+
+            // Validate every required text track before spending time on video.
+            // Unsupported/damaged tracks stop the job, retaining its staged source.
+            var subtitles = await new TextSubtitleExtractor().ExtractAsync(inputPath, outputDir, token);
 
             // Probe input resolution and audio
             var (sourceWidth, sourceHeight) = await ProbeResolutionAsync(inputPath, token);
@@ -59,7 +63,7 @@ namespace NetFilmx_Service.Processing
             for (int i = 0; i < variants.Count; i++)
             {
                 var v = variants[i];
-                args.Append($"-map \"[v{i}out]\" -c:v:{i} libx264 -threads:v:{i} 2 -preset fast -crf 23 -b:v:{i} {v.BitrateK}k -maxrate:v:{i} {v.MaxRateK}k -bufsize:v:{i} {v.BufSizeK}k ");
+                args.Append($"-map \"[v{i}out]\" -c:v:{i} libx264 -pix_fmt:v:{i} yuv420p -threads:v:{i} 2 -preset fast -crf 23 -b:v:{i} {v.BitrateK}k -maxrate:v:{i} {v.MaxRateK}k -bufsize:v:{i} {v.BufSizeK}k ");
             }
 
             // Audio mapping
@@ -88,6 +92,7 @@ namespace NetFilmx_Service.Processing
             var result = await MediaProcess.RunAsync("ffmpeg", args.ToString(), TimeSpan.FromMinutes(30), token);
             if (result.ExitCode != 0 || !File.Exists(Path.Combine(outputDir, "master.m3u8")))
                 throw new IOException("Video conversion failed or produced no master playlist.");
+            return subtitles;
         }
 
         private async Task<(int width, int height)> ProbeResolutionAsync(string inputPath, CancellationToken token)
