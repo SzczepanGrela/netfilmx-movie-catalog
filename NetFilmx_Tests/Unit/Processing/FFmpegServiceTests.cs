@@ -6,6 +6,35 @@ namespace NetFilmx_Tests.Unit.Processing;
 
 public class FFmpegServiceTests
 {
+    [Fact]
+    public async Task TheoraFinalStill_ContinuesThroughOriginalContainerEnding()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "netfilmx-theora-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            string input = Path.Combine(directory, "source.ogv"), output = Path.Combine(directory, "hls");
+            var generated = await MediaProcess.RunAsync("ffmpeg", ["-v", "error", "-nostdin", "-f", "lavfi", "-i",
+                "testsrc2=s=160x90:r=12:d=2", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=3.3",
+                "-c:v", "libtheora", "-threads", "1", "-c:a", "libvorbis", input], TimeSpan.FromSeconds(10), CancellationToken.None);
+            Assert.Equal(0, generated.ExitCode);
+            var service = new FFmpegService();
+            using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            var plan = await service.PlanAsync(input, output, stop.Token);
+            Assert.InRange(plan.HoldLastFrameUntil!.Value, 3.29, 3.31);
+            await service.RunFFmpegHlsAsync(input, output, stop.Token);
+            var lines = await File.ReadAllLinesAsync(Path.Combine(output, "stream_0.m3u8"), stop.Token);
+            double total = lines.Where(l => l.StartsWith("#EXTINF:")).Sum(l => double.Parse(l[8..].TrimEnd(','), CultureInfo.InvariantCulture));
+            Assert.InRange(total, 3.2, 3.4);
+            var video = await MediaProcess.RunAsync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries",
+                "stream=duration", "-of", "json", Path.Combine(output, "stream_0_data000.ts")], TimeSpan.FromSeconds(5), stop.Token);
+            using var probe = JsonDocument.Parse(video.Output);
+            double duration = double.Parse(probe.RootElement.GetProperty("streams")[0].GetProperty("duration").GetString()!, CultureInfo.InvariantCulture);
+            Assert.InRange(duration, 3.2, 3.4);
+        }
+        finally { Directory.Delete(directory, true); }
+    }
+
     [Theory]
     [InlineData(1920, 818, 3)]
     [InlineData(862, 360, 3)]

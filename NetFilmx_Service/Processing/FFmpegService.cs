@@ -1,10 +1,10 @@
 using System.Globalization;
-using System.Text.RegularExpressions;
+using System.Text.Json;
 
 namespace NetFilmx_Service.Processing;
 
 public sealed record HlsVariant(string Name, int Width, int Height, int BitrateK, int MaxRateK, int BufSizeK, int AudioBitrateK);
-public sealed record HlsEncodingPlan(int SourceWidth, int SourceHeight, bool HasAudio,
+public sealed record HlsEncodingPlan(int SourceWidth, int SourceHeight, bool HasAudio, double? HoldLastFrameUntil,
     IReadOnlyList<HlsVariant> Variants, IReadOnlyList<string> Arguments);
 
 public class FFmpegService : IFFmpegService
@@ -29,11 +29,30 @@ public class FFmpegService : IFFmpegService
     {
         if (!File.Exists(inputPath)) throw new FileNotFoundException("Video source is missing.");
         var resolution = await MediaProcess.RunAsync("ffprobe", ["-protocol_whitelist", "file,pipe", "-v", "error",
-            "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=s=x:p=0", inputPath],
+            "-select_streams", "v:0", "-show_entries", "stream=width,height,codec_name:format=duration", "-of", "json", inputPath],
             TimeSpan.FromSeconds(15), token);
-        var match = Regex.Match(resolution.Output.Trim(), @"^(\d+)x(\d+)$");
-        if (resolution.ExitCode != 0 || !match.Success || !int.TryParse(match.Groups[1].Value, out int width)
-            || !int.TryParse(match.Groups[2].Value, out int height) || width < 2 || height < 2 || width > 8192 || height > 8192)
+        if (resolution.ExitCode != 0) throw new IOException("Video probe failed.");
+        int width, height;
+        double? holdLastFrameUntil = null;
+        try
+        {
+            using var document = JsonDocument.Parse(resolution.Output);
+            var stream = document.RootElement.GetProperty("streams")[0];
+            width = stream.GetProperty("width").GetInt32(); height = stream.GetProperty("height").GetInt32();
+            // Theora can end in zero-byte repeat packets not emitted as decoded frames.
+            // HLS EXTINF follows video, so retain that final still through the source end.
+            if (stream.GetProperty("codec_name").GetString() == "theora")
+            {
+                string? raw = document.RootElement.GetProperty("format").GetProperty("duration").GetString();
+                if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double duration)
+                    || !double.IsFinite(duration) || duration <= 0 || duration > 86400)
+                    throw new IOException("Theora requires a bounded source duration to preserve its ending.");
+                holdLastFrameUntil = duration;
+            }
+        }
+        catch (Exception error) when (error is JsonException or InvalidOperationException or KeyNotFoundException or IndexOutOfRangeException)
+        { throw new IOException("Invalid video probe.", error); }
+        if (width < 2 || height < 2 || width > 8192 || height > 8192)
             throw new IOException("Unsupported video dimensions or failed probe.");
         var audio = await MediaProcess.RunAsync("ffprobe", ["-protocol_whitelist", "file,pipe", "-v", "error",
             "-select_streams", "a:0", "-show_entries", "stream=channels", "-of", "csv=p=0", inputPath],
@@ -44,7 +63,8 @@ public class FFmpegService : IFFmpegService
         var args = new List<string> { "-nostdin", "-v", "error", "-threads", "2", "-filter_complex_threads", "1",
             "-protocol_whitelist", "file,pipe", "-y", "-i", inputPath };
         if (!hasAudio) args.AddRange(["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]);
-        string split = $"[0:v:0]split={variants.Count}" + string.Concat(Enumerable.Range(0, variants.Count).Select(i => $"[v{i}]"));
+        string hold = holdLastFrameUntil.HasValue ? "tpad=stop_mode=clone:stop=-1," : "";
+        string split = $"[0:v:0]{hold}split={variants.Count}" + string.Concat(Enumerable.Range(0, variants.Count).Select(i => $"[v{i}]"));
         // scale preserves input display aspect ratio through SAR, including even-pixel rounding.
         // No padding, cropping or enlarged canvas.
         string scales = string.Join(';', variants.Select((v, i) => $"[v{i}]scale={v.Width}:{v.Height}:flags=lanczos[v{i}out]"));
@@ -62,12 +82,13 @@ public class FFmpegService : IFFmpegService
         for (int i = 0; i < variants.Count; i++)
             args.AddRange(["-map", hasAudio ? "0:a:0" : "1:a:0", $"-c:a:{i}", "aac",
                 $"-b:a:{i}", $"{variants[i].AudioBitrateK}k", $"-ac:a:{i}", "2", $"-ar:a:{i}", "48000"]);
+        if (holdLastFrameUntil.HasValue) args.AddRange(["-t", holdLastFrameUntil.Value.ToString("R", CultureInfo.InvariantCulture)]);
         args.AddRange(["-f", "hls", "-hls_time", SegmentSeconds.ToString(CultureInfo.InvariantCulture),
             "-hls_playlist_type", "vod", "-hls_flags", "independent_segments+temp_file", "-hls_segment_type", "mpegts",
             "-hls_segment_filename", Path.Combine(outputDir, "stream_%v_data%03d.ts"), "-master_pl_name", "master.m3u8",
             "-var_stream_map", string.Join(' ', Enumerable.Range(0, variants.Count).Select(i => $"v:{i},a:{i}")),
             Path.Combine(outputDir, "stream_%v.m3u8")]);
-        return new(width, height, hasAudio, variants, args);
+        return new(width, height, hasAudio, holdLastFrameUntil, variants, args);
     }
 
     public static IReadOnlyList<HlsVariant> GetAdaptiveVariants(int sourceWidth, int sourceHeight)
