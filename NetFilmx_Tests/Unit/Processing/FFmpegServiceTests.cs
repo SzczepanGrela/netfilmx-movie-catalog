@@ -27,10 +27,11 @@ public class FFmpegServiceTests
             double total = lines.Where(l => l.StartsWith("#EXTINF:")).Sum(l => double.Parse(l[8..].TrimEnd(','), CultureInfo.InvariantCulture));
             Assert.InRange(total, 3.2, 3.4);
             var video = await MediaProcess.RunAsync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries",
-                "stream=duration", "-of", "json", Path.Combine(output, "stream_0_data000.ts")], TimeSpan.FromSeconds(5), stop.Token);
+                "stream=duration,display_aspect_ratio", "-of", "json", Path.Combine(output, "stream_0_data000.ts")], TimeSpan.FromSeconds(5), stop.Token);
             using var probe = JsonDocument.Parse(video.Output);
             double duration = double.Parse(probe.RootElement.GetProperty("streams")[0].GetProperty("duration").GetString()!, CultureInfo.InvariantCulture);
             Assert.InRange(duration, 3.2, 3.4);
+            Assert.Equal("16:9", probe.RootElement.GetProperty("streams")[0].GetProperty("display_aspect_ratio").GetString());
         }
         finally { Directory.Delete(directory, true); }
     }

@@ -63,7 +63,9 @@ public class FFmpegService : IFFmpegService
         var args = new List<string> { "-nostdin", "-v", "error", "-threads", "2", "-filter_complex_threads", "1",
             "-protocol_whitelist", "file,pipe", "-y", "-i", inputPath };
         if (!hasAudio) args.AddRange(["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]);
-        string hold = holdLastFrameUntil.HasValue ? "tpad=stop_mode=clone:stop=-1," : "";
+        // Legacy Theora may omit SAR. Treat only an unspecified SAR as square,
+        // retaining explicit anamorphic metadata before proportional scaling.
+        string hold = holdLastFrameUntil.HasValue ? "setsar='if(gt(sar,0),sar,1)',tpad=stop_mode=clone:stop=-1," : "";
         string split = $"[0:v:0]{hold}split={variants.Count}" + string.Concat(Enumerable.Range(0, variants.Count).Select(i => $"[v{i}]"));
         // scale preserves input display aspect ratio through SAR, including even-pixel rounding.
         // No padding, cropping or enlarged canvas.
