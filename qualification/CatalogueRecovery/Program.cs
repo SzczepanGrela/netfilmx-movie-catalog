@@ -51,7 +51,10 @@ internal static class Entry
                         Require(actual.VideoUrl == new Uri(origin, expected.PlaybackObjectKey!).AbsoluteUri
                             && actual.ThumbnailUrl == new Uri(origin, expected.PosterObjectKey).AbsoluteUri
                             && actual.BackdropUrl == (expected.BackdropObjectKey is null ? null : new Uri(origin, expected.BackdropObjectKey).AbsoluteUri), "Real media mapping");
-                        Require(actual.Price == expected.Price && actual.Subtitles.Count == (expected.Subtitles?.Length ?? 0), "Preserved metadata");
+                        Require(actual.Price == expected.Price && actual.Description == expected.Description && actual.ReleaseYear == expected.ReleaseYear
+                            && actual.Subtitles.Count == (expected.Subtitles?.Length ?? 0), "Preserved metadata");
+                        Require(actual.Series.Count == (expected.SeriesSlug is null ? 0 : 1)
+                            && (expected.SeriesSlug is null || actual.Series.Single().Name == plan.Series.Single(s => s.Slug == expected.SeriesSlug).Name), "Episode membership");
                         foreach (var track in expected.Subtitles ?? [])
                         {
                             var saved = actual.Subtitles.Single(s => s.TrackKey == track.TrackKey);
@@ -60,7 +63,8 @@ internal static class Entry
                         }
                     }
                     Console.WriteLine(JsonSerializer.Serialize(new { videos = 7, series = 1, episode_links = 3, subtitles = 10,
-                        mappings = videos.Select(v => new { v.Id, v.Title, v.VideoUrl, subtitles = v.Subtitles.Count }) }));
+                        mappings = videos.Select(v => new { v.Id, v.Title, v.VideoUrl,
+                            subtitles = v.Subtitles.OrderBy(s => s.Position).Select(s => new { s.Id, s.VideoId, s.TrackKey, s.Language, s.Label, s.Url, s.Position }) }) }));
                     break;
                 case "import-fixture":
                     await CatalogueImporter.ImportAsync(db, fixture, MediaOrigin, deadline.Token);

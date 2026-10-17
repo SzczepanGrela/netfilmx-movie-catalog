@@ -85,6 +85,8 @@ def main():
             raise recovery.Failure("Repeat import changed catalogue")
         h.result["repeatRefusedWithoutChanges"] = True
         h.result["emptyHistory"] = json.loads(h.cli(h.tools, runtime, "counts").stdout)
+        if h.result["emptyHistory"] != dict(videos=7, series=1, episode_links=3, users=0, sessions=0, comments=0, likes=0, purchases=0, upload_intents=0):
+            raise recovery.Failure("Fresh import introduced accounts/history/upload intents")
         h.phase("Real CLI migration/import: 7 films, 1 series, 3 links, 10 mapped subtitles; repeat refused")
 
         tls = out / "tls"; tls.mkdir(mode=0o700)
@@ -108,6 +110,9 @@ def main():
             "--no-healthcheck", "--publish", "127.0.0.1:443:8443", "--mount", f"type=volume,source={certs},target=/tls,readonly",
             "--env", "Qualification__SingleInstance=true", "--env", "Qualification__GatewayHost="+app.hostname, h.tools, "gateway"], network=h.ingress_network)
         h.docker("network", "connect", h.network, gateway_cid)
+        bindings = json.loads(h.docker("inspect", "--format", '{{json (index .NetworkSettings.Ports "8443/tcp")}}', gateway_cid).stdout)
+        if bindings != [{"HostIp": "127.0.0.1", "HostPort": "443"}]:
+            raise recovery.Failure("Gateway is not exclusively bound to loopback:443")
         gateway_ip = h.docker("inspect", "--format", '{{with index .NetworkSettings.Networks "'+h.network+'"}}{{.IPAddress}}{{end}}', gateway_cid).stdout.decode().strip()
         keys = h.private_volume("keys")
         web_env = h.env("web", {"ConnectionStrings__DefaultConnection": h.connection(pg), "CloudflareR2__PublicUrl": args.media_origin,
@@ -143,6 +148,10 @@ def main():
         config = {**executable, "output": str(out), "hosts": str(out/"hosts"), "nsswitch": str(out/"nsswitch"), "nss": str(nss), "ca": str(tls/"ca.pem"),
             "origin": args.app_origin, "mediaOrigin": args.media_origin, "image": info, "catalogue": before}
         config_path = out/"browser-config.json"; config_path.write_text(json.dumps(config, indent=2))
+        h.result["localOriginSetup"] = dict(bindings=bindings, appHostname=app.hostname, mediaDns="unchanged public DNS",
+            hostsFile=str(out/"hosts"), caPemSha256=hashlib.sha256((tls/"ca.pem").read_bytes()).hexdigest(),
+            privateMountNamespace=True, privateNssTrust=True, ignoreHttpErrors=False, browserRequestInterception=False,
+            forgedMediaHeaders=False, remoteProviderChanges=False)
         for engine in ["chromium", "firefox"]:
             wrapper = out/(engine+"-wrapper")
             wrapper.write_text("#!/bin/sh\nexec python3 "+shlex.quote(str(ROOT/"qualification/browser_namespace.py"))+" "+shlex.quote(str(config_path))+" "+engine+' "$@"\n')
