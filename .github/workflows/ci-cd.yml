@@ -65,6 +65,10 @@ jobs:
           python3 infra/prepare-subtitle-publication.py --help >/dev/null
           node qualification/media-browser.cjs --help >/dev/null
           node qualification/subtitles-browser.cjs --help >/dev/null
+          python3 qualification/retained_hls.py --help >/dev/null
+          python3 qualification/hls_package.py --help >/dev/null
+          python3 qualification/hls_preview.py --help >/dev/null
+          node qualification/hls_browser.cjs --help >/dev/null
       - name: Install native media tools
         run: |
           sudo apt-get update
@@ -73,12 +77,14 @@ jobs:
         run: |
           dotnet restore "ST2 NetFilmx.sln" --locked-mode --force
           dotnet restore qualification/Subtitles/Subtitles.csproj --locked-mode
+          dotnet restore qualification/HlsCatalogue/HlsCatalogue.csproj --locked-mode
       - name: Build and test
         env:
           NETFILMX_TEST_POSTGRES: Host=localhost;Database=netfilmx_test;Username=netfilmx_test;Password=local-ci-test
         run: |
           dotnet build "ST2 NetFilmx.sln" --no-restore -c Release
           dotnet build qualification/Subtitles/Subtitles.csproj --no-restore -c Release
+          dotnet build qualification/HlsCatalogue/HlsCatalogue.csproj --no-restore -c Release
           dotnet test "ST2 NetFilmx.sln" --no-build -c Release --logger "trx;LogFileName=tests.trx" --results-directory artifacts/test-results
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()

@@ -1,12 +1,21 @@
 const player = document.getElementById('main-video-player');
 if (player) {
     player.addEventListener('provider-change', event => {
-        if (event.detail?.type === 'hls') event.detail.library = '/lib/hls.js/dist/hls.min.js';
+        if (event.detail?.type === 'hls') {
+            event.detail.library = '/lib/hls.js/dist/hls.min.js';
+            // Bound VOD prefetch and retained history instead of buffering an
+            // entire short film before the first quality change/seek.
+            event.detail.config = {...event.detail.config,
+                maxBufferLength: 30, maxMaxBufferLength: 30, backBufferLength: 30};
+        }
     });
     const status = document.getElementById('subtitle-status');
     const observed = new WeakSet();
     const failed = new WeakSet();
     customElements.whenDefined('media-player').then(() => {
+        // Keep the playing fragment while changing HLS quality. Flushing the
+        // whole buffer can race a seek and end Chromium playback prematurely.
+        player.qualities.switch = 'next';
         const update = () => {
             const selected = player.textTracks.selected;
             if (status) status.hidden = !selected || (selected.readyState !== 3 && !failed.has(selected));
