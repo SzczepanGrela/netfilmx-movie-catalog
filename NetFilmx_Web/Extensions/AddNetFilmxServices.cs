@@ -1,5 +1,6 @@
 using NetFilmx_Storage.Context;
 using NetFilmx_Storage.Repositories;
+using NetFilmx_Service.Security;
 
 namespace NetFilmx_Web.Extensions
 {
@@ -20,7 +21,18 @@ namespace NetFilmx_Web.Extensions
             serviceCollection.AddTransient<IUserSessionRepository, UserSessionRepository>();
             serviceCollection.AddTransient<IWalletTransactionRepository, WalletTransactionRepository>();
 
+            serviceCollection.AddSingleton<NetFilmx_Web.Security.MediaReferencePolicy>();
 
+            serviceCollection.AddTransient<IPasswordHasher, Argon2idPasswordHasher>();
+            serviceCollection.AddTransient<IJwtTokenService, JwtTokenService>();
+            serviceCollection.AddTransient<ISessionService, SessionService>();
+
+            serviceCollection.AddTransient<NetFilmx_Service.Storage.ICloudStorageService, NetFilmx_Service.Storage.R2StorageService>();
+            serviceCollection.AddTransient<NetFilmx_Service.Processing.IFFmpegService, NetFilmx_Service.Processing.FFmpegService>();
+            serviceCollection.AddTransient<NetFilmx_Service.Processing.VideoProcessingJob>();
+
+            serviceCollection.AddSingleton<NetFilmx_Service.Search.ISearchEngine, NetFilmx_Service.Search.QwertySearchEngine>();
+            serviceCollection.AddHostedService<NetFilmx_Web.Services.SearchIndexWarmupService>();
 // DbContext is configured in Program.cs
             /*  serviceCollection.AddDbContext<NetFilmxDbContext>(options =>
           options.UseSqlServer("Server=ACER_NITRO_5;Database=NetFilmxDb_projekt_test;Trusted_Connection=True;TrustServerCertificate=True",

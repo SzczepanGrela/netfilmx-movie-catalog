@@ -1,0 +1,31 @@
+@model IEnumerable<NetFilmx_Service.Dtos.Tag.TagListDto>
+
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h1 class="mb-0">Dodaj tagi do filmu: @ViewBag.VideoName</h1>
+        </div>
+        <div class="card-body">
+            @if (!Model.Any())
+            {
+                <p>Brak tagów do dodania</p>
+            }
+            else
+            {
+                <form asp-action="AddTags" method="post">
+                    <input type="hidden" name="videoId" value="@ViewBag.VideoId" />
+                    <div class="list-group">
+                        @foreach (var tag in Model)
+                        {
+                            <label class="list-group-item admin-label">
+                                <input type="checkbox" name="tagIds" value="@tag.Id" />
+                                @tag.Name
+                            </label>
+                        }
+                    </div>
+                    <button type="submit" class="nfx-btn nfx-btn-primary mt-3" data-i18n="t_dodaj_wybrane_tagi">Dodaj wybrane tagi</button>
+                </form>
+            }
+        </div>
+    </div>
+</div>

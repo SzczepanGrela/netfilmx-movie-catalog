@@ -15,16 +15,17 @@ namespace NetFilmx_Storage.Entities
             SeriesPurchases = new List<SeriesPurchase>();
             Sessions = new List<UserSession>();
             WalletTransactions = new List<WalletTransaction>();
+            BundlePurchases = new List<BundlePurchase>();
         }
 
-        public User(string username, string email, string password, UserRole role = UserRole.User) : this()
+        public User(string username, string email, string passwordHash, UserRole role = UserRole.User) : this()
         {
             Username = username;
             Email = email;
-            SetPassword(password);
+            PasswordHash = passwordHash;
             Role = role;
-            CreatedAt = DateTime.Now;
-            UpdatedAt = DateTime.Now;
+            CreatedAt = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         [Required]
@@ -73,20 +74,13 @@ namespace NetFilmx_Storage.Entities
 
         public virtual ICollection<WalletTransaction> WalletTransactions { get; set; }
 
+        public virtual ICollection<BundlePurchase> BundlePurchases { get; set; }
+
         [NotMapped]
         public IEnumerable<Video> CommentedVideos => Comments.Select(c => c.Video);
 
         [NotMapped]
         public IEnumerable<Video> LikedVideos => Likes.Select(l => l.Video);
 
-        public void SetPassword(string password)
-        {
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
-        }
-
-        public bool VerifyPassword(string password)
-        {
-            return BCrypt.Net.BCrypt.Verify(password, PasswordHash);
-        }
     }
 }

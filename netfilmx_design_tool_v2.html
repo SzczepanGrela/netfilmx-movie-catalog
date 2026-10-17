@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetFilmx - Zaawansowane Propozycje UI</title>
+    <style>
+        :root {
+            --bg: #09090b;
+            --surf: #18181b;
+            --surf-hover: #27272a;
+            --acc: #3b82f6;
+            --txt: #f8fafc;
+            --mut: #94a3b8;
+            --rad: 16px;
+            --font: 'Inter', system-ui, sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: var(--txt);
+            font-family: var(--font);
+            overflow-x: hidden;
+        }
+
+        /* Nav */
+        .header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to bottom, rgba(9,9,11,0.95), transparent);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+        .nav-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 99px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.15); }
+        .nav-btn.active { background: var(--acc); border-color: var(--acc); }
+
+        .layout-container { display: none; min-height: 100vh; padding-bottom: 100px; }
+        .layout-container.active { display: block; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Generic utilities */
+        .section-title { font-size: 32px; font-weight: 800; margin: 60px 40px 30px 40px; letter-spacing: -1px; }
+        .tag { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+
+        /* =========================================================
+           A: EDITORIAL (Magazyn)
+           Duże przestrzenie, horyzontalne bloki, ogromna typografia
+           ========================================================= */
+        .ed-hero { height: 90vh; position: relative; display: flex; align-items: flex-end; padding: 80px 40px; }
+        .ed-hero video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; opacity: 0.5; }
+        .ed-hero-gradient { position: absolute; inset: 0; background: linear-gradient(to top, var(--bg) 0%, transparent 100%); z-index: -1; }
+        .ed-title { font-size: 96px; font-weight: 900; margin: 0 0 20px 0; letter-spacing: -3px; line-height: 1; }
+        
+        .ed-bundle-row { display: flex; padding: 0 40px; gap: 40px; margin-top: 40px; }
+        .ed-bundle-card { flex: 1; height: 500px; border-radius: var(--rad); position: relative; overflow: hidden; display: flex; align-items: flex-end; padding: 40px; cursor: pointer; transition: 0.4s; }
+        .ed-bundle-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; transition: 0.6s; }
+        .ed-bundle-card:hover img { transform: scale(1.05); }
+        .ed-bundle-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); z-index: -1; }
+        .ed-bundle-card:hover { box-shadow: 0 20px 40px rgba(0,0,0,0.5); transform: translateY(-10px); }
+
+        .ed-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; padding: 0 40px; }
+        .ed-poster { aspect-ratio: 2/3; border-radius: var(--rad); object-fit: cover; width: 100%; margin-bottom: 15px; transition: 0.3s; }
+        .ed-item:hover .ed-poster { transform: scale(1.03); box-shadow: 0 15px 30px rgba(0,0,0,0.4); }
+
+        /* =========================================================
+           B: BENTO BOX
+           Asymetryczna siatka odkrywania, różne rozmiary
+           ========================================================= */
+        .bento-wrapper { padding: 120px 40px 40px 40px; max-width: 1600px; margin: 0 auto; }
+        .bento-grid { display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 300px; gap: 20px; }
+        
+        .bento-item { background: var(--surf); border-radius: calc(var(--rad) * 1.5); position: relative; overflow: hidden; cursor: pointer; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .bento-item img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: 0.6s; opacity: 0.8; }
+        .bento-item:hover img { transform: scale(1.08); opacity: 0.4; }
+        .bento-item::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%); pointer-events: none; }
+        
+        .bento-content { position: absolute; bottom: 0; left: 0; right: 0; padding: 30px; z-index: 2; transition: 0.3s; }
+        .bento-item:hover .bento-content { transform: translateY(-10px); }
+        .bento-item:hover { box-shadow: 0 20px 50px rgba(0,0,0,0.6); z-index: 10; transform: scale(1.02); border: 2px solid rgba(255,255,255,0.1); }
+        
+        .b-hero { grid-column: span 2; grid-row: span 2; }
+        .b-wide { grid-column: span 2; grid-row: span 1; }
+        .b-tall { grid-column: span 1; grid-row: span 2; }
+        .b-box { grid-column: span 1; grid-row: span 1; }
+
+        /* =========================================================
+           C: HUBY SKLEPOWE + KARUZELE
+           Przejrzysty podział i horyzontalne półki (VOD Classic)
+           ========================================================= */
+        .hub-banner { height: 60vh; position: relative; padding: 100px 40px; display: flex; flex-direction: column; justify-content: center; }
+        .hub-banner img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; opacity: 0.4; }
+        .hub-banner-gradient { position: absolute; inset: 0; background: linear-gradient(to right, var(--bg) 10%, transparent), linear-gradient(to bottom, transparent 50%, var(--bg)); z-index: -1; }
+        
+        .hub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; padding: 0 40px; margin-top: -60px; position: relative; z-index: 10; }
+        .hub-card { height: 180px; border-radius: var(--rad); background: var(--surf); display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; transition: 0.3s; border: 1px solid rgba(255,255,255,0.05); position: relative; overflow: hidden; }
+        .hub-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: 0.4s; z-index: 0; filter: grayscale(100%) brightness(0.5); }
+        .hub-card:hover img { opacity: 1; filter: grayscale(0%) brightness(0.4); }
+        .hub-card:hover { transform: translateY(-10px); border-color: var(--acc); box-shadow: 0 15px 30px rgba(59, 130, 246, 0.2); }
+        .hub-card h3 { font-size: 28px; z-index: 2; margin: 0; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
+
+        .carousel { display: flex; gap: 20px; padding: 0 40px; overflow-x: auto; padding-bottom: 20px; scrollbar-width: none; }
+        .carousel::-webkit-scrollbar { display: none; }
+        .carousel-item { min-width: 280px; transition: 0.3s; cursor: pointer; }
+        .carousel-item img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: var(--rad); margin-bottom: 10px; transition: 0.3s; }
+        .carousel-item:hover img { transform: scale(1.05); border: 2px solid var(--acc); }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div style="font-weight:900; font-size:24px; color:white; letter-spacing:-1px;">
+            NET<span style="color:var(--acc)">FILMX</span>
+        </div>
+        <div style="display:flex; gap:15px; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 99px;">
+            <button class="nav-btn active" onclick="switchLayout('editorial')">A: Magazyn (Editorial)</button>
+            <button class="nav-btn" onclick="switchLayout('bento')">B: Bento Box</button>
+            <button class="nav-btn" onclick="switchLayout('hubs')">C: Huby + Karuzele</button>
+        </div>
+    </div>
+
+    <!-- PODEJŚCIE A: EDITORIAL -->
+    <div id="layout-editorial" class="layout-container active">
+        <!-- Hero: Zestaw Promocyjny -->
+        <div class="ed-hero">
+            <!-- Niezawodne wideo z W3Schools jako tło (zastępuje puste plamy) -->
+            <video autoplay loop muted playsinline>
+                <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+            </video>
+            <div class="ed-hero-gradient"></div>
+            <div style="max-width: 800px; z-index: 10;">
+                <div class="tag" style="background: white; color: black;">Polecany Zestaw (Kolekcja)</div>
+                <h1 class="ed-title">BLENDER CLASSICS</h1>
+                <p style="font-size: 22px; color: #cbd5e1; line-height: 1.6; margin-bottom: 30px;">
+                    Zdobądź kultowe produkcje fundacji Blender w jednym pakiecie. Sintel, Big Buck Bunny i Elephants Dream zremasterowane w 4K.
+                </p>
+                <div style="display: flex; gap: 15px;">
+                    <button class="nav-btn" style="background:white; color:black; font-size:18px; padding: 16px 40px;">Kup Pakiet - 600 Kredytów</button>
+                    <button class="nav-btn" style="background:rgba(255,255,255,0.1); font-size:18px; padding: 16px 40px;">Zwiastun</button>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="section-title">Kuratorskie Zestawy</h2>
+        <div class="ed-bundle-row">
+            <div class="ed-bundle-card">
+                <!-- Niezawodne zdjęcia z Unsplash -->
+                <img src="https://images.unsplash.com/photo-1614729939124-032f0b56c9ce?auto=format&fit=crop&w=1200&q=80" alt="Sci Fi">
+                <div>
+                    <div class="tag" style="background: var(--acc); color: white;">2 Filmy</div>
+                    <h3 style="font-size: 36px; margin: 0 0 10px 0;">Sci-Fi & Cyberpunk</h3>
+                    <p style="color: var(--mut); font-size: 18px; margin:0;">Tears of Steel + Charge. Kup w zestawie taniej.</p>
+                </div>
+            </div>
+            <div class="ed-bundle-card">
+                <img src="https://images.unsplash.com/photo-1448375240586-882707b88a0f?auto=format&fit=crop&w=1200&q=80" alt="Nature">
+                <div>
+                    <div class="tag" style="background: #10b981; color: white;">Serial (3 Odc.)</div>
+                    <h3 style="font-size: 36px; margin: 0 0 10px 0;">Caminandes: Llama Drama</h3>
+                    <p style="color: var(--mut); font-size: 18px; margin:0;">Zabawne perypetie w patagońskich Andach.</p>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="section-title">Pojedyncze Filmy na Żądanie</h2>
+        <div class="ed-grid">
+            <div class="ed-item">
+                <img class="ed-poster" src="https://images.unsplash.com/photo-1605806616949-1e87b487cb2a?auto=format&fit=crop&w=600&q=80" alt="Fantasy">
+                <h3 style="margin: 0 0 5px 0;">Sintel</h3>
+                <p style="color: var(--mut); margin: 0; font-size: 14px;">Fantasy • 2010 • 150 Kredytów</p>
+            </div>
+            <div class="ed-item">
+                <img class="ed-poster" src="https://images.unsplash.com/photo-1555861496-faa64ceeb474?auto=format&fit=crop&w=600&q=80" alt="Cyberpunk">
+                <h3 style="margin: 0 0 5px 0;">Charge</h3>
+                <p style="color: var(--mut); margin: 0; font-size: 14px;">Akcja • 2022 • 200 Kredytów</p>
+            </div>
+            <div class="ed-item">
+                <img class="ed-poster" src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80" alt="Spring">
+                <h3 style="margin: 0 0 5px 0;">Spring</h3>
+                <p style="color: var(--mut); margin: 0; font-size: 14px;">Animacja • 2019 • 100 Kredytów</p>
+            </div>
+            <div class="ed-item">
+                <img class="ed-poster" src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=600&q=80" alt="Steel">
+                <h3 style="margin: 0 0 5px 0;">Tears of Steel</h3>
+                <p style="color: var(--mut); margin: 0; font-size: 14px;">Sci-Fi • 2012 • 130 Kredytów</p>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- PODEJŚCIE B: BENTO BOX -->
+    <div id="layout-bento" class="layout-container">
+        <div class="bento-wrapper">
+            <h1 style="font-weight:900; font-size:56px; margin-bottom:10px; letter-spacing: -2px;">Odkrywaj</h1>
+            <p style="color: var(--mut); font-size: 20px; margin-bottom: 40px;">Najlepsze pakiety, seriale i filmy w jednym miejscu.</p>
+            
+            <div class="bento-grid">
+                
+                <!-- Hero Bundle (Kolekcja) -->
+                <div class="bento-item b-hero">
+                    <img src="https://images.unsplash.com/photo-1614729939124-032f0b56c9ce?auto=format&fit=crop&w=1200&q=80" alt="Sci Fi Bundle">
+                    <div class="bento-content">
+                        <div class="tag" style="background: rgba(255,255,255,0.2); backdrop-filter: blur(5px);">Zestaw Promocyjny (2 Filmy)</div>
+                        <h2 style="margin:0 0 10px 0; font-size:42px;">Sci-Fi & Cyberpunk Collection</h2>
+                        <p style="color:#cbd5e1; font-size:18px; margin:0; max-width:80%;">Tears of Steel + Charge w jednej ekskluzywnej paczce.</p>
+                        <div style="margin-top: 20px; font-weight:bold; color:var(--acc); font-size: 20px;">29.99 PLN</div>
+                    </div>
+                </div>
+
+                <!-- Tall Movie -->
+                <div class="bento-item b-tall">
+                    <img src="https://images.unsplash.com/photo-1605806616949-1e87b487cb2a?auto=format&fit=crop&w=600&q=80" alt="Sintel">
+                    <div class="bento-content">
+                        <div class="tag" style="background: var(--acc);">Film</div>
+                        <h2 style="margin:0 0 5px 0; font-size:28px;">Sintel</h2>
+                        <p style="color:#94a3b8; font-size:14px; margin:0;">Fantasy • 14.99 PLN</p>
+                    </div>
+                </div>
+
+                <!-- Small Box 1 -->
+                <div class="bento-item b-box">
+                    <img src="https://images.unsplash.com/photo-1555861496-faa64ceeb474?auto=format&fit=crop&w=600&q=80" alt="Charge">
+                    <div class="bento-content">
+                        <div class="tag" style="background: #10b981;">Film</div>
+                        <h2 style="margin:0; font-size:20px;">Charge</h2>
+                    </div>
+                </div>
+                
+                <!-- Small Box 2 -->
+                <div class="bento-item b-box">
+                    <img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80" alt="Spring">
+                    <div class="bento-content">
+                        <div class="tag" style="background: #8b5cf6;">Film</div>
+                        <h2 style="margin:0; font-size:20px;">Spring</h2>
+                    </div>
+                </div>
+
+                <!-- Wide Series -->
+                <div class="bento-item b-wide">
+                    <img src="https://images.unsplash.com/photo-1448375240586-882707b88a0f?auto=format&fit=crop&w=1200&q=80" alt="Caminandes">
+                    <div class="bento-content">
+                        <div class="tag" style="background: #f59e0b;">Pełny Serial</div>
+                        <h2 style="margin:0 0 5px 0; font-size:32px;">Caminandes (Sezon 1)</h2>
+                        <p style="color:#e2e8f0; font-size:16px; margin:0;">Obejrzyj 3 odcinki przygód Lamy.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+    <!-- PODEJŚCIE C: HUBY SKLEPOWE + KARUZELE -->
+    <div id="layout-hubs" class="layout-container">
+        <div class="hub-banner">
+            <img src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=1600&q=80" alt="Movie Theatre">
+            <div class="hub-banner-gradient"></div>
+            <div style="z-index: 10; max-width: 600px;">
+                <h1 style="font-size: 56px; font-weight: 900; margin: 0 0 10px 0; letter-spacing: -2px;">Witaj w NetFilmx</h1>
+                <p style="font-size: 20px; color: var(--mut); margin: 0;">Twój uniwersalny sklep z otwartymi produkcjami. Wybierz sekcję, aby rozpocząć przeglądanie.</p>
+            </div>
+        </div>
+
+        <!-- 3 Główne Huby -->
+        <div class="hub-grid">
+            <div class="hub-card">
+                <img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80" alt="Filmy">
+                <h3>FILMY</h3>
+            </div>
+            <div class="hub-card">
+                <img src="https://images.unsplash.com/photo-1448375240586-882707b88a0f?auto=format&fit=crop&w=800&q=80" alt="Seriale">
+                <h3>SERIALE</h3>
+            </div>
+            <div class="hub-card">
+                <img src="https://images.unsplash.com/photo-1614729939124-032f0b56c9ce?auto=format&fit=crop&w=800&q=80" alt="Zestawy">
+                <h3 style="color: var(--acc);">ZESTAWY (SALE)</h3>
+            </div>
+        </div>
+
+        <h2 class="section-title" style="margin-top: 80px;">Popularne Filmy</h2>
+        <div class="carousel">
+            <div class="carousel-item">
+                <img src="https://images.unsplash.com/photo-1605806616949-1e87b487cb2a?auto=format&fit=crop&w=600&q=80" alt="Sintel">
+                <h4 style="margin:0 0 5px 0;">Sintel</h4>
+                <div style="color:var(--mut); font-size:14px;">14.99 PLN</div>
+            </div>
+            <div class="carousel-item">
+                <img src="https://images.unsplash.com/photo-1555861496-faa64ceeb474?auto=format&fit=crop&w=600&q=80" alt="Charge">
+                <h4 style="margin:0 0 5px 0;">Charge</h4>
+                <div style="color:var(--mut); font-size:14px;">19.99 PLN</div>
+            </div>
+            <div class="carousel-item">
+                <img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80" alt="Spring">
+                <h4 style="margin:0 0 5px 0;">Spring</h4>
+                <div style="color:var(--mut); font-size:14px;">9.99 PLN</div>
+            </div>
+            <div class="carousel-item">
+                <img src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=600&q=80" alt="Tears">
+                <h4 style="margin:0 0 5px 0;">Tears of Steel</h4>
+                <div style="color:var(--mut); font-size:14px;">12.99 PLN</div>
+            </div>
+        </div>
+
+        <h2 class="section-title">Najlepiej sprzedające się zestawy</h2>
+        <div class="carousel">
+            <div class="carousel-item" style="min-width: 400px;">
+                <img src="https://images.unsplash.com/photo-1614729939124-032f0b56c9ce?auto=format&fit=crop&w=800&q=80" alt="Bundle 1" style="border: 1px solid rgba(255,255,255,0.1);">
+                <h4 style="margin:0 0 5px 0; color:var(--acc);">Sci-Fi & Cyberpunk Collection</h4>
+                <div style="color:var(--mut); font-size:14px;">Kup 2 filmy i oszczędź 20% - 29.99 PLN</div>
+            </div>
+            <div class="carousel-item" style="min-width: 400px;">
+                <img src="https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?auto=format&fit=crop&w=800&q=80" alt="Bundle 2" style="border: 1px solid rgba(255,255,255,0.1);">
+                <h4 style="margin:0 0 5px 0; color:var(--acc);">Blender Classics (4K)</h4>
+                <div style="color:var(--mut); font-size:14px;">Zestaw 3 klasycznych filmów - 59.99 PLN</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchLayout(layoutId) {
+            document.querySelectorAll('.layout-container').forEach(el => el.classList.remove('active'));
+            document.getElementById('layout-' + layoutId).classList.add('active');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

@@ -1,35 +1,30 @@
-﻿@{
-    ViewBag.Title = "Error";
-    var errorMessage = ViewBag.ErrorMessage ?? "An unexpected error occurred.";
+@{
+    ViewBag.Title = "Wystąpił błąd";
+    var errorMessage = ViewBag.ErrorMessage ?? "Wystąpił nieoczekiwany błąd.";
     var errors = ViewBag.Errors as List<string>;
 }
 
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <title>@ViewBag.Title</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-</head>
-<body>
-    <div class="container mt-5">
-        <h1 class="mb-4">Error</h1>
-
-        <div class="alert alert-danger" role="alert">
-            <p>@errorMessage</p>
+<div class="nfx-section" style="margin-top: 100px; min-height: calc(100vh - 300px); display: flex; align-items: center; justify-content: center;">
+    <div style="background: rgba(10, 17, 40, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(220, 53, 69, 0.3); border-radius: var(--border-radius); padding: 3rem; max-width: 600px; width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <i class="fas fa-exclamation-triangle" style="font-size: 4rem; color: #ff6b6b; margin-bottom: 1.5rem;"></i>
+        <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 1rem; color: #ff6b6b;">Oops! Wystąpił błąd</h1>
+        
+        <div style="background: rgba(220, 53, 69, 0.1); border-left: 4px solid #ff6b6b; padding: 1rem; margin-bottom: 2rem; text-align: left; border-radius: 4px;">
+            <p style="margin: 0; color: #e5e5e5; font-weight: 500;">@errorMessage</p>
         </div>
 
         @if (errors != null && errors.Count > 0)
         {
-            <ul class="list-group mb-4">
+            <ul style="list-style: none; padding: 0; margin-bottom: 2rem; text-align: left;">
                 @foreach (var error in errors)
                 {
-                    <li class="list-group-item list-group-item-danger">@error</li>
+                    <li style="color: #ff6b6b; margin-bottom: 0.5rem; font-size: 0.9rem;">
+                        <i class="fas fa-times-circle" style="margin-right: 0.5rem; opacity: 0.8;"></i>@error
+                    </li>
                 }
             </ul>
         }
 
-        <a href="@Url.Action("Index", "Home")" class="btn btn-primary">Back to Home</a>
+        <a href="@Url.Action("Index", "Home")" class="nfx-btn nfx-btn-primary" style="padding: 0.6rem 1.5rem;" data-i18n="t_wroc_na_strone_glowna">Wróć na stronę główną</a>
     </div>
-</body>
-</html>
+</div>

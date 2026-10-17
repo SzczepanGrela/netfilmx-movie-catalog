@@ -5,6 +5,7 @@ namespace NetFilmx_Storage.Entities
         TopUp = 0,
         VideoPurchase = 1,
         SeriesPurchase = 2,
-        Refund = 3
+        Refund = 3,
+        BundlePurchase = 4
     }
 }

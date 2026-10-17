@@ -3,7 +3,7 @@
     public class VideoDetailsDto : IVideoDto
     {
 
-        public VideoDetailsDto(int id, string title, string description, string videoUrl, string thumbnailUrl, decimal price, DateTime createdAt, DateTime updatedAt)
+        public VideoDetailsDto(int id, string title, string? description, string videoUrl, string thumbnailUrl, decimal price, DateTime createdAt, DateTime updatedAt)
         {
             Id = id;
             Title = title;
@@ -19,7 +19,7 @@
 
         public string Title { get; }
 
-        public string Description { get; }
+        public string? Description { get; }
 
         public string VideoUrl { get; }
 
@@ -30,6 +30,8 @@
         public DateTime CreatedAt { get; }
 
         public DateTime UpdatedAt { get; }
+        public IReadOnlyList<VideoSubtitleDto> Subtitles { get; init; } = Array.Empty<VideoSubtitleDto>();
+        public string? ProcessingError { get; init; }
 
 
     }

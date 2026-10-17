@@ -9,7 +9,7 @@ namespace NetFilmx_Service.Dtos.Series
         {
         }
 
-        public SeriesAddDto(string name, string description, decimal price)
+        public SeriesAddDto(string name, string? description, decimal price)
         {
             Name = name;
             Description = description;

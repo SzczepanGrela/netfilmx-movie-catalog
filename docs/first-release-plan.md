@@ -1,0 +1,376 @@
+# First release and data/media acceptance plan
+
+Prepared 2026-10-05; catalogue format updated 2026-10-17 by the operator's HLS scope change.
+This is a proposed sequence for review. No resource, protection rule, production
+data or R2 object has been changed. Uploads and workers remain disabled.
+
+R1 is corrected at `51e1ea1d3c56fcd7903981f81fef0dc2279bdd79`:
+[CI/CD](https://github.com/SzczepanGrela/netfilmx-movie-catalog/actions/runs/37220691661)
+and [dependency audit](https://github.com/SzczepanGrela/netfilmx-movie-catalog/actions/runs/37220691409)
+passed. Publication and deployment were skipped. The eight added release-boundary
+regressions bring the Python suite to 34; seven fail on the reviewed base.
+Coordinator accepted R1 and the preparation plan on October 12;
+[PR #1](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/1) stays a draft.
+Later media/code changes need qualification of their own SHA.
+
+## 1. Starting facts and unresolved inputs
+
+| Item | Evidence/status | Required action |
+| --- | --- | --- |
+| New data | Operator selected fresh PostgreSQL, seven retained films/episodes, new accounts and empty history | Archive legacy SQLite independently; exclude demo/YouTube rows and old user data from import |
+| Coolify app | Operator reported no NetFilmx resource; legacy SSH instances may remain | Obtain fresh scoped API/host evidence before choosing a destination or creating anything |
+| Repository gates | GitHub readback completed October 5: main unprotected, zero rulesets/environments, both activation variables absent | Coordinator/operator installs and reads back section 2 |
+| Media | Seven retained originals now target adaptive HLS; ten Sintel VTT sidecars retained. Shipping manifest remains unchanged/incomplete | Review the complete HLS packet; publish/read back before separately replacing seven playback and ten subtitle fields |
+| Stateful runtime | Code/tests implemented; production mounts, recovery and actual container overlap unaccepted | Run section 4 locally, then accept the target settings in the agreed window |
+| Recovery policy | Application backup destination, retention, recovery-point and recovery-time targets unresolved | Operator records private destination/access, cadence, retention and measured restore targets |
+| Capacity | Local catalogue hypothesis supplied October 12; production/full-film budgets unresolved | Test section 4.1 without increasing limits silently; coordinator/operator selects production budgets from evidence |
+
+### Two acceptance stages
+
+| Stage | Required before activation | Disabled functionality |
+| --- | --- | --- |
+| First catalogue release | Accepted media/credits/browser playback; PG/keyring restore; two actual web containers, session/antiforgery, recreation and resource measurements; public identity/security and protected delivery | Uploads and worker remain false; no staging, queue or encoder is activated |
+| Later upload/worker activation | Shared staging and coherent source/PG/key recovery; queue/retry/duplicate/transfer/orphan cases; actual encoder handover/forced stop; representative full-film/disk budgets and operational visibility | Both flags remain false until this separate gate passes |
+
+Catalogue preparation can proceed while the later encoder gate is open.
+Its disabled state does not waive that later acceptance.
+
+The worker owns app changes and evidence. The coordinator owns private topology,
+platform/access configuration and review records. The operator chooses content,
+recovery policy and the production window. Keep private values and full operational
+evidence in restricted, ignored artifacts; public reports contain results only.
+
+## 2. Repository, access and first-resource contract
+
+Before merge or exposing production credentials, coordinator/operator must:
+
+1. Activate a main ruleset: pull requests, resolved review threads, current
+   `Quality gate` bound to GitHub Actions, strict up-to-date status, no deletion,
+   force push or bypass actor. Record the accepted single-operator code-review
+   policy explicitly; do not invent an independent reviewer.
+2. Create `production`: required operator review, main-only deployments and no
+   administrator bypass. The accepted single-operator policy permits self-review.
+   Read back the effective ruleset and environment, including reviewer and branch
+   policy; workflow YAML and a legacy protection API 404 are insufficient evidence.
+3. Set `PRODUCTION_DEPLOY_ENABLED=false` and
+   `COOLIFY_RELEASE_CONTRACT_ACCEPTED=false`. Leave both false during main image
+   publication and bootstrap. Contract acceptance is a later reviewed action;
+   automatic promotion is the final delivery gate in section 7.
+4. Configure repository/environment-specific OIDC and the reviewed private
+   Coolify API path. Verify the actual repository/production OIDC subject, emitted
+   immutable IDs where present, tag grants and effective API access. Preserve
+   other credential consumers. Coolify release access needs read/write/deploy,
+   without root/read:sensitive; a team-scoped token is not app-only isolation.
+   Decide whether a separate team or reviewed gateway is needed.
+5. Configure `PRODUCTION_URL` and the environment secrets listed in
+   [delivery](release-delivery.md#promotion-contract). Coolify needs private GHCR
+   pull access scoped to packages read. Store credentials privately; keep builds
+   in CI and deploy the qualified image by digest.
+6. Review the initial resource contract: Docker-image build pack, GHCR repository,
+   immutable tag, HTTP 8080, no host port binding, readiness command, destination,
+   domains/network/proxy aliases, health timing, restart/stop grace, retention and
+   CPU/RAM budgets. Compare the supported API fields and read back actual mounts,
+   flags, networks, process identity and effective limits separately.
+
+The runtime is UID/GID `10001:10001`. Provision a dedicated persistent keyring
+outside `/app`, owned by that identity, directory mode `0700`, key files private.
+Every overlapping instance must mount the same directory read/write at the same
+configured path, with application discriminator `NetFilmx.Web`. Keep JWT secrets
+separate and stable. Provision staging separately only for its later acceptance;
+local filesystem locks require a single host and the same shared mount.
+
+Use a separate PostgreSQL database/role, no public DB port, reviewed major version
+and persistent storage. Separate administrative DDL credentials from the runtime
+role and test the runtime's required grants. Do not connect the new app to the
+legacy SQLite directory. Record exact trusted proxy peers and `AllowedHosts`;
+do not use broad network trust. Synthetic smoke limits do not define the budget.
+The existing custom-options parser exception remains; certify restrictions only
+from effective runtime evidence.
+
+## 3. Media provenance, derivatives and import rehearsal
+
+### Seven required records
+
+Use the [embedded manifest](../NetFilmx_Storage.PostgreSql/Catalogue/retained-media.json)
+as the proposed mapping, with [catalogue details](retained-catalogue.md) and the
+[October 13 media evidence and remaining decisions](media-review.md).
+
+| Title | Original R2 key | Current playback proposal |
+| --- | --- | --- |
+| Sintel | `videos/sintel.mkv` | New HLS master, renditions/segments + ten separate WebVTTs |
+| Tears of Steel | `videos/tears-of-steel.mp4` | New HLS master/renditions/segments |
+| Charge | `videos/charge.webm` | New HLS master/renditions/segments |
+| Elephants Dream | `videos/elephants-dream.mp4` | New HLS master/renditions/segments |
+| Caminandes: Llama Drama | `videos/caminandes-llama-drama.ogv` | New HLS master/renditions/segments |
+| Caminandes: Gran Dillama | `videos/caminandes-gran-dillama.mp4` | New HLS master/renditions/segments |
+| Caminandes: Llamigos | `videos/caminandes-llamigos.webm` | New HLS master/renditions/segments |
+
+For each title, record the original/playback/poster/backdrop identity, size,
+content type, content checksum and object version/ETag if available. An ETag is
+not necessarily a content checksum. Verify duration, codecs/tracks, opening and
+closing credits against the authoritative edition. Local MP4 filenames and
+public reachability do not establish identity or distribution rights.
+
+Collect title-specific primary evidence for licence/version, distributor,
+required attribution, modification notices and any exceptions for music,
+artwork/posters or marks. Operator accepts each proposed public use and catalogue
+presentation. Publish required notices/credits before public acceptance; retain
+full film credits. Missing evidence holds that entry and the complete import.
+
+Prepare all seven HLS presentations offline from verified retained originals,
+using the same `FFmpegService` as uploads. See [the HLS contract](retained-hls.md).
+Record encoder/version/options, source hashes, actual dimensions, variant/segment
+graphs and complete durations. Preserve aspect ratio and never upscale. First
+audio/stereo remains an explicit limitation; Sintel keeps ten unchanged VTTs.
+The two existing MP4s, their results and the former two-MP4/ten-VTT packet remain
+history; that packet and its patch are no longer the publication plan. Do not
+route catalogue preparation through the public uploader or enable its worker.
+
+**Operator actions, later:** decide content/publication acceptance, including the
+unresolved Sintel synchronization observation. Publish the exact inventory under
+new bundle-versioned keys: segments/VTTs first, media playlists next, masters last.
+Use scoped write access without deletes, preserving all original objects and
+previous derivatives. Read back identity/MIME/Range/cache/CORS for the entire HLS
+graph and sidecars. Only then separately commit the proposed seven master keys
+and ten subtitle keys and qualify the final image/import/restart. The current
+shipping manifest remains incomplete and unchanged. The operator/coordinator
+owns provider changes and the publication window; no publication is implied.
+
+The [one-time publication tool](hls-publication-tool.md) is prepared separately
+for coordinator review. Its default is local preflight; actual S3 execution needs
+the approved record hash and explicit profile/endpoint/bucket. It does not use
+the application uploader or change the immutable original packet. Execution and
+target HTTPS readback remain separately authorized actions.
+
+### Playback acceptance
+
+Local automatic checks cover the real HLS in Chromium/Firefox: variants and
+decoded quality changes, Auto, seeks, natural ending and actual Sintel sidecars/Off.
+Preserve earlier MP4/WebM/manual observations at their own artifact scope.
+The operator reduced detailed manual testing; do not request another Safari,
+VLC, device-version or full listening round. Deferred trials remain deferred.
+Sintel's perceived synchronization cause/full acceptance remains unresolved;
+HLS preparation does not tune audio or caption offsets to that impression.
+
+After an explicit publication decision, collect dated results through the real
+HTTPS origin for every playlist/segment/VTT and poster/backdrop: exact identity,
+MIME, bounded 206/Content-Range, appropriate caching/CORS, no mixed content, actual
+player quality/seeking/end/subtitle requests. Loopback fixtures do not qualify
+the target delivery or final image. Unavailable browser/device checks are not passes.
+
+### Isolated PostgreSQL rehearsal
+
+Use a disposable empty database and the exact qualified image containing the
+accepted manifest. Keep its web and workers stopped. Supply credentials through
+private environment injection; commands inside the image are:
+
+```bash
+dotnet NetFilmx_Web.dll catalogue plan
+dotnet NetFilmx_Web.dll database migrate --confirm-reviewed-migrations
+dotnet NetFilmx_Web.dll catalogue import --confirm-empty-database --confirm-reviewed-media
+```
+
+The importer needs `ConnectionStrings__DefaultConnection` and the reviewed
+`CloudflareR2__PublicUrl`, with no R2 API key. Require seven videos, one Caminandes
+series, exactly its three episode links, expected metadata/URLs, generated IDs
+and zero accounts/history/comments/purchases. Verify sequence health and all
+artwork/playback mappings. Repeat import must refuse without changing rows.
+An incomplete manifest, nonempty database or pending schema must refuse import;
+retain the existing regressions and add meaningful cases if the manifest changes.
+Then start the isolated web app with private keys and verify catalogue behavior.
+
+## 4. Local qualification in two stages
+
+### 4.1 First catalogue: PostgreSQL, keys and two web containers
+
+Use [the catalogue recovery harness](catalogue-recovery.md) with the exact image,
+disposable **persistent** PG storage and a shared private keyring. Both web
+containers run with uploads/worker/demo seeding false. The helper calls the
+candidate's byte-identical importer library with an explicitly synthetic completed
+plan; the shipped manifest and production CLI still refuse pending playback.
+
+Start with each web at 1 CPU / 512 MiB RAM+swap and PG at 1 CPU / 512 MiB RAM,
+with total RAM+swap also 512 MiB (no swap allowance). Limit each PG data directory
+to a monitored 512 MiB budget; record that this is a stop guard, not a filesystem
+quota. Do not use smoke tmpfs for the recovery source. Bound total duration to
+eight minutes, reserve at least 4 GiB available host RAM and 4 GiB free disk, and
+account for the TLS gateway and transient fixture helper in aggregate limits.
+These are local test hypotheses, not accepted VPS or full-film encoder limits.
+
+Require explicit migration, seven synthetic videos/one series/three links and
+healthy generated IDs; zero initial users/history/intents; refusal of repeat and
+account-only nonempty import without partial writes. Verify runtime CRUD/sequence
+grants, denied DDL and role capabilities. Test real HTTPS MVC/session/antiforgery
+requests across both web containers and after recreation, preserving one peer.
+Take a consistent PG dump with web writers stopped and a protected keyring copy;
+restore to a new persistent PG volume and a new key volume. Compare counts/grants
+and use pre-backup session cookies/form tokens against both restored containers.
+A different keyring must reject the old form. Report memory peaks, CPU, PIDs,
+disk, duration and cleanup; failures remain evidence and require a proposed
+budget/code correction. This scope does not certify real media or public Coolify
+rolling/rollback behavior.
+
+### 4.2 Later activation: staging, queue and encoder recovery
+
+Prepare a scoped Docker harness using the exact candidate image, disposable PG,
+private persistent keyring/staging mounts and isolated storage transport. Initially
+use mock R2; label that evidence accurately. Real provider transfer acceptance
+later requires operator-approved test keys/access. Never use production state.
+
+Before running, record proposed CPU/RAM/stop-grace limits for **both** app
+containers and PG, free disk/reserved headroom, fixture size/duration, per-case
+watchdog and stop thresholds. Start with a short bounded synthetic fixture;
+record its hash and encoder settings. Full-film/resource tests form a separate
+upload-activation gate. Unknown limits must be resolved before claiming acceptance.
+
+| Exercise | Required evidence |
+| --- | --- |
+| PG recovery | Consistent dump restored into a separate DB; migrations/counts/relations, runtime grants and application probes pass; record copy age and elapsed restore time |
+| Keyring recovery | Protected backup restored with ownership/modes; an existing MVC form cookie/token survives container recreation, two containers and isolated restoration; expired keys retained |
+| Mount identity | Effective old/new mounts refer to the same host directories; keyring/staged source survives recreation; independent rings/staging paths fail the relevant sharing checks |
+| Durable intent/queue | Source flush precedes committed intent; queue loss/reconnection and enqueue-before-job-ID crash recover; duplicate delivery publishes once and preserves current admin edits |
+| Retry/failure | Conversion/transfer errors retain the exact source identity; three configured retries and exhausted-job recovery are observed; missing source fails without fabricated playback |
+| Actual two-container handover | Two worker-enabled containers share staging/PG; one server/dispatcher and encoder owns work; orderly stop and forced owner termination transfer ownership without concurrent encoders |
+| Phase interruption | Restart/forced stop during staging, encode, transfer and result commit; committed intent/source recovers, partial/unreferenced files or objects are inventoried and retained |
+| Capacity and disk pressure | Per-container/aggregate CPU, peak memory, process count, source/work/output/orphan bytes and free disk measured; no OOM or unrelated-service interference; bounded disk-pressure case preserves recoverable state |
+
+Prepare the queue explicitly with
+`database migrate --confirm-reviewed-migrations --prepare-upload-queue` before
+enabling the local harness. Use the actual production retry/lease semantics;
+record any test-only acceleration. Do not unlink lock files. Record image SHA/ID,
+limits, fixture, timestamps, jobs/intents, owner transfer and recovery results.
+The existing two-host service test and upload-disabled image smoke remain code
+evidence, not two-container rolling acceptance.
+
+Backup coherence spans PG, keyring and staged inputs. For a recovery set with
+enabled uploads, pause the scoped writers/worker or prove an application-consistent
+snapshot procedure; a PG dump alone cannot restore missing sources. Restore into
+new isolated resources, check the pending-job/source mapping and retain orphan
+evidence. Keep keys/configuration private and separate from the DB archive.
+
+## 5. Coordinated production window: preserve legacy and prepare target
+
+Only after coordinator review and local catalogue recovery/two-web evidence,
+schedule the operator window. Disabled encoder acceptance is a later gate.
+Its private action block must name target resources, budgets, recovery package,
+stop conditions and rollback owner. Verify current provider recovery and working
+administrative access for the scoped change; unrelated deferred platform recovery
+work is not silently reopened.
+
+1. Obtain a fresh selective legacy inventory: both reported instances, running
+   image IDs/revisions, mounts, process IDs, actual SQLite files/journals and
+   writer handles. Inspect writable-layer state as well. Do not print raw
+   environment, labels, command lines, user rows or credentials. A short private
+   readback block is supplied in the worker's ignored report.
+2. Identify every writer before copying or stopping anything. Use SQLite's online
+   backup API for each confirmed DB, or pause **all identified writers** for a
+   consistent file set, preserving WAL/SHM/journal state as appropriate. A raw
+   live DB copy is insufficient. Coordinate mutable adjacent files separately;
+   an online DB backup does not snapshot them.
+3. Save retained data/assets, exact legacy image archives and configuration/key
+   recovery material privately with timestamps, permissions and inventory.
+   Produce the agreed off-host copy and restore it in isolation. Require SQLite
+   `quick_check`, record relation/count checks and pre-existing anomalies. Record
+   backup age and restore time; source backup and Coolify DB backup are separate.
+4. Retain both legacy instances/data until ownership and retention are accepted.
+   Restore any scoped writers stopped for backup on failure. Preserve the old
+   route state; no NPM reactivation or shared proxy restart is part of this plan.
+5. Create the independently reviewed Coolify/PG/keyring resource with uploads,
+   worker and demo seeding explicitly false. Read back storage/permissions,
+   trusted peers, effective limits and private recovery destinations. Leave the
+   resource stopped until its published image and offline data preparation are
+   ready. Leave the public cutover unperformed.
+
+## 6. Publish and bootstrap the initial healthy baseline
+
+After R1, media/import and the relevant recovery reviews, coordinator/operator
+may approve protected merge. With both activation flags false, main CI publishes
+the **same qualified image** and provenance/SBOM. Record actual main SHA, manifest
+digest and attestation verification; PR merge-ref qualification is not a published
+main digest. Qualify further changes rather than reusing R1's earlier CI claim.
+
+Bootstrap is an explicit operator action, separate from `infra.coolify_release`:
+
+1. Pull the published attested digest on the new destination. With the new web
+   and worker stopped, run the reviewed migration and empty-catalogue import from
+   that image against the separate PG database; validate section 3 counts.
+2. Configure the reviewed digest, persistent keyring and production-safe runtime
+   values. Start one initial Coolify deployment and retain its acknowledged UUID.
+   Track it to a known terminal state; uncertain replies/status stop mutations
+   and require readback, without blindly submitting another deployment.
+3. Verify the initial resource internally: effective image/mounts/UID/limits,
+   live/readiness, exact full revision, catalogue/assets and stable data after
+   recreation. No HTTP/workers should have run before migration/import.
+4. If internal acceptance passes, operator provides the separately reviewed HTTPS
+   test ingress without replacing the retained public route. Accept representative
+   external smoke, media and proxy behavior. Record the saved digest, OCI/public
+   revision agreement and health evidence as the first rollback baseline.
+
+Until step 4 passes there is **no accepted new-image rollback baseline**.
+Bootstrap failure leaves legacy state retained; terminate/reconcile only the new
+scoped candidate, preserve new DB/keys for diagnosis and review any retry. A
+legacy SQLite image must never be connected to the new PG database. Normal
+promotion keeps its existing healthy-baseline requirement.
+
+## 7. Delivery acceptance, public cutover and later upload activation
+
+Once bootstrap and private contract are accepted, coordinator/operator can set
+`COOLIFY_RELEASE_CONTRACT_ACCEPTED=true`, keeping automatic promotion false.
+Record effective contract/mount/access readback before exercising protected
+manual deployment on main:
+
+```bash
+gh workflow run deploy.yml --ref main \
+  -f digest="$ACCEPTED_DIGEST" \
+  -f expected_revision="$ACCEPTED_MAIN_SHA"
+```
+
+Supply the reviewed full `sha256:...` digest and 40-character main SHA in those
+two variables. This is a template for the future window, not an action already
+performed. Same-digest smoke verifies connectivity
+and the no-op path only. Actual rolling/rollback acceptance needs a distinct
+reviewed attested successor and a retained compatible healthy baseline.
+
+Require dated evidence for: an isolated unhealthy-candidate exercise with the old
+service retained and failing UUID terminated; protected positive release; controlled
+failed public smoke restoring the prior digest/revision and complete stable
+behavior; two-run serialization; and measured old/new CPU/RAM/disk overlap. Fault
+fixtures, candidate-only failure injection and stop conditions need their own
+bounded operator-reviewed block. Do not load/failure-test the VPS implicitly.
+
+Accept actual ingress: local/proxy/public health, exact client/HTTPS identity,
+forwarded-header spoof rejection, independent origin rejection, auth/write/body
+limits, antiforgery/session behavior and all seven playback/range/poster/credit
+records. Review the temporary multiplication/reset of process-local counters
+during overlap as a NetFilmx-specific policy. Other apps' exceptions do not apply.
+Keep wider unresolved edge/platform controls assigned with explicit status.
+
+After recovery and public acceptance, operator performs the reviewed cutover,
+checks the full expected revision and representative new-account flow, and
+observes the service for the agreed interval. Preserve old state/routes for the
+agreed recovery period. To enable automatic promotion, first accept the delivery
+gates, then set `PRODUCTION_DEPLOY_ENABLED=true` and observe one controlled
+Quality → protected Deploy caller with its actual OIDC identity and approval.
+Record this final caller test separately from manual dispatch.
+
+Uploads/worker remain false through the first catalogue cutover. Activation needs
+section 4.2, representative full-film/disk results, target mount/queue/provider
+recovery and rolling acceptance, orphan-retention policy and operational
+visibility. First deploy a disabled compatible image; only enable flags under
+its separately reviewed action. Warnings, i18n and useful worker/release/backup
+visibility remain tracked; broader UI modernization follows these gates.
+
+## 8. Stop and recovery decisions
+
+| Condition | Action |
+| --- | --- |
+| Active/unknown deployment, lost queue reply, runner loss or unknown cancellation | Stop mutations; read back acknowledged UUID/history, configured/running/public identity and data compatibility; coordinator/operator reconciles before one chosen recovery action |
+| Known terminal failure after accepted PG baseline | Restore only the saved compatible digest, retaining current PG, keys, staging and objects; confirm terminal recovery UUID and full baseline smoke |
+| Bootstrap failure before baseline acceptance | Preserve legacy and failed new state; no automatic legacy-image rollback into PG or competing deploy |
+| Data/source/key loss or incompatible schema/jobs | Disable scoped writes/workers; preserve affected state; restore to new isolated resources from the reviewed coherent recovery set, verify and switch only under a separate accepted recovery action |
+| Licence/identity, capacity or restore evidence missing | Hold the corresponding import/cutover/upload gate; report exactly what remains unknown |
+
+Completion evidence is a private dated acceptance record plus public-safe status:
+exact source/digest/revision, settings and mounts, data/media counts, measured
+resources/recovery, deployment UUID outcomes, retained recovery state and open
+gates. Production acceptance and cleanup cannot be inferred from green CI.

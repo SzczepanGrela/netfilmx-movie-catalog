@@ -1,0 +1,218 @@
+@model NetFilmx_Service.Dtos.Video.VideoDetailsDto
+
+@{
+    ViewData["Title"] = "Szczegóły Wideo";
+}
+
+<!-- Include Video.js for HLS playback in Admin -->
+@section Scripts {
+    <link href="https://vjs.zencdn.net/8.3.0/video-js.css" rel="stylesheet" />
+    <script src="https://vjs.zencdn.net/8.3.0/video.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var input = document.getElementById('deleteConfirmInput');
+            var btn = document.getElementById('deleteConfirmBtn');
+            if (input && btn) {
+                input.addEventListener('input', function() {
+                    if (this.value === "@Model.Title") {
+                        btn.disabled = false;
+                        btn.classList.remove('nfx-btn-secondary');
+                        btn.classList.add('nfx-btn-primary');
+                        btn.style.background = '#dc3545';
+                        btn.style.borderColor = '#dc3545';
+                    } else {
+                        btn.disabled = true;
+                        btn.classList.add('nfx-btn-secondary');
+                        btn.classList.remove('nfx-btn-primary');
+                        btn.style.background = '';
+                        btn.style.borderColor = '';
+                    }
+                });
+            }
+            
+            // Delete modal toggle
+            const openModalBtn = document.getElementById('openDeleteModal');
+            const closeModalBtn = document.getElementById('closeDeleteModal');
+            const deleteModal = document.getElementById('deleteModal');
+            
+            if(openModalBtn && closeModalBtn && deleteModal) {
+                openModalBtn.addEventListener('click', () => {
+                    deleteModal.style.display = 'block';
+                });
+                closeModalBtn.addEventListener('click', () => {
+                    deleteModal.style.display = 'none';
+                });
+            }
+        });
+    </script>
+}
+
+<style>
+    .details-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    }
+    
+    .info-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .info-list li {
+        padding: 0.8rem 0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .info-list li span:first-child {
+        color: var(--color-text-secondary);
+        font-size: 0.85rem;
+        margin-bottom: 0.2rem;
+    }
+    
+    .info-list li span:last-child {
+        font-weight: 500;
+        word-break: break-all;
+    }
+
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+        z-index: 1000;
+    }
+
+    .custom-modal {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(10, 17, 40, 0.95);
+        border: 1px solid rgba(123, 44, 191, 0.3);
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        width: 100%;
+        max-width: 500px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+</style>
+
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h4 style="margin: 0;">@Model.Title</h4>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <form asp-action="Edit" method="get" style="margin: 0;">
+                <input type="hidden" name="videoId" value="@Model.Id" />
+                <button type="submit" class="nfx-btn nfx-btn-primary"><i class="fas fa-edit"></i> Edytuj</button>
+            </form>
+            <form asp-action="Categories" method="get" style="margin: 0;">
+                <input type="hidden" name="videoId" value="@Model.Id" />
+                <input type="hidden" name="videoName" value="@Model.Title" />
+                <button type="submit" class="nfx-btn nfx-btn-secondary"><i class="fas fa-list"></i> Kategorie</button>
+            </form>
+            <form asp-action="Tags" method="get" style="margin: 0;">
+                <input type="hidden" name="videoId" value="@Model.Id" />
+                <input type="hidden" name="videoName" value="@Model.Title" />
+                <button type="submit" class="nfx-btn nfx-btn-secondary"><i class="fas fa-tags"></i> Tagi</button>
+            </form>
+            <form asp-action="Series" method="get" style="margin: 0;">
+                <input type="hidden" name="videoId" value="@Model.Id" />
+                <input type="hidden" name="videoName" value="@Model.Title" />
+                <button type="submit" class="nfx-btn nfx-btn-secondary"><i class="fas fa-film"></i> Serie</button>
+            </form>
+            <form asp-action="Comments" method="get" style="margin: 0;">
+                <input type="hidden" name="videoId" value="@Model.Id" />
+                <input type="hidden" name="videoName" value="@Model.Title" />
+                <button type="submit" class="nfx-btn nfx-btn-secondary"><i class="fas fa-comments"></i> Komentarze</button>
+            </form>
+            <button type="button" class="nfx-btn nfx-btn-secondary" style="background: rgba(220, 53, 69, 0.2); color: #ff6b6b; border-color: rgba(220, 53, 69, 0.3);" id="openDeleteModal"><i class="fas fa-trash"></i> Usuń</button>
+        </div>
+    </div>
+
+    <div class="details-grid">
+        <div>
+            @if (!string.IsNullOrEmpty(Model.VideoUrl))
+            {
+                <div style="border-radius: var(--border-radius); overflow: hidden; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 1rem; background: #000;">
+                    <video
+                        id="admin-video-player"
+                        class="video-js vjs-default-skin vjs-16-9"
+                        controls
+                        preload="auto"
+                        poster="@Model.ThumbnailUrl"
+                        data-setup='{"fluid": true}'>
+                        <source src="@Model.VideoUrl" type="application/x-mpegURL" />
+                    </video>
+                </div>
+            }
+            else
+            {
+                <div style="background: rgba(0,0,0,0.3); border-radius: var(--border-radius); padding: 3rem; text-align: center; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 1rem;">
+                    <i class="fas fa-video-slash" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem;"></i>
+                    <p style="color: var(--color-text-secondary); margin: 0;">Brak źródła wideo</p>
+                </div>
+            }
+        </div>
+        
+        <div>
+            <ul class="info-list">
+                <li>
+                    <span>Tytuł</span>
+                    <span>@Model.Title</span>
+                </li>
+                <li>
+                    <span>Opis</span>
+                    <span>@Model.Description</span>
+                </li>
+                <li>
+                    <span>Cena</span>
+                    <span style="color: var(--color-accent);">@Model.Price.ToString("C")</span>
+                </li>
+                <li>
+                    <span>URL Wideo</span>
+                    <span style="font-family: monospace; font-size: 0.85rem;">@Model.VideoUrl</span>
+                </li>
+                <li>
+                    <span>Data dodania</span>
+                    <span>@Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</span>
+                </li>
+                <li>
+                    <span>Ostatnia modyfikacja</span>
+                    <span>@Model.UpdatedAt.ToString("dd.MM.yyyy HH:mm")</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Delete Modal -->
+<div id="deleteModal" class="modal-overlay">
+    <div class="custom-modal">
+        <h3 style="margin-top: 0; color: #ff6b6b; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem; margin-bottom: 1.5rem;">Potwierdź usunięcie</h3>
+        <p style="color: var(--color-text-secondary); margin-bottom: 1.5rem;">
+            <strong style="color: #ff6b6b;">UWAGA:</strong> Ta operacja usunie film z katalogu. Pliki wideo, plakat i tło pozostaną w magazynie mediów.
+        </p>
+        <p style="margin-bottom: 0.5rem; font-size: 0.9rem;">Aby potwierdzić, przepisz dokładnie tytuł wideo:</p>
+        <div style="background: rgba(0,0,0,0.5); padding: 0.8rem; text-align: center; border-radius: 6px; font-weight: 700; margin-bottom: 1rem; letter-spacing: 1px; user-select: none;">
+            @Model.Title
+        </div>
+        
+        <input type="text" id="deleteConfirmInput" style="width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: white; outline: none; margin-bottom: 2rem;" placeholder="Wpisz tytuł..." autocomplete="off" onpaste="return false;" oncopy="return false;" />
+        
+        <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+            <button type="button" id="closeDeleteModal" class="nfx-btn nfx-btn-secondary">Anuluj</button>
+            <form asp-action="Delete" method="post" id="deleteForm" style="margin: 0;">
+                <input type="hidden" name="videoId" value="@Model.Id" />
+                <button type="submit" class="nfx-btn nfx-btn-secondary" id="deleteConfirmBtn" disabled>Usuń bezpowrotnie</button>
+            </form>
+        </div>
+    </div>
+</div>

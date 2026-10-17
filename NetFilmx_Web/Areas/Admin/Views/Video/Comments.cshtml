@@ -1,0 +1,31 @@
+@model IEnumerable<NetFilmx_Service.Dtos.Comment.CommentListDto>
+
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h1 class="mb-0">Komentarze filmu: @ViewBag.VideoName</h1>
+        </div>
+        <div class="card-body">
+            @if (!Model.Any())
+            {
+                <p>Nie znaleziono komentarzy</p>
+            }
+            else
+            {
+                <ul class="list-group">
+                    @foreach (var comment in Model)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                <a asp-controller="Comment" asp-action="Details" asp-route-commentId="@comment.Id">@comment.Content</a>
+                            </span>
+                            <span>
+                                <a asp-controller="User" asp-action="Details" asp-route-userId="@comment.UserId" class="nfx-btn nfx-btn-primary">Autor</a>
+                            </span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>

@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using NetFilmx_Storage.Entities;
-using NetFilmx_Web.Auth;
+using NetFilmx_Service.Security;
 
 namespace NetFilmx_Tests.Unit.Auth
 {
@@ -84,6 +84,47 @@ namespace NetFilmx_Tests.Unit.Auth
 
             // Assert
             userId.Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData("SecretKey", null)]
+        [InlineData("SecretKey", "short")]
+        [InlineData("Issuer", "")]
+        [InlineData("Audience", null)]
+        [InlineData("AccessTokenTtlMinutes", "0")]
+        [InlineData("AccessTokenTtlMinutes", "61")]
+        [InlineData("AccessTokenTtlMinutes", "invalid")]
+        public void InvalidConfigurationIsRejectedWithoutDisclosingItsValue(string key, string? value)
+        {
+            var settings = new Dictionary<string, string?>
+            {
+                ["JwtSettings:SecretKey"] = "ThisIsATestSecretKeyThatIsAtLeast256BitsLong!!",
+                ["JwtSettings:Issuer"] = "NetFilmx-Test", ["JwtSettings:Audience"] = "NetFilmx-Test",
+                ["JwtSettings:AccessTokenTtlMinutes"] = "15"
+            };
+            settings["JwtSettings:" + key] = value;
+            var config = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
+            Assert.Throws<InvalidOperationException>(() => new JwtTokenService(config));
+        }
+
+        [Theory]
+        [InlineData("issuer")]
+        [InlineData("audience")]
+        [InlineData("expired")]
+        [InlineData("signature")]
+        [InlineData("unsigned")]
+        public void ValidationRejectsInvalidClaimsAndSignatures(string invalid)
+        {
+            var key = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(
+                invalid == "signature" ? "AnotherTestSecretKeyThatIsAtLeast256BitsLong!!" : "ThisIsATestSecretKeyThatIsAtLeast256BitsLong!!"));
+            var token = new System.IdentityModel.Tokens.Jwt.JwtSecurityToken(
+                issuer: invalid == "issuer" ? "wrong" : "NetFilmx-Test",
+                audience: invalid == "audience" ? "wrong" : "NetFilmx-Test",
+                claims: new[] { new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, "42") },
+                expires: DateTime.UtcNow.AddMinutes(invalid == "expired" ? -1 : 15),
+                signingCredentials: invalid == "unsigned" ? null : new Microsoft.IdentityModel.Tokens.SigningCredentials(key, "HS256"));
+            var encoded = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().WriteToken(token);
+            Assert.Null(_tokenService.ValidateAccessToken(encoded));
         }
 
         private static User CreateTestUser()

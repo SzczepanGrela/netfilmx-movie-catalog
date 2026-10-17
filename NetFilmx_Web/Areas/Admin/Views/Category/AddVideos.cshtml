@@ -1,0 +1,26 @@
+@model IEnumerable<NetFilmx_Service.Dtos.Video.VideoListDto>
+
+<div style="max-width: 800px; margin: 0 auto;">
+    <h1 class="mb-4">Add Videos to Category: @ViewBag.CategoryName</h1>
+
+    @if (!Model.Any())
+    {
+        <p>No Videos Outside of @ViewBag.CategoryName Category Found </p>
+    }
+    else
+    {
+        <form asp-action="AddVideos" method="post">
+            <input type="hidden" name="categoryId" value="@ViewBag.CategoryId" />
+            <div class="list-group">
+                @foreach (var video in Model)
+                {
+                    <label class="list-group-item admin-label">
+                        <input type="checkbox" name="videoIds" value="@video.Id" />
+                        @video.Title
+                    </label>
+                }
+            </div>
+            <button type="submit" class="nfx-btn nfx-btn-primary mt-3" data-i18n="t_add_selected_videos">Add Selected Videos</button>
+        </form>
+    }
+</div>

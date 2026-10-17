@@ -16,7 +16,7 @@ namespace NetFilmx_Storage.Entities
         {
             VideoId = videoId;
             UserId = userId;
-            CreatedAt = DateTime.Now;
+            CreatedAt = DateTime.UtcNow;
         }
 
 

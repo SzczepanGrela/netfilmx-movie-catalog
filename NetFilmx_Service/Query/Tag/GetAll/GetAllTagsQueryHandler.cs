@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using NetFilmx_Service.Mappings;
 using MediatR;
 using NetFilmx_Service.Dtos.Tag;
 using NetFilmx_Service.Result;
@@ -10,9 +10,9 @@ namespace NetFilmx_Service.Query.Tag
          where TDto : ITagDto
     {
         private readonly ITagRepository _repository;
-        private readonly IMapper _mapper;
+        private readonly ICatalogueMapper _mapper;
 
-        public GetAllTagsQueryHandler(ITagRepository repository, IMapper mapper)
+        public GetAllTagsQueryHandler(ITagRepository repository, ICatalogueMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;
@@ -25,7 +25,7 @@ namespace NetFilmx_Service.Query.Tag
             try
             {
                 var tags = await _repository.GetAllTagsAsync();
-                tagsDto = _mapper.Map<List<TDto>>(tags);
+                tagsDto = _mapper.MapList<TDto>(tags);
                 return QResult<List<TDto>>.Ok(tagsDto);
             }
             catch (Exception ex)

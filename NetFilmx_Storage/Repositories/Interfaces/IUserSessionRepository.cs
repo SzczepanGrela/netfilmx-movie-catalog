@@ -8,6 +8,8 @@ namespace NetFilmx_Storage.Repositories
         Task<List<UserSession>> GetActiveSessionsByUserIdAsync(int userId);
         Task AddSessionAsync(UserSession session);
         Task UpdateSessionAsync(UserSession session);
+        Task<bool> TryRotateSessionAsync(int currentId, UserSession replacement, DateTime now);
+        Task RevokeByRefreshTokenHashAsync(string refreshTokenHash);
         Task RevokeAllUserSessionsAsync(int userId);
     }
 }

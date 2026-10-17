@@ -1,6 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
-cd /home/netfilmx/app
-git fetch origin main
-git reset --hard origin/main
-exec bash infra/deploy.sh
+printf "%s\n" "Legacy SSH deployment is retired. Use a reviewed immutable image through the protected Coolify release path." >&2
+exit 1

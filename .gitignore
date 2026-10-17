@@ -366,3 +366,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Ignore appsettings and secrets
+appsettings.json
+appsettings.*.json
+upload_to_r2.sh
+r2_assets/

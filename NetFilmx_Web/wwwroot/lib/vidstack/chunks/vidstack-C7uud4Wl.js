@@ -1,0 +1,1 @@
+import{createContext as e,useContext as t}from"./vidstack-BPo1FnPl.js";const n=e();function r(){return t(n)}function i(){return r().$state}export{n as mediaContext,r as useMediaContext,i as useMediaState};

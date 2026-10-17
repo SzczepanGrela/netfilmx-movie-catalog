@@ -1,0 +1,31 @@
+@model IEnumerable<NetFilmx_Service.Dtos.Series.SeriesListDto>
+
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h1 class="mb-0">Dodaj serie użytkownikowi: @ViewBag.UserUsername</h1>
+        </div>
+        <div class="card-body">
+            @if (!Model.Any())
+            {
+                <p>Brak serii do dodania</p>
+            }
+            else
+            {
+                <form asp-action="AddSeries" method="post">
+                    <input type="hidden" name="userId" value="@ViewBag.UserId" />
+                    <input type="hidden" name="userUsername" value="@ViewBag.UserUsername" />
+                    <div class="list-group">
+                        @foreach (var series in Model)
+                        {
+                            <label class="list-group-item admin-label">
+                                <input type="checkbox" name="seriesIds" value="@series.Id" /> @series.Name
+                            </label>
+                        }
+                    </div>
+                    <button type="submit" class="nfx-btn nfx-btn-primary mt-3" data-i18n="t_dodaj_wybrane_serie">Dodaj wybrane serie</button>
+                </form>
+            }
+        </div>
+    </div>
+</div>

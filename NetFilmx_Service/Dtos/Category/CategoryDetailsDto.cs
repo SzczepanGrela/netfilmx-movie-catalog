@@ -3,7 +3,7 @@
     public class CategoryDetailsDto : ICategoryDto
     {
 
-        public CategoryDetailsDto(int id, string name, string description)
+        public CategoryDetailsDto(int id, string name, string? description)
         {
             Id = id;
             Name = name;
@@ -16,7 +16,7 @@
 
         public int Id { get; }
 
-        public string Description { get; }
+        public string? Description { get; }
 
     }
 }

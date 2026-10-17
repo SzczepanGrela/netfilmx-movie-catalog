@@ -23,7 +23,7 @@ namespace NetFilmx_Service.Command.VideoPurchase
             var videoPurchase = new NetFilmx_Storage.Entities.VideoPurchase(command.UserId, command.VideoId);
             try
             {
-                videoPurchase.PurchaseDate = DateTime.Now;
+                videoPurchase.PurchaseDate = DateTime.UtcNow;
                 await _repository.AddVideoPurchaseAsync(videoPurchase);
                 return CResult.Ok();
             }
