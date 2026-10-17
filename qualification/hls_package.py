@@ -145,17 +145,26 @@ def verify_film(run, video):
 
     def first_packet(item):
         index, file = item
-        data = probe(file, 'packet=pts_time,flags', packets=True)
+        data = probe(file, 'packet=pts_time,dts_time,flags', packets=True)
         packets = data.get('packets', [])
         if not packets or 'K' not in packets[0].get('flags', ''):
             raise ValueError('Segment does not begin with a video keyframe: ' + file.name)
-        return index, file.name, float(packets[0]['pts_time'])
+        return index, file.name, float(packets[0]['pts_time']), float(packets[0]['dts_time'])
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         packet_results = list(pool.map(first_packet, all_segments))
     for index, variant in enumerate(variants):
-        times = [pts for i, _, pts in packet_results if i == index]
+        times = [pts for i, _, pts, _ in packet_results if i == index]
         variant['firstVideoPts'] = times[0]
+        variant['firstVideoDts'] = next(dts for i, _, _, dts in packet_results if i == index)
+        # EXTINF follows video; AAC can have a later tail. MSE normalizes TS
+        # presentation against the first video DTS, not the EXTINF sum.
+        ending = probe(folder / variant['segments'][-1]['name'], 'stream=codec_type,start_time,duration')
+        ends = {s['codec_type']: float(s['start_time']) + float(s['duration']) for s in ending['streams']}
+        variant['lastStreamEnds'] = ends
+        variant['presentationDuration'] = max(ends.values()) - variant['firstVideoDts']
+        if not math.isfinite(variant['presentationDuration']) or abs(variant['presentationDuration'] - variant['duration']) > .3:
+            raise ValueError('Unexpected muxed audio/video ending')
         variant['allSegmentsStartWithKeyframes'] = True
         if any(abs((pts-times[0])-sum(s['duration'] for s in variant['segments'][:i])) > .085 for i,pts in enumerate(times)):
             raise ValueError('Segment presentation times differ from playlist')

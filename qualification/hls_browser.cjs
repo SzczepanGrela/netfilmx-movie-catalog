@@ -157,7 +157,8 @@ async function main() {
           await page.$eval('media-player', p => p.play());
           await page.waitForFunction(() => document.querySelector('video').ended && document.querySelector('media-player').state.ended, null, {timeout: 20000});
           entry.naturalEnd = await page.$eval('media-player', p => ({time: p.currentTime, duration: p.duration, videoEnded: p.querySelector('video').ended, playerEnded: p.state.ended}));
-          check(Math.abs(entry.naturalEnd.time - film.variants[0].duration) < .16, 'Native end follows complete HLS duration');
+          const presentationDuration = Math.max(...film.variants.map(v => v.presentationDuration));
+          check(Math.abs(entry.naturalEnd.time - presentationDuration) < .05, 'Native end follows measured muxed timeline');
           if (film.slug === 'sintel') {
             entry.captions = [];
             await seek(107.75);
