@@ -3,7 +3,9 @@
 `qualification/publish_hls.py` prepares or publishes one reviewed packet with
 AWS CLI/S3. It is separate from application uploads and the FFmpeg pipeline.
 Uploads/worker remain false. The accepted HLS implementation is a357fd4; this
-tool requires its own coordinator review and a separate publication instruction.
+tool's publication at 8c7b8d5 and complete identified-client HTTPS readback have
+been accepted. The NHP17-1 follow-up moves that HTTP identity into this CLI.
+Keep the existing execution evidence; no repeat transfer is needed.
 No credentials or infrastructure identifiers are embedded in the tool.
 
 ## Local dry-run, the default
@@ -110,11 +112,30 @@ non-HTTPS origins are rejected; normal TLS certificate verification remains on.
 HTTP environment proxies are not inherited. `--resume` rechecks the whole list
 against the same origins, retaining previous attempts.
 
+Every HTTP request explicitly sends the fixed
+`User-Agent: NetFilmxPublicationVerifier/1.0`, including the first GET, HEAD,
+Range GET and OPTIONS. New HTTP `result.json` and `attempt-*.json` records and
+CLI JSON output identify it as `httpUserAgent`, including failed verification.
+This is an honest client name, not a browser identity or an authorization token.
+HTTP 403 still stops verification; there is no alternate identity or retry fallback.
+TLS verification, the no-redirect policy and every content/CORS check remain active.
+
+The original CLI's 403/1010 result and the successful one-off identified-client
+adapter remain separate historical evidence. The tracked verifier now supplies
+the identity directly; that local adapter is not a supported entry point.
+No provider-rule or CORS change is part of this correction.
+
 `httpVerified=true` means those HTTP checks passed. `browserPlayerAccepted` and
 `manifestActivated` remain false; this is not a browser/player, physical device,
-full listening or final-image catalogue acceptance. CORS is currently absent
-according to the coordinator's readback. The operator must agree/configure it
-separately; this tool neither changes it nor treats missing CORS as acceptable.
+full listening or final-image catalogue acceptance. Operator-set CORS and the
+earlier real delivery readback have been accepted within their recorded scope.
+This tool neither changes CORS nor treats a missing/incorrect policy as acceptable.
+
+The CLI always validates and verifies the entire approved packet; it has no
+subset mode. The bounded NHP17-1 public regression calls the same `preflight`
+and `HttpVerifier.verify` methods directly for one segment, one VTT and one
+master after validating the complete local packet. It records three checked
+objects and does not claim another complete catalogue or browser acceptance.
 
 Only a later explicit authorization permits the current seventeen-reference
 manifest activation and final-image migration/import/restart/published-HLS
@@ -124,8 +145,10 @@ qualification. The old two-MP4/ten-VTT patch remains historical.
 
 `python3 -m unittest discover -s tests -p test_hls_publication.py -v` uses tiny
 synthetic files, fake S3 and a loopback HTTP server. No test calls actual R2.
-Actual domain/TLS/CORS and actual AWS profile/endpoint access remain untested
-until the separately authorized stage. Accepted HLS media tests are not repeated.
+Regression coverage checks the fixed identity on every HTTP method, identifies
+successful/failed result records and confirms that a 403 at any request stops
+without retry. Accepted publication, full HTTP and media evidence retain their
+original source/client scope and are not repeated for this correction.
 
 - [AWS CLI PutObject](https://docs.aws.amazon.com/cli/latest/reference/s3api/put-object.html)
 - [AWS CLI GetObject](https://docs.aws.amazon.com/cli/latest/reference/s3api/get-object.html)

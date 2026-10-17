@@ -120,6 +120,7 @@ class PublicationTests(unittest.TestCase):
         status = json.loads((output/'result.json').read_text())
         self.assertEqual('local_preflight_passed', status['status'])
         self.assertFalse(status['transferComplete']); self.assertEqual(0, status['putAttempts'])
+        self.assertNotIn('httpUserAgent', status)
         self.assertEqual(before, {f.name: pub.checksum(f) for f in self.f.package.iterdir()})
 
     def test_wrong_approved_sha_stops_before_client(self):
@@ -280,9 +281,13 @@ class PublicationTests(unittest.TestCase):
         with patch.object(pub,'Aws',side_effect=AssertionError('S3 initialized')), \
                 patch.object(pub,'HttpVerifier') as verifier:
             verifier.return_value.media='https://media.example.invalid';verifier.return_value.application='https://app.example.invalid'
-            result,_,output=self.run_main(['--verify-https','--media-origin','https://media.example.invalid','--app-origin','https://app.example.invalid'])
+            result,text,output=self.run_main(['--verify-https','--media-origin','https://media.example.invalid','--app-origin','https://app.example.invalid'])
         self.assertEqual(0,result);status=json.loads((output/'result.json').read_text())
         self.assertTrue(status['httpVerified']);self.assertFalse(status['transferComplete']);self.assertFalse(status['browserPlayerAccepted'])
+        self.assertEqual('NetFilmxPublicationVerifier/1.0', status['httpUserAgent'])
+        self.assertEqual(status['httpUserAgent'], json.loads(text)['httpUserAgent'])
+        for attempt in output.glob('attempt-*.json'):
+            self.assertEqual(status['httpUserAgent'], json.loads(attempt.read_text())['httpUserAgent'])
 
     def test_old_readback_cannot_be_reused_when_cli_writes_no_body(self):
         packet=self.f.load();item=packet.objects[0];output=self.f.root/'readback';output.write_bytes(packet.file(item).read_bytes())
@@ -321,6 +326,7 @@ class HttpTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.f=Fixture(self.tmp.name)
         self.item=self.f.load().objects[0];self.file=self.f.root/self.item['file'];owner=self;self.fault=None;self.methods=[]
+        self.requests=[];self.forbidden_at=None
         class Handler(http.server.BaseHTTPRequestHandler):
             def log_message(self,*args):pass
             def do_GET(self):self.reply('GET')
@@ -328,6 +334,9 @@ class HttpTests(unittest.TestCase):
             def do_OPTIONS(self):self.reply('OPTIONS')
             def reply(self,method):
                 owner.methods.append(method);body=owner.file.read_bytes();size=len(body);ranged=self.headers.get('Range')
+                owner.requests.append({'method':method,'range':ranged,'userAgent':self.headers.get('User-Agent')})
+                if len(owner.requests)==owner.forbidden_at:
+                    self.send_response(403);self.send_header('Content-Length','0');self.end_headers();return
                 if owner.fault=='redirect':
                     self.send_response(302);self.send_header('Location','https://other.example.invalid/private');self.end_headers();return
                 if method=='OPTIONS':
@@ -359,6 +368,42 @@ class HttpTests(unittest.TestCase):
     def test_full_http_readback_checks_bytes_head_range_and_preflight(self):
         pub.HttpVerifier(self.media,self.app,allow_http=True).verify(self.item,self.file)
         self.assertEqual(['GET','HEAD','GET','OPTIONS'],self.methods)
+
+    def test_fixed_http_client_identity_on_every_method(self):
+        pub.HttpVerifier(self.media,self.app,allow_http=True).verify(self.item,self.file)
+        self.assertEqual([
+            {'method':method,'range':ranged,'userAgent':'NetFilmxPublicationVerifier/1.0'}
+            for method,ranged in [('GET',None),('HEAD',None),('GET','bytes=0-63'),('OPTIONS',None)]
+        ],self.requests)
+
+    def test_403_stops_each_method_without_retry_or_fallback(self):
+        methods=['GET','HEAD','GET','OPTIONS']
+        for forbidden_at in range(1,5):
+            with self.subTest(forbidden_at=forbidden_at):
+                self.requests.clear();self.methods.clear();self.forbidden_at=forbidden_at
+                with self.assertRaisesRegex(pub.PublicationError,'HTTPS HTTP status failed'):
+                    pub.HttpVerifier(self.media,self.app,allow_http=True).verify(self.item,self.file)
+                self.assertEqual(methods[:forbidden_at],self.methods)
+                self.assertTrue(all(r['userAgent']=='NetFilmxPublicationVerifier/1.0' for r in self.requests))
+
+    def test_first_403_cli_records_identity_without_completing(self):
+        self.forbidden_at=1
+        verifier=pub.HttpVerifier(self.media,self.app,allow_http=True)
+        output=self.f.root/'http-journal'
+        with patch.object(pub,'HttpVerifier',return_value=verifier), \
+                patch.object(pub,'Aws',side_effect=AssertionError('S3 initialized')), \
+                contextlib.redirect_stdout(io.StringIO()) as text:
+            result=pub.main(self.f.arguments(output)+['--verify-https',
+                '--media-origin','https://media.example.invalid','--app-origin',self.app])
+        self.assertEqual(1,result);self.assertEqual(['GET'],self.methods)
+        status=json.loads((output/'result.json').read_text())
+        self.assertEqual('stopped',status['status']);self.assertEqual(0,status['verifiedObjects'])
+        self.assertFalse(status['httpVerified']);self.assertFalse(status['transferComplete'])
+        self.assertFalse(status['browserPlayerAccepted']);self.assertFalse(status['manifestActivated'])
+        self.assertEqual('NetFilmxPublicationVerifier/1.0',status['httpUserAgent'])
+        self.assertEqual(status['httpUserAgent'],json.loads(text.getvalue())['httpUserAgent'])
+        for attempt in output.glob('attempt-*.json'):
+            self.assertEqual(status['httpUserAgent'],json.loads(attempt.read_text())['httpUserAgent'])
 
     def test_corrupt_truncated_metadata_cors_range_and_redirect_fail(self):
         for fault in ['checksum','truncated','mime','cache','cors','range','preflight','redirect']:

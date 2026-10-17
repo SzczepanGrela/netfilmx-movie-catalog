@@ -2,27 +2,28 @@
 
 Updated 2026-10-17 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
 Work continues in [draft PR #1](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/1).
-Production has not changed. Accepted R1, recovery/source reconciliation, credits,
+The application has not been deployed; the retained HLS media were published
+through the separately authorized one-time tool. Accepted R1, recovery/source reconciliation, credits,
 subtitle code at `f4aca03` and earlier desktop/Android observations are preserved.
 
-## Current stage: one-time HLS publication tool for review
+## Current stage: NHP17-1 HTTP client identification
 
-The coordinator accepted local HLS preparation at `a357fd4`. The exact packet
-and its original metadata remain unchanged. The next implementation is a
-[small publication tool](hls-publication-tool.md), separate from app uploads:
-fully local default preflight, explicit conditional S3 execution, durable
-per-object/attempt journals and an independent HTTPS readback mode.
+The coordinator accepted publication of the unchanged 1398-object packet at
+`8c7b8d5`, retention of all existing objects and the complete HTTPS readback
+with an identified client. Original package metadata and both the failed default
+HTTP result and successful historical adapter result remain preserved.
 
-All PutObject calls require `If-None-Match: *`. Existing/racing objects require
-full content and metadata comparison; unknown results stop before later masters.
-Explicit resume binds the same approved record/list/target and rechecks every
-remote object. HTTP checks retain `browserPlayerAccepted=false`. New tests use
-fake S3 and loopback HTTP, and the actual 1398-object dry-run stays local.
+The [publication verifier](hls-publication-tool.md) now sends the fixed honest
+`NetFilmxPublicationVerifier/1.0` identity for GET/HEAD/Range/OPTIONS and records
+`httpUserAgent` in new HTTP results. Hash/length/MIME/cache/Range/CORS/TLS checks,
+no redirects and stop-on-403 behavior remain. Focused regressions use fake S3
+and loopback HTTP; public readback is limited to one segment, VTT and master.
 
-No real transfer, credential discovery, CORS change, manifest activation or
-deployment occurred. The coordinator reviews this tool before a separate
-publication instruction. Existing HLS/browser/manual results are preserved;
-no encoding or film acceptance is repeated. Uploads/worker remain false.
+This correction repeats no transfer, encoding, full-catalogue HTTP or manual
+media acceptance. The earlier preparation sections below retain their historical
+scope. Current manifest activation/final-image/browser qualification still need
+separate authorization. PR stays draft, uploads/worker false; no merge/deploy
+or provider configuration change is part of NHP17-1.
 
 ## Accepted seven-film HLS preparation
 

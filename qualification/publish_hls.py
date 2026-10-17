@@ -26,6 +26,7 @@ from hls_package import MIMES, media_graph, playlist, safe_reference
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 FIELDS = ('file', 'proposedKey', 'mime', 'cacheControl', 'bytes', 'sha256')
 PHASE = {'segment': 0, 'subtitle': 1, 'variant': 2, 'master': 3}
+HTTP_USER_AGENT = 'NetFilmxPublicationVerifier/1.0'
 
 
 class PublicationError(Exception):
@@ -202,6 +203,8 @@ class Journal:
                         'recordSha256': packet.record_sha, 'uploadOrderSha256': packet.order_sha,
                         'roleCounts': dict(collections.Counter(x['role'] for x in packet.objects)),
                         'dryRunNoNetwork': mode == 'dry-run', 'toolSha256': checksum(pathlib.Path(__file__))}
+        if mode == 'verify-https':
+            self.summary['httpUserAgent'] = HTTP_USER_AGENT
         self.finish('in_progress')
 
     def event(self, item, status):
@@ -341,7 +344,8 @@ class HttpVerifier:
     def request(self, item, method, headers=None):
         url = self.media+'/'+urllib.parse.quote(item['proposedKey'], safe='/-._~')
         request = urllib.request.Request(url, method=method,
-            headers={'Origin': self.application, 'Accept-Encoding': 'identity', **(headers or {})})
+            headers={'Origin': self.application, 'Accept-Encoding': 'identity', **(headers or {}),
+                     'User-Agent': HTTP_USER_AGENT})
         try:
             return self.opener.open(request, timeout=30)
         except urllib.error.HTTPError as error:
@@ -435,7 +439,10 @@ def main(argv=None):
                 if journal.current: journal.event(journal.current, 'stopped_unverified')
                 journal.finish('stopped', reason)
         # Never echo raw AWS stderr, response bodies, signed URLs or environment.
-        print(json.dumps({'status': 'stopped', 'reason': reason, 'transferComplete': False}))
+        result = {'status': 'stopped', 'reason': reason, 'transferComplete': False}
+        if args.verify_https:
+            result['httpUserAgent'] = HTTP_USER_AGENT
+        print(json.dumps(result))
         return 1
     finally:
         if journal:
