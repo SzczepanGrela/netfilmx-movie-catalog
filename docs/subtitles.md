@@ -25,9 +25,12 @@ media/text access; target-domain CORS remains an acceptance requirement.
 
 ### Sintel: all ten source tracks
 
-All ten original MKV subtitle tracks are prepared as WebVTT. The existing MP4's
-video/audio bytes are reused; caption extraction does not re-encode either.
-The original MKV remains intact. Each retained language contains 26 cues, matching
+All ten original MKV subtitle tracks are prepared as WebVTT. The October 15
+stage paired extraction from the original MKV with the existing MP4 without
+re-encoding video/audio.
+The October 17 scope separately prepares [HLS for all seven originals](retained-hls.md);
+it preserves these exact ten VTT bytes and times. The original MKV, old MP4 and
+earlier tests remain intact. Each retained language contains 26 cues, matching
 its decoded source count. A cue is one timed subtitle entry.
 
 | Track | Language | Player label |
@@ -46,9 +49,10 @@ its decoded source count. A cue is one timed subtitle entry.
 Manifest schema 2 includes all ten requirements with **null object keys**. It
 also retains the two pending playback keys. Import refuses any missing playback
 or subtitle object; no partial catalogue or runtime proposal override was added.
-Prepared files, hashes and the inactive twelve-field patch remain private.
-Other retained films keep their current MP4/WebM paths; no seven-film HLS conversion
-was performed. Credits describe the preserved sidecars and pending publication.
+The earlier twelve-field/two-MP4 packet is retained as history and must not be
+applied. Its successor proposes seven HLS master keys and ten subtitle keys,
+with checksums for every variant and segment. It remains private and unapplied.
+No sidecars are silently dropped or shifted when the playback format changes.
 
 ### New uploads
 
@@ -139,19 +143,23 @@ dotnet test NetFilmx_Tests/NetFilmx_Tests.csproj -c Release \
 
 ## Production acceptance and inactive publication proposal
 
-1. Review real Sintel sidecars for text, timing, styling and all ten labels, plus
-   the existing MP4 stereo mix/quality and credits. Native Safari/mobile, audible
-   sound and actual HTTPS-domain behavior stay open until tested.
-2. Operator publishes the two accepted MP4s and ten WebVTT files to reviewed new
+1. Review the successor [seven-film HLS packet](retained-hls.md), preserving the
+   exact ten accepted sidecars. Earlier MP4/Android/listening results keep their
+   recorded scope; detailed manual trials remain deferred by the operator.
+   Sintel's perceived sync cause/full acceptance and actual HTTPS delivery remain open.
+2. Operator publishes the accepted seven HLS trees and ten WebVTT files to reviewed new
    keys, preserving originals. Keep acceptance/publication fields unfilled until
-   the actual reviews/actions occur. The older two-field-only proposal is superseded.
+   the actual reviews/actions occur. Both older two-field and twelve-field MP4
+   proposals are superseded; do not apply them.
 3. Verify exact object identities, UTF-8/VTT MIME, media Range/seeks, cache and
    actual Origin/CORS behavior for the player. A loopback route supplying fixture
    headers does not complete this step.
 4. Only then commit accepted manifest keys and qualify final-image real-media
    import, seven films/one series/three links/ten subtitles, restart and playback.
 
-The local extractor and proposal generator can prepare reviewable files:
+The local extractor can still prepare sidecars. The older two-MP4 proposal
+generator below is retained for historical reproduction only; current publication
+uses `qualification/hls_package.py` and the seventeen-field HLS proposal:
 
 ```bash
 dotnet qualification/Subtitles/bin/Release/net10.0/Subtitles.dll \

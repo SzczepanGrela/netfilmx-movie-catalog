@@ -1,7 +1,8 @@
 # Preparing the retained-media catalogue
 
 The release candidate includes an explicit catalogue plan for seven distinct
-films/episodes and the Caminandes series. It reuses existing object keys.
+films/episodes and the Caminandes series. Source and artwork keys are retained;
+the October 17 target is a new adaptive HLS presentation for every film.
 The old SQLite catalogue, the local demo SQL and the generated media manifest
 are separate sources; neither the demo SQL nor the old generated seeder is an
 authoritative map of retained media.
@@ -41,14 +42,20 @@ ten pending Sintel subtitle tracks (language, label, stable track key and order)
 | Caminandes: Gran Dillama | videos/caminandes-gran-dillama.mp4 | Same key |
 | Caminandes: Llamigos | videos/caminandes-llamigos.webm | Same key |
 
-"Candidate" is not browser-playback acceptance. Review media identity, codecs,
-seeking/range requests, thumbnails and browser compatibility before importing.
-The [media review](media-review.md) records the seven retained films. The
-[subtitle follow-up](subtitles.md) preserves all ten Sintel tracks separately as
-WebVTT and reuses the two prepared MP4s. Provider publication and manual media
-acceptance remain open; the embedded twelve null keys are preserved.
-Publish accepted MP4s and WebVTT sidecars under reviewed new keys, retaining
-source objects, then commit those keys in the manifest.
+The table above describes the still-shipped, incomplete manifest, not the new
+publication proposal. [Adaptive HLS preparation](retained-hls.md) now supersedes
+the former two-MP4/ten-VTT packet: seven new master keys plus their complete
+variant/segment trees and ten unchanged Sintel VTTs. The proposed patch changes
+seven playback references and ten subtitle references. It remains unapplied;
+the current two null playback and ten null subtitle fields still block import.
+Existing source/artwork keys and earlier evidence remain intact.
+
+The [media review](media-review.md) records provenance; the
+[subtitle contract](subtitles.md) preserves all ten original languages.
+Content/publication disposition, actual object publication and target HTTPS/CORS
+precede a separate manifest activation and final-image qualification.
+The original/old MP4s and their publication packet are history, not a fallback
+plan to apply alongside the HLS proposal. Never partially activate the catalogue.
 No conversion, provider request or upload runs from the catalogue command.
 Nullable playback and subtitle keys keep the current plan intentionally non-importable;
 it cannot create a partially available catalogue or substitute a demo stream.

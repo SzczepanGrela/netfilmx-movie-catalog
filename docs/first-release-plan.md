@@ -1,6 +1,6 @@
 # First release and data/media acceptance plan
 
-Prepared 2026-10-05; stage boundaries updated 2026-10-13 after coordinator review.
+Prepared 2026-10-05; catalogue format updated 2026-10-17 by the operator's HLS scope change.
 This is a proposed sequence for review. No resource, protection rule, production
 data or R2 object has been changed. Uploads and workers remain disabled.
 
@@ -20,7 +20,7 @@ Later media/code changes need qualification of their own SHA.
 | New data | Operator selected fresh PostgreSQL, seven retained films/episodes, new accounts and empty history | Archive legacy SQLite independently; exclude demo/YouTube rows and old user data from import |
 | Coolify app | Operator reported no NetFilmx resource; legacy SSH instances may remain | Obtain fresh scoped API/host evidence before choosing a destination or creating anything |
 | Repository gates | GitHub readback completed October 5: main unprotected, zero rulesets/environments, both activation variables absent | Coordinator/operator installs and reads back section 2 |
-| Media | Manifest has seven entries and two null playback keys | Complete section 3 before an importable image is built |
+| Media | Seven retained originals now target adaptive HLS; ten Sintel VTT sidecars retained. Shipping manifest remains unchanged/incomplete | Review the complete HLS packet; publish/read back before separately replacing seven playback and ten subtitle fields |
 | Stateful runtime | Code/tests implemented; production mounts, recovery and actual container overlap unaccepted | Run section 4 locally, then accept the target settings in the agreed window |
 | Recovery policy | Application backup destination, retention, recovery-point and recovery-time targets unresolved | Operator records private destination/access, cadence, retention and measured restore targets |
 | Capacity | Local catalogue hypothesis supplied October 12; production/full-film budgets unresolved | Test section 4.1 without increasing limits silently; coordinator/operator selects production budgets from evidence |
@@ -97,13 +97,13 @@ as the proposed mapping, with [catalogue details](retained-catalogue.md) and the
 
 | Title | Original R2 key | Current playback proposal |
 | --- | --- | --- |
-| Sintel | `videos/sintel.mkv` | Missing derivative |
-| Tears of Steel | `videos/tears-of-steel.mp4` | Same object, unaccepted |
-| Charge | `videos/charge.webm` | Same object, unaccepted |
-| Elephants Dream | `videos/elephants-dream.mp4` | Same object, unaccepted |
-| Caminandes: Llama Drama | `videos/caminandes-llama-drama.ogv` | Missing derivative |
-| Caminandes: Gran Dillama | `videos/caminandes-gran-dillama.mp4` | Same object, unaccepted |
-| Caminandes: Llamigos | `videos/caminandes-llamigos.webm` | Same object, unaccepted |
+| Sintel | `videos/sintel.mkv` | New HLS master, renditions/segments + ten separate WebVTTs |
+| Tears of Steel | `videos/tears-of-steel.mp4` | New HLS master/renditions/segments |
+| Charge | `videos/charge.webm` | New HLS master/renditions/segments |
+| Elephants Dream | `videos/elephants-dream.mp4` | New HLS master/renditions/segments |
+| Caminandes: Llama Drama | `videos/caminandes-llama-drama.ogv` | New HLS master/renditions/segments |
+| Caminandes: Gran Dillama | `videos/caminandes-gran-dillama.mp4` | New HLS master/renditions/segments |
+| Caminandes: Llamigos | `videos/caminandes-llamigos.webm` | New HLS master/renditions/segments |
 
 For each title, record the original/playback/poster/backdrop identity, size,
 content type, content checksum and object version/ETag if available. An ETag is
@@ -117,31 +117,40 @@ artwork/posters or marks. Operator accepts each proposed public use and catalogu
 presentation. Publish required notices/credits before public acceptance; retain
 full film credits. Missing evidence holds that entry and the complete import.
 
-Prepare the Sintel and Llama Drama derivatives offline from verified originals.
-Prefer a reviewed browser-compatible MP4 with H264/yuv420p, AAC and fast start,
-or a reviewed HLS variant. Record encoder/version/options, selected tracks,
-duration/frame checks and credits; document omitted tracks. Use new versioned
-keys, preserving all original objects. Existing local MP4s are candidates until
-identity and credit preservation pass. Do not send a full-length source through
-the public uploader as a conversion shortcut; its 1 GB input ceiling applies.
+Prepare all seven HLS presentations offline from verified retained originals,
+using the same `FFmpegService` as uploads. See [the HLS contract](retained-hls.md).
+Record encoder/version/options, source hashes, actual dimensions, variant/segment
+graphs and complete durations. Preserve aspect ratio and never upscale. First
+audio/stereo remains an explicit limitation; Sintel keeps ten unchanged VTTs.
+The two existing MP4s, their results and the former two-MP4/ten-VTT packet remain
+history; that packet and its patch are no longer the publication plan. Do not
+route catalogue preparation through the public uploader or enable its worker.
 
-**Operator actions:** approve content and new keys; upload only the two accepted
-derivatives with scoped R2 write access, preserving originals. Provider metadata,
-CORS or delivery changes, if necessary, belong to the operator. The worker may
-prepare bytes and a manifest patch without provider writes. Never grant bucket
-delete access for this work. Commit accepted playback keys and rerun image CI;
-the manifest is embedded, so editing a running container is insufficient.
+**Operator actions, later:** decide content/publication acceptance, including the
+unresolved Sintel synchronization observation. Publish the exact inventory under
+new bundle-versioned keys: segments/VTTs first, media playlists next, masters last.
+Use scoped write access without deletes, preserving all original objects and
+previous derivatives. Read back identity/MIME/Range/cache/CORS for the entire HLS
+graph and sidecars. Only then separately commit the proposed seven master keys
+and ten subtitle keys and qualify the final image/import/restart. The current
+shipping manifest remains incomplete and unchanged. The operator/coordinator
+owns provider changes and the publication window; no publication is implied.
 
 ### Playback acceptance
 
-For every playback object and poster/backdrop, collect dated results through the
-actual HTTPS media origin. Require correct MIME, bounded byte-range requests
-returning 206 with matching `Content-Range`, appropriate caching/CORS, no mixed
-content and working artwork. Test playback, sound, seeks near the start/middle/end
-and complete credits in Chromium, Firefox and Safari, including the supported
-mobile path. Same-key WebM/MP4 entries also need these checks; add further
-derivatives if the supported browser matrix requires them. Record unsupported
-browsers as an unresolved product decision, not a pass.
+Local automatic checks cover the real HLS in Chromium/Firefox: variants and
+decoded quality changes, Auto, seeks, natural ending and actual Sintel sidecars/Off.
+Preserve earlier MP4/WebM/manual observations at their own artifact scope.
+The operator reduced detailed manual testing; do not request another Safari,
+VLC, device-version or full listening round. Deferred trials remain deferred.
+Sintel's perceived synchronization cause/full acceptance remains unresolved;
+HLS preparation does not tune audio or caption offsets to that impression.
+
+After an explicit publication decision, collect dated results through the real
+HTTPS origin for every playlist/segment/VTT and poster/backdrop: exact identity,
+MIME, bounded 206/Content-Range, appropriate caching/CORS, no mixed content, actual
+player quality/seeking/end/subtitle requests. Loopback fixtures do not qualify
+the target delivery or final image. Unavailable browser/device checks are not passes.
 
 ### Isolated PostgreSQL rehearsal
 

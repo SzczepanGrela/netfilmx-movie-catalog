@@ -1,15 +1,17 @@
 # Media acceptance and pending manifest activation
 
-Updated October 15, 2026. Proposed operator decisions; approval fields remain open.
-The private packet identifies the exact existing bytes/hashes and twelve-field
-manifest patch: two MP4s and ten WebVTT sidecars. Neither MP4 was reconverted;
-no objects were uploaded. See [subtitle implementation and checks](subtitles.md).
+Updated October 17, 2026. The operator now requests adaptive HLS for the entire
+seven-film catalogue. [The HLS contract](retained-hls.md) supersedes the former
+two-MP4/ten-VTT publication plan; retain that packet, both MP4s and all prior
+observations as history. No publication or manifest activation is authorized.
+First audio/stereo and the unresolved Sintel synchronization observation remain
+explicit. Earlier manual results apply to their tested artifacts and scope.
 
-## Two existing MP4 proposals
+## Historical two-MP4 proposals
 
-**Recommended:** reuse both prepared MP4s if the checks below pass. Preserve
-their originals. Track selection is a product decision, independent of rights
-evidence and successful decoding.
+These prepared MP4s are preserved for evidence/comparison. They are superseded
+as target catalogue playback by HLS from the retained originals. The following
+records their original transformation and listening questions.
 
 | Proposal | What is retained / changed | Decision required |
 | --- | --- | --- |
@@ -76,11 +78,18 @@ in a local Linux fixture, not native Safari/iOS or the app's real HTTPS delivery
 Unavailable checks stay pending. [Playwright's browser guidance](https://playwright.dev/docs/browsers)
 also distinguishes its patched engines and platform-specific media support.
 
-## Short manual acceptance
+## Historical manual checklist and retained deferrals
 
-Use the exact private files first, then the published proposed objects through
-the actual reviewed application/player and HTTPS origin. Fill one row per film
-in the private checklist; never mark a missing browser/device as passed.
+The operator reduced further detailed manual tests on October 17. Keep the
+already reported desktop/Android results; do not request another Safari/VLC,
+exact device-version or full listening round. Unperformed trials below remain
+pending/deferred. The new HLS stage uses automatic Chromium/Firefox tests and
+does not claim full human synchronization/translation acceptance.
+
+The following is the earlier checklist, retained as history rather than a new
+request to the operator. Actual dated results are in the restricted acceptance
+packet; the pending template below does not erase recorded desktop/Android results.
+Missing trials remain deferred, never passed.
 
 | Film | Native Safari desktop | Native supported mobile | Audible sound | Full closing credits / notices | Actual HTTPS playback |
 | --- | --- | --- | --- | --- | --- |
@@ -109,24 +118,24 @@ For each title, record date, exact browser/OS/device, tested artifact identity a
    media playback and JavaScript/crossorigin-enabled access have different CORS
    needs; test the actual player's requests rather than inventing a blanket rule.
 
-Native Safari desktop and Safari on a real supported iPhone/iPad remain operator
-checks. Select any supported Android browser/device explicitly. Chromium device
-emulation and Linux WebKit do not complete native Safari/mobile acceptance.
+Native Safari desktop and Safari on a real supported iPhone/iPad remain deferred.
+Chromium device emulation and Linux WebKit do not complete native Safari/mobile acceptance.
 The read-only original-object probes are dated partial evidence; their failed
 whole GET and synthetic-Origin result cannot be converted into delivery approval.
 
 ## Activate the prepared manifest only after publication
 
-The restricted proposal and unified patch change only the two pending playback
-fields and ten subtitle object keys. The shipped manifest retains all twelve nulls;
-import refuses missing playback or subtitle objects.
+The replacement HLS proposal and unified patch change seven playback fields
+and ten subtitle object keys. The shipping manifest remains unchanged with
+two playback/ten subtitle nulls, so import still refuses incomplete media.
 No runtime proposal override or new import bypass was added.
 
-1. Complete local/manual review. Operator publishes the two accepted MP4 objects
+1. Record the content/publication disposition using the current HLS packet and
+   known manual limitations. Operator publishes the seven accepted HLS trees
    and ten WebVTT sidecars, leaving originals intact. Record exact identity,
    MIME/Range/cache and actual-origin readback. Rights for all seven films and
    thirteen graphics must be resolved; publication does not itself establish them.
-2. Executor verifies that the twelve-field patch matches the accepted/publication
+2. Executor verifies that the seventeen-field patch matches the accepted/publication
    record and current manifest; commits the exact accepted keys. If an operator
    chooses another artifact, regenerate the proposal rather than applying stale
    keys. No activation is authorized by this preparation step.

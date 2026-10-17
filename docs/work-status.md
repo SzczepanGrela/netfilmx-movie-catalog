@@ -1,11 +1,46 @@
 # NetFilmx candidate status
 
-Updated 2026-10-15 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
+Updated 2026-10-17 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
 Work continues in [draft PR #1](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/1).
-Production has not changed. The October 13 local recovery/source milestone is
-accepted. The media/credits follow-up below remains preparation for operator review.
+Production has not changed. Accepted R1, recovery/source reconciliation, credits,
+subtitle code at `f4aca03` and earlier desktop/Android observations are preserved.
 
-## Current stage: subtitle preservation and player support
+## Current stage: complete seven-film HLS preparation
+
+The operator expanded the media scope to adaptive HLS for all seven retained
+originals. The [HLS technical contract](retained-hls.md) describes the shared
+upload/offline encoder, source-bounded proportional ladders, exact publication
+packet and separate delivery/activation gates. All ten Sintel WebVTTs retain
+their accepted bytes, labels and times; there is no sync compensation.
+
+Prepared payload: **20 quality variants, 1398 objects, 1083549423 bytes**. The
+complete graph/segment/source-identity verification passes for seven films.
+The private actual-player runner checks Chromium/Firefox quality choices with
+decoded dimensions, Auto, seeks, natural endings and all ten languages/Off.
+Its results, diagnostic attempts, exact commits and current CI are recorded in
+the private checkpoint/report, separately from the older accepted tests.
+
+Concrete failures found during this stage have narrow corrections: Theora's
+final repeat image is held to its measured source duration, unspecified Theora
+SAR defaults to square, HLS metadata preload waits for the hls.js provider
+so Vidstack populates the quality menu, and quality changes retain the playing
+fragment with bounded prefetch to avoid a Chromium flush/seek race. Llama alone was re-encoded for its
+measured ending/aspect failures; six passing encodes were preserved.
+
+The new **inactive seventeen-field proposal** changes seven master keys and ten
+subtitle keys. The older two-MP4/ten-VTT packet remains historical and must not
+be activated. Shipping manifest, originals, old MP4s, both checkouts and accepted
+R1 remain preserved. No provider write, deployment or merge occurred; uploads
+and worker remain false and PR #1 remains draft.
+
+Next is packet review and a separate operator publication decision, actual
+HTTPS/CORS readback, then separately authorized manifest activation and final
+image migration/import/restart/real-HLS qualification. Detailed manual trials
+remain deferred under the operator's reduced scope. Sintel's perceived sync
+cause/full acceptance is unresolved. UI/mobile/credits polish and repository
+hygiene belong to separate later work owned by the coordinator.
+
+## Accepted subtitle preservation and player support
 
 The accepted media follow-up is `9601fd1c5fbde30114484f22cc470ba15581cc17`.
 The new [subtitle implementation](subtitles.md) preserves all ten Sintel tracks
@@ -201,11 +236,11 @@ checks remain available in PR Checks.
 
 ## Remaining gates and next step
 
-Next: review the new credits/media packet and Gran Dillama’s exact BY 3.0 card; accept
-stereo/subtitle choices and complete the pending native/manual/HTTPS checks.
-Only operator publication and recorded acceptance can authorize a later manifest
-activation/final-image real-media rehearsal. Keep PR #1 draft. R1 and the scoped
-synthetic recovery/source milestone are already accepted.
+Next: review the successor seven-film HLS packet and record the publication
+disposition, including Sintel's unresolved sync and retained manual deferrals.
+Publication and target HTTPS/CORS readback precede separately authorized
+seventeen-field manifest activation/final-image real-media rehearsal. Keep PR #1
+draft. R1 and the scoped synthetic recovery/source milestone are already accepted.
 Coordinator/operator must identify the target Coolify resource and review its
 private contract, protected main/environment, first healthy rollback baseline
 and scoped recovery plan before any production action. On 2026-10-03 the
