@@ -5,7 +5,13 @@ using NetFilmx_Service.Processing;
 
 if (args is ["--help"])
 {
-    Console.WriteLine("Offline only: encode <original-file> <new-private-output-directory>. Uses the upload FFmpegService, no providers or database.");
+    Console.WriteLine("Offline only: encode <original-file> <new-private-output-directory>, or plan <original-file> <hls-directory> (read-only JSON). Uses the upload FFmpegService, no providers or database.");
+    return;
+}
+if (args is ["plan", _, _])
+{
+    var proposed = await new FFmpegService().PlanAsync(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), CancellationToken.None);
+    Console.WriteLine(JsonSerializer.Serialize(proposed, new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true }));
     return;
 }
 if (args is not ["encode", _, _]) throw new ArgumentException("Use --help.");
