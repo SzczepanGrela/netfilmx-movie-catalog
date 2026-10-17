@@ -155,10 +155,12 @@ covers every playback file's name, length and checksum. VTTs keep the accepted
 No schema/DTO migration is needed: existing `VideoUrl` supports `.m3u8` and the
 accepted durable subtitle links remain in use.
 
-The embedded manifest is **unchanged**: its two playback and ten subtitle nulls
-still prevent import. The successor patch changes **seventeen references**, not
-the historical twelve. Do not apply either patch at this stage; retain the old
-packet as history. HLS payloads/evidence remain ignored local artifacts.
+Publication/readback and NHP17-1 are now accepted. On October 18 the operator
+authorized activation of exactly **seventeen references** and local final-image
+qualification. The embedded manifest now matches the approved proposal exactly.
+The original packet retains its preparation-time metadata; current execution and
+activation results live separately. The historical twelve-field patch stays unused.
+HLS payloads/evidence remain ignored local artifacts.
 
 ## Later operator publication and image qualification
 

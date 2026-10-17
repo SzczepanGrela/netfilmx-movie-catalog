@@ -323,11 +323,14 @@ class Harness:
             self.grants(pg, create_role=True)
             runtime = self.env("runtime", {"ConnectionStrings__DefaultConnection":self.connection(pg), "CloudflareR2__PublicUrl":"https://media.example.test"})
             plan = json.loads(self.cli(self.image, runtime, "catalogue", "plan").stdout)
-            if len(plan["pendingPlayback"]) != 2:
+            if len(plan["pendingPlayback"]) not in (0, 2):
                 raise Failure("Unexpected embedded manifest; review fixture assumptions")
-            refused = self.cli(self.image,runtime,"catalogue","import","--confirm-empty-database","--confirm-reviewed-media",check=False)
-            if refused.returncode != 1 or b"pending playback derivatives" not in refused.stderr:
-                raise Failure("Shipped incomplete manifest must refuse before import")
+            if plan["pendingPlayback"]:
+                refused = self.cli(self.image,runtime,"catalogue","import","--confirm-empty-database","--confirm-reviewed-media",check=False)
+                if refused.returncode != 1 or b"pending playback derivatives" not in refused.stderr:
+                    raise Failure("Shipped incomplete manifest must refuse before import")
+            # An activated manifest is covered by final_catalogue.py and the
+            # image smoke. Recovery below deliberately retains synthetic URLs.
             self.cli(self.tools, runtime, "import-fixture")
             self.cli(self.tools, runtime, "refuse-repeat")
             initial = json.loads(self.cli(self.tools, runtime, "counts").stdout)

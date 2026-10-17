@@ -41,6 +41,26 @@ connection='Host=database;Database=netfilmx_test;Username=netfilmx_test;Password
 docker run --rm --network "$network" --cpus 1 --memory 512m --cap-drop ALL --init \
     --env "ConnectionStrings__DefaultConnection=$connection" "$image" \
     database migrate --confirm-reviewed-migrations
+# Exercise the embedded shipping manifest through the production CLI, without
+# contacting the synthetic media origin. Counts and IDs must survive restart.
+catalogue_args=(--rm --network "$network" --cpus 1 --memory 512m --cap-drop ALL --init
+    --env "ConnectionStrings__DefaultConnection=$connection"
+    --env CloudflareR2__PublicUrl=https://media.example.test)
+docker run "${catalogue_args[@]}" "$image" catalogue import --confirm-empty-database --confirm-reviewed-media
+snapshot() {
+    docker exec "$database" psql -X -qAt -v ON_ERROR_STOP=1 -U netfilmx_test -d netfilmx_test -c '
+        SELECT (SELECT count(*) FROM "Videos"), (SELECT count(*) FROM "Series"),
+            (SELECT count(*) FROM "VideoSeries"), (SELECT count(*) FROM "VideoSubtitles"),
+            (SELECT count(*) FROM "Users");
+        SELECT "Id", "Title", "VideoUrl" FROM "Videos" ORDER BY "Id";
+        SELECT "Id", "VideoId", "TrackKey", "Language", "Label", "Url", "Position" FROM "VideoSubtitles" ORDER BY "Id";'
+}
+initial_catalogue=$(snapshot)
+[[ "${initial_catalogue%%$'\n'*}" == '7|1|3|10|0' ]]
+if docker run "${catalogue_args[@]}" "$image" catalogue import --confirm-empty-database --confirm-reviewed-media; then
+    echo 'Repeated catalogue import unexpectedly succeeded.' >&2; exit 1
+fi
+[[ "$(snapshot)" == "$initial_catalogue" ]]
 docker run --detach --name "$application" --network "$network" \
     --cpus 1 --memory 512m --memory-swap 512m --cap-drop ALL --init \
     --mount "type=volume,source=$keys,target=/var/lib/netfilmx/keyring" \
@@ -75,4 +95,5 @@ for _ in {1..40}; do
 done
 [[ "$health" == healthy ]]
 docker exec "$application" dotnet NetFilmx_Web.dll smokecheck
+[[ "$(snapshot)" == "$initial_catalogue" ]]
 echo 'Exact image, catalogue, native media tools and restart smoke passed.'

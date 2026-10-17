@@ -1,12 +1,31 @@
 # NetFilmx candidate status
 
-Updated 2026-10-17 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
+Updated 2026-10-18 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
 Work continues in [draft PR #1](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/1).
 The application has not been deployed; the retained HLS media were published
 through the separately authorized one-time tool. Accepted R1, recovery/source reconciliation, credits,
 subtitle code at `f4aca03` and earlier desktop/Android observations are preserved.
 
-## Current stage: NHP17-1 HTTP client identification
+## Current stage: approved media references and local final-image qualification
+
+NHP17-1 was accepted at `82f6a7966fced2ff746a6cd33bc8e410ceb0ac5e`.
+The operator separately authorized activation of the exact approved seven HLS
+masters and ten Sintel VTT references on October 18. The shipping manifest now
+matches the immutable publication proposal byte for byte; sources, artwork,
+prices, licences and credits are preserved. The former two-MP4/ten-VTT patch
+remains historical and unused.
+
+The [final-image procedure](final-catalogue-qualification.md) uses the committed
+candidate image, real PostgreSQL CLI migration/import and restart, then actual
+MVC/Vidstack against the public media endpoint with the real application origin
+represented locally. It retains normal TLS/CORS and records image identity,
+catalogue/subtitle mappings and browser evidence. Actual run results and CI
+links are recorded in the restricted report/checkpoint; the procedure alone
+does not claim a pass. No publication/encoding/full HTTP inventory is repeated.
+PR remains draft, uploads/worker false, no merge/GHCR/deploy/provider change.
+Sintel synchronization and deferred manual trials retain their earlier status.
+
+## Accepted NHP17-1 HTTP client identification
 
 The coordinator accepted publication of the unchanged 1398-object packet at
 `8c7b8d5`, retention of all existing objects and the complete HTTPS readback
@@ -21,8 +40,8 @@ and loopback HTTP; public readback is limited to one segment, VTT and master.
 
 This correction repeats no transfer, encoding, full-catalogue HTTP or manual
 media acceptance. The earlier preparation sections below retain their historical
-scope. Current manifest activation/final-image/browser qualification still need
-separate authorization. PR stays draft, uploads/worker false; no merge/deploy
+scope. The separate October 18 activation/local qualification authorization is
+described above. PR stays draft, uploads/worker false; no merge/deploy
 or provider configuration change is part of NHP17-1.
 
 ## Accepted seven-film HLS preparation
@@ -47,9 +66,9 @@ so Vidstack populates the quality menu, and quality changes retain the playing
 fragment with bounded prefetch to avoid a Chromium flush/seek race. Llama alone was re-encoded for its
 measured ending/aspect failures; six passing encodes were preserved.
 
-The new **inactive seventeen-field proposal** changes seven master keys and ten
+At preparation time the **inactive seventeen-field proposal** changed seven master keys and ten
 subtitle keys. The older two-MP4/ten-VTT packet remains historical and must not
-be activated. Shipping manifest, originals, old MP4s, both checkouts and accepted
+be activated. At that stage shipping manifest, originals, old MP4s, both checkouts and accepted
 R1 remain preserved. No provider write, deployment or merge occurred; uploads
 and worker remain false and PR #1 remains draft.
 

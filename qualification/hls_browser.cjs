@@ -8,32 +8,34 @@ const {createHash} = require('node:crypto');
 
 async function main() {
   if (process.argv.includes('--help')) {
-    console.log('node qualification/hls_browser.cjs <publication-record.json> <new-private-output> <playwright-package-directory> [full|chromium|firefox|trace] [film-slug]');
+    console.log('node qualification/hls_browser.cjs <publication-record.json> <new-private-output> <playwright-package-directory> [full|chromium|firefox|trace|remote] [film-slug|remote-config.json]');
     return;
   }
-  const [packetArg, outputArg, packageArg, mode = 'full', filterSlug] = process.argv.slice(2);
-  if (!['full', 'chromium', 'firefox', 'trace'].includes(mode)) throw Error('Use --help');
+  const [packetArg, outputArg, packageArg, mode = 'full', selection] = process.argv.slice(2);
+  if (!['full', 'chromium', 'firefox', 'trace', 'remote'].includes(mode)) throw Error('Use --help');
+  const remote = mode === 'remote' ? JSON.parse(fs.readFileSync(selection)) : null;
+  const filterSlug = remote ? null : selection;
   const root = path.resolve(__dirname, '..'), output = path.resolve(outputArg);
   if (!output.startsWith(root + '/artifacts/')) throw Error('Use a new private artifacts directory');
   fs.mkdirSync(output, {recursive: false, mode: 0o700});
   const packetPath = fs.realpathSync(packetArg), packet = JSON.parse(fs.readFileSync(packetPath));
   if (packet.kind !== 'retained-seven-film-hls' || packet.manifestActivated || packet.providerWrites) throw Error('Inactive HLS proposal required');
   const playwright = require(path.resolve(packageArg));
-  const preview = spawn('python3', [path.join(__dirname, 'hls_preview.py'), packetPath, path.join(output, 'fixture')], {cwd: root, stdio: ['ignore', 'pipe', 'pipe']});
+  const preview = remote ? null : spawn('python3', [path.join(__dirname, 'hls_preview.py'), packetPath, path.join(output, 'fixture')], {cwd: root, stdio: ['ignore', 'pipe', 'pipe']});
   const previewLog = fs.createWriteStream(path.join(output, 'preview.log'), {mode: 0o600});
-  preview.stderr.pipe(previewLog);
+  preview?.stderr.pipe(previewLog);
   let browser;
-  const report = {startedUtc: new Date().toISOString(), scope: `actual ${filterSlug ? 'selected diagnostic' : 'seven-film'} HLS in MVC Vidstack, private loopback fixture; no final-image import`,
+  const report = {startedUtc: new Date().toISOString(), scope: remote ? 'exact committed image / real PostgreSQL import / MVC Vidstack / target HTTPS media and actual app origin' : `actual ${filterSlug ? 'selected diagnostic' : 'seven-film'} HLS in MVC Vidstack, private loopback fixture; no final-image import`,
     audibleAcceptance: false, nativeSafariMobileAcceptance: false, targetHttpsCorsAcceptance: false, engines: [], status: 'failed'};
   report.requested = {mode, filterSlug: filterSlug || null};
   const digest = file => createHash('sha256').update(fs.readFileSync(file)).digest('hex');
   report.provenance = {sourceHead: execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim(),
-    packetSha256: digest(packetPath), appAssemblySha256: digest(path.join(root, 'NetFilmx_Web/bin/Release/net10.0/NetFilmx_Web.dll')),
+    packetSha256: digest(packetPath), ...(remote ? {image: remote.image} : {appAssemblySha256: digest(path.join(root, 'NetFilmx_Web/bin/Release/net10.0/NetFilmx_Web.dll'))}),
     files: Object.fromEntries(['NetFilmx_Web/Views/Shared/_VideoPlayer.cshtml', 'NetFilmx_Web/wwwroot/js/video-player.js',
       'NetFilmx_Service/Processing/FFmpegService.cs', 'qualification/hls_browser.cjs'].map(file => [file, digest(path.join(root, file))]))};
   const check = (value, message) => {if (!value) throw Error(message);};
   try {
-    const origin = await new Promise((resolve, reject) => {
+    const origin = remote ? remote.origin : await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => reject(Error('HLS fixture startup timeout')), 35000);
       preview.once('exit', code => {clearTimeout(timeout); reject(Error('HLS fixture exited: ' + code));});
       let text = '';
@@ -46,30 +48,55 @@ async function main() {
       });
     });
     report.origin = origin;
-    for (const engine of mode === 'full' ? ['chromium', 'firefox'] : mode === 'trace' ? ['chromium'] : [mode]) {
+    for (const engine of mode === 'full' || remote ? ['chromium', 'firefox'] : mode === 'trace' ? ['chromium'] : [mode]) {
       const launch = {headless: true};
       if (engine === 'firefox') {
         launch.executablePath = path.join(root, 'artifacts/tools/playwright/firefox-1538/firefox/firefox');
         launch.env = {...process.env, LD_LIBRARY_PATH: path.join(root, 'artifacts/tools/firefox-codecs')};
       }
+      if (remote) {
+        launch.executablePath = path.join(remote.output, engine + '-wrapper');
+        if (engine === 'chromium') launch.chromiumSandbox = true;
+        if (engine === 'firefox') launch.firefoxUserPrefs = {'network.trr.mode': 5};
+      }
       browser = await playwright[engine].launch(launch);
       const result = {engine, browserVersion: browser.version(), privateCodecLibraries: engine === 'firefox', entries: [], status: 'failed'};
       report.engines.push(result);
-      const context = await browser.newContext({ignoreHTTPSErrors: true, viewport: {width: 1280, height: 900}});
-      await context.route('**/*', async route => {
+      const context = await browser.newContext({ignoreHTTPSErrors: !remote, viewport: {width: 1280, height: 900}});
+      if (!remote) await context.route('**/*', async route => {
         if (!route.request().url().startsWith(origin + '/')) return route.abort();
         // Reproduce the observed native-HLS/pre-library readiness race.
         if (route.request().url().endsWith('/lib/hls.js/dist/hls.min.js')) await new Promise(resolve => setTimeout(resolve, 300));
         return route.continue();
       });
+      if (remote) {
+        const probe = await context.newPage();
+        result.mvc = [];
+        for (const route of ['/health/ready', '/', '/Home/Movies', '/Home/Series', '/Home/Credits']) {
+          const response = await probe.goto(origin + route);
+          check(response.status() === 200 && new URL(probe.url()).origin === origin, 'Actual image MVC/readiness route: ' + route);
+          if (route === '/health/ready') check(JSON.parse(await response.text()).revision === remote.image.revision, 'Readiness image revision');
+          result.mvc.push({route, status: response.status()});
+        }
+        await probe.close();
+      }
       for (let index = 0; index < packet.films.length; index++) {
         if (mode === 'trace' && index !== 1) continue;
         const film = packet.films[index], page = await context.newPage();
         if (filterSlug && film.slug !== filterSlug) {await page.close(); continue;}
         page.setDefaultTimeout(12000);
         const errors = [], requested = new Set();
+        const network = [], failures = [], consoleErrors = [];
         page.on('pageerror', error => errors.push(error.message));
-        page.on('response', response => {if (response.url().includes('/stream_')) requested.add(new URL(response.url()).pathname);});
+        page.on('console', message => {if (message.type() === 'error') consoleErrors.push(message.text());});
+        page.on('requestfailed', request => {
+          if (remote && request.url().startsWith(remote.mediaOrigin + '/')) failures.push({url: request.url(), error: request.failure()?.errorText});
+        });
+        page.on('response', response => {
+          if (response.url().includes('/stream_')) requested.add(new URL(response.url()).pathname);
+          if (remote && response.url().startsWith(remote.mediaOrigin + '/')) network.push({url: response.url(), status: response.status(),
+            cors: response.headers()['access-control-allow-origin'] || null, type: response.request().resourceType()});
+        });
         const entry = {slug: film.slug, status: 'failed', qualitySwitches: []};
         await page.addInitScript(() => {
           window.hlsTrace = [];
@@ -110,7 +137,10 @@ async function main() {
           }, time);
         }
         try {
-          check((await page.goto(origin + '/Home/Watch/' + (index + 1))).status() === 200, 'Watch response');
+          const videoId = remote ? remote.catalogue.mappings.find(v => new URL(v.VideoUrl).pathname === '/' + film.masterKey)?.Id : index + 1;
+          check(videoId, 'Imported film identity');
+          check((await page.goto(origin + '/Home/Watch/' + videoId)).status() === 200, 'Watch response');
+          if (remote) check(await page.evaluate(() => location.origin) === origin, 'Real application origin');
           await page.waitForFunction(() => document.querySelector('media-player')?.state?.canPlay, null, {timeout: 30000});
           await page.waitForFunction(count => document.querySelector('media-player')?.provider?.instance?.levels?.length === count, film.variants.length);
           if (mode !== 'trace') await page.waitForFunction(count => document.querySelector('media-player').qualities.length === count, film.variants.length);
@@ -186,8 +216,20 @@ async function main() {
           entry.variantRequests = [...requested].filter(url => url.endsWith('.m3u8'));
           check(entry.variantRequests.length >= film.variants.length, 'All selected variant playlists requested');
           entry.errors = errors; entry.status = 'passed';
+          if (remote) {
+            entry.mediaNetwork = network;
+            entry.requestFailures = failures;
+            entry.consoleErrors = consoleErrors;
+            // hls.js cancels speculative requests on seek/quality changes. Every
+            // other failed fetch, HTTP error or browser CORS error is a failure.
+            check(failures.every(f => /ERR_ABORTED|NS_BINDING_ABORTED/.test(f.error || '')), 'Media fetch failure');
+            check(network.length > 0 && network.every(r => r.status >= 200 && r.status < 300), 'Media HTTP status');
+            check(network.filter(r => /\.(m3u8|ts|vtt)$/.test(r.url)).every(r => r.cors === origin), 'Target media CORS');
+            check(!consoleErrors.some(e => /cors|cross.origin|access.control/i.test(e)), 'Browser CORS error');
+          }
         } catch (error) {
-          entry.error = error.message; entry.stack = error.stack; entry.errors = errors;
+          entry.status = 'failed'; entry.error = error.message; entry.stack = error.stack; entry.errors = errors;
+          entry.mediaNetwork = network; entry.requestFailures = failures; entry.consoleErrors = consoleErrors;
           entry.state = await page.$eval('media-player', p => ({time: p.currentTime, duration: p.duration, provider: p.provider?.type,
             selectedQuality: p.qualities.selected?.height, qualities: p.qualities.toArray().map(q => ({height: q.height, width: q.width})),
             currentLevel: p.provider?.instance?.currentLevel, seeking: p.state.seeking, mediaError: p.state.error,
@@ -206,12 +248,13 @@ async function main() {
       await browser.close(); browser = null;
     }
     report.status = report.engines.every(e => e.status === 'passed') ? 'passed' : 'failed';
-    report.completeCatalogueQualification = mode === 'full' && !filterSlug && report.engines.length === 2
+    report.completeCatalogueQualification = (mode === 'full' || !!remote) && !filterSlug && report.engines.length === 2
       && report.engines.every(e => e.entries.length === 7 && e.status === 'passed');
+    if (remote) report.targetHttpsCorsAcceptance = report.completeCatalogueQualification && report.status === 'passed';
   } finally {
     if (browser) await browser.close();
-    preview.kill('SIGTERM');
-    await new Promise(resolve => {
+    preview?.kill('SIGTERM');
+    if (preview) await new Promise(resolve => {
       if (preview.exitCode !== null) return resolve();
       const timeout = setTimeout(resolve, 15000);
       preview.once('exit', () => {clearTimeout(timeout); resolve();});

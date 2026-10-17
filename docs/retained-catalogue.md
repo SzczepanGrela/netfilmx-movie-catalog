@@ -29,36 +29,34 @@ dotnet run --project NetFilmx_Web --no-launch-profile -- catalogue plan
 
 For a published application, use `dotnet NetFilmx_Web.dll catalogue plan`.
 This administrative path exits before starting HTTP, Hangfire or startup
-migrations. Schema 2 prints seven entries, two pending playback derivatives and
-ten pending Sintel subtitle tracks (language, label, stable track key and order):
+migrations. Schema 2 now prints seven published HLS references, ten published
+Sintel subtitle tracks and empty pending lists. The source keys remain:
 
 | Film/episode | Retained source key | Playback candidate |
 | --- | --- | --- |
-| Sintel | videos/sintel.mkv | Pending |
-| Tears of Steel | videos/tears-of-steel.mp4 | Same key |
-| Charge | videos/charge.webm | Same key |
-| Elephants Dream | videos/elephants-dream.mp4 | Same key |
-| Caminandes: Llama Drama | videos/caminandes-llama-drama.ogv | Pending |
-| Caminandes: Gran Dillama | videos/caminandes-gran-dillama.mp4 | Same key |
-| Caminandes: Llamigos | videos/caminandes-llamigos.webm | Same key |
+| Sintel | videos/sintel.mkv | Versioned HLS master + ten VTTs |
+| Tears of Steel | videos/tears-of-steel.mp4 | Versioned HLS master |
+| Charge | videos/charge.webm | Versioned HLS master |
+| Elephants Dream | videos/elephants-dream.mp4 | Versioned HLS master |
+| Caminandes: Llama Drama | videos/caminandes-llama-drama.ogv | Versioned HLS master |
+| Caminandes: Gran Dillama | videos/caminandes-gran-dillama.mp4 | Versioned HLS master |
+| Caminandes: Llamigos | videos/caminandes-llamigos.webm | Versioned HLS master |
 
-The table above describes the still-shipped, incomplete manifest, not the new
-publication proposal. [Adaptive HLS preparation](retained-hls.md) now supersedes
-the former two-MP4/ten-VTT packet: seven new master keys plus their complete
-variant/segment trees and ten unchanged Sintel VTTs. The proposed patch changes
-seven playback references and ten subtitle references. It remains unapplied;
-the current two null playback and ten null subtitle fields still block import.
-Existing source/artwork keys and earlier evidence remain intact.
+After accepted publication/readback and NHP17-1, the operator authorized the
+exact seventeen-reference patch on October 18. The embedded manifest is
+byte-identical to the approved seven-film HLS proposal. Existing source/artwork
+keys, labels, prices, credits and earlier evidence remain intact.
 
 The [media review](media-review.md) records provenance; the
 [subtitle contract](subtitles.md) preserves all ten original languages.
-Content/publication disposition, actual object publication and target HTTPS/CORS
-precede a separate manifest activation and final-image qualification.
+Publication and target HTTPS/CORS have accepted evidence; final-image
+qualification uses the real manifest and public media, as described in the
+[local procedure](final-catalogue-qualification.md). Application deployment remains separate.
 The original/old MP4s and their publication packet are history, not a fallback
 plan to apply alongside the HLS proposal. Never partially activate the catalogue.
 No conversion, provider request or upload runs from the catalogue command.
-Nullable playback and subtitle keys keep the current plan intentionally non-importable;
-it cannot create a partially available catalogue or substitute a demo stream.
+Nullable playback and subtitle keys remain a validation guard: an incomplete
+future plan cannot create a partially available catalogue or substitute a demo stream.
 
 ## Import only into a prepared, separate, empty PostgreSQL database
 

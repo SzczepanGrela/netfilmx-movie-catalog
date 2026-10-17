@@ -1,8 +1,10 @@
 # First release and data/media acceptance plan
 
-Prepared 2026-10-05; catalogue format updated 2026-10-17 by the operator's HLS scope change.
-This is a proposed sequence for review. No resource, protection rule, production
-data or R2 object has been changed. Uploads and workers remain disabled.
+Prepared 2026-10-05; activation stage updated 2026-10-18.
+The accepted 1398-object HLS packet has been published and read back under a
+separate operator authorization. The operator now authorizes its seventeen
+manifest references and local final-image qualification. Application deployment,
+repository gates and production data remain separate. Uploads/workers stay disabled.
 
 R1 is corrected at `51e1ea1d3c56fcd7903981f81fef0dc2279bdd79`:
 [CI/CD](https://github.com/SzczepanGrela/netfilmx-movie-catalog/actions/runs/37220691661)
@@ -20,7 +22,7 @@ Later media/code changes need qualification of their own SHA.
 | New data | Operator selected fresh PostgreSQL, seven retained films/episodes, new accounts and empty history | Archive legacy SQLite independently; exclude demo/YouTube rows and old user data from import |
 | Coolify app | Operator reported no NetFilmx resource; legacy SSH instances may remain | Obtain fresh scoped API/host evidence before choosing a destination or creating anything |
 | Repository gates | GitHub readback completed October 5: main unprotected, zero rulesets/environments, both activation variables absent | Coordinator/operator installs and reads back section 2 |
-| Media | Seven retained originals now target adaptive HLS; ten Sintel VTT sidecars retained. Shipping manifest remains unchanged/incomplete | Review the complete HLS packet; publish/read back before separately replacing seven playback and ten subtitle fields |
+| Media | Publication/readback and NHP17-1 accepted; shipping manifest now contains the seven approved masters and ten Sintel VTTs | Qualify the committed image/import/restart and actual player against target HTTPS before release |
 | Stateful runtime | Code/tests implemented; production mounts, recovery and actual container overlap unaccepted | Run section 4 locally, then accept the target settings in the agreed window |
 | Recovery policy | Application backup destination, retention, recovery-point and recovery-time targets unresolved | Operator records private destination/access, cadence, retention and measured restore targets |
 | Capacity | Local catalogue hypothesis supplied October 12; production/full-film budgets unresolved | Test section 4.1 without increasing limits silently; coordinator/operator selects production budgets from evidence |
@@ -126,21 +128,19 @@ The two existing MP4s, their results and the former two-MP4/ten-VTT packet remai
 history; that packet and its patch are no longer the publication plan. Do not
 route catalogue preparation through the public uploader or enable its worker.
 
-**Operator actions, later:** decide content/publication acceptance, including the
-unresolved Sintel synchronization observation. Publish the exact inventory under
-new bundle-versioned keys: segments/VTTs first, media playlists next, masters last.
-Use scoped write access without deletes, preserving all original objects and
-previous derivatives. Read back identity/MIME/Range/cache/CORS for the entire HLS
-graph and sidecars. Only then separately commit the proposed seven master keys
-and ten subtitle keys and qualify the final image/import/restart. The current
-shipping manifest remains incomplete and unchanged. The operator/coordinator
-owns provider changes and the publication window; no publication is implied.
+**Publication completed and accepted:** the immutable inventory was published
+with conditional writes and complete identity/MIME/Range/cache/CORS readback.
+Preserve its original record and both historical HTTP outcomes. The October 18
+authorization activates exactly seven master keys and ten subtitle keys, then
+qualifies the committed image locally; it grants no new provider write or deploy.
+Sintel synchronization remains unresolved. See [final-image qualification](final-catalogue-qualification.md)
+for the isolated real-manifest PostgreSQL and target-origin browser procedure.
 
 The [one-time publication tool](hls-publication-tool.md) is prepared separately
 for coordinator review. Its default is local preflight; actual S3 execution needs
 the approved record hash and explicit profile/endpoint/bucket. It does not use
 the application uploader or change the immutable original packet. Execution and
-target HTTPS readback remain separately authorized actions.
+target HTTPS readback have their own accepted execution evidence; do not repeat them.
 
 ### Playback acceptance
 
@@ -187,7 +187,9 @@ Use [the catalogue recovery harness](catalogue-recovery.md) with the exact image
 disposable **persistent** PG storage and a shared private keyring. Both web
 containers run with uploads/worker/demo seeding false. The helper calls the
 candidate's byte-identical importer library with an explicitly synthetic completed
-plan; the shipped manifest and production CLI still refuse pending playback.
+plan. Those accepted recovery results retain their synthetic scope. The now
+activated shipping manifest is exercised separately by the real production CLI
+in the image smoke and [final-image harness](final-catalogue-qualification.md).
 
 Start with each web at 1 CPU / 512 MiB RAM+swap and PG at 1 CPU / 512 MiB RAM,
 with total RAM+swap also 512 MiB (no swap allowance). Limit each PG data directory

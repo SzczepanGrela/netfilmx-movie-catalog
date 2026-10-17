@@ -30,7 +30,7 @@ internal static class Entry
             await using var db = new NetFilmxDbContext(new DbContextOptionsBuilder<NetFilmxDbContext>()
                 .UseNpgsql(connection, o => o.MigrationsAssembly(NetFilmxDatabaseOptions.PostgreSqlMigrationsAssembly)).Options);
             var plan = CataloguePlan.Load();
-            // This completed plan is synthetic. The shipped resource remains unchanged/null.
+            // Recovery retains its synthetic URLs even after shipping activation.
             var fixture = plan with { Videos = plan.Videos.Select(v => v with
             {
                 PlaybackObjectKey = $"videos/qualification/{v.Slug}.mp4",
@@ -38,6 +38,30 @@ internal static class Entry
             }).ToArray() };
             switch (args.Single())
             {
+                case "verify-retained":
+                    var origin = CataloguePlan.ValidateBaseUrl(Environment.GetEnvironmentVariable("CloudflareR2__PublicUrl")!);
+                    plan.EnsureReadyForImport();
+                    var videos = await db.Videos.Include(v => v.Subtitles).Include(v => v.Series).OrderBy(v => v.Id).ToArrayAsync(deadline.Token);
+                    Require(videos.Length == 7 && await db.Series.CountAsync(deadline.Token) == 1, "Real catalogue counts");
+                    Require(videos.Sum(v => v.Series.Count) == 3 && videos.Sum(v => v.Subtitles.Count) == 10, "Real catalogue links");
+                    Require(!await db.Users.AnyAsync(deadline.Token), "No imported users");
+                    foreach (var expected in plan.Videos)
+                    {
+                        var actual = videos.Single(v => v.Title == expected.Title);
+                        Require(actual.VideoUrl == new Uri(origin, expected.PlaybackObjectKey!).AbsoluteUri
+                            && actual.ThumbnailUrl == new Uri(origin, expected.PosterObjectKey).AbsoluteUri
+                            && actual.BackdropUrl == (expected.BackdropObjectKey is null ? null : new Uri(origin, expected.BackdropObjectKey).AbsoluteUri), "Real media mapping");
+                        Require(actual.Price == expected.Price && actual.Subtitles.Count == (expected.Subtitles?.Length ?? 0), "Preserved metadata");
+                        foreach (var track in expected.Subtitles ?? [])
+                        {
+                            var saved = actual.Subtitles.Single(s => s.TrackKey == track.TrackKey);
+                            Require(saved.Url == new Uri(origin, track.ObjectKey!).AbsoluteUri && saved.Language == track.Language
+                                && saved.Label == track.Label && saved.Position == track.Position, "Real subtitle mapping");
+                        }
+                    }
+                    Console.WriteLine(JsonSerializer.Serialize(new { videos = 7, series = 1, episode_links = 3, subtitles = 10,
+                        mappings = videos.Select(v => new { v.Id, v.Title, v.VideoUrl, subtitles = v.Subtitles.Count }) }));
+                    break;
                 case "import-fixture":
                     await CatalogueImporter.ImportAsync(db, fixture, MediaOrigin, deadline.Token);
                     Require(await db.Videos.CountAsync(deadline.Token) == 7, "Video count");
@@ -121,7 +145,8 @@ internal static class Entry
             { Timeout = TimeSpan.FromSeconds(10) };
         app.Run(async context =>
         {
-            var instance = context.Request.Headers["X-Qualification-Instance"].ToString();
+            var singleInstance = Environment.GetEnvironmentVariable("Qualification__SingleInstance") == "true";
+            var instance = singleInstance ? "a" : context.Request.Headers["X-Qualification-Instance"].ToString();
             if (instance is not ("a" or "b")) { context.Response.StatusCode = 400; return; }
             using var request = new HttpRequestMessage(new HttpMethod(context.Request.Method),
                 $"http://web-{instance}:8080{context.Request.Path}{context.Request.QueryString}");
@@ -136,7 +161,7 @@ internal static class Entry
                 if (!request.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
                     request.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
             }
-            request.Headers.Host = "netfilmx.test";
+            request.Headers.Host = Environment.GetEnvironmentVariable("Qualification__GatewayHost") ?? "netfilmx.test";
             request.Headers.Add("X-Forwarded-Proto", "https");
             request.Headers.Add("X-Forwarded-For", "192.0.2.10");
             try
