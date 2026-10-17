@@ -136,6 +136,12 @@ and ten subtitle keys and qualify the final image/import/restart. The current
 shipping manifest remains incomplete and unchanged. The operator/coordinator
 owns provider changes and the publication window; no publication is implied.
 
+The [one-time publication tool](hls-publication-tool.md) is prepared separately
+for coordinator review. Its default is local preflight; actual S3 execution needs
+the approved record hash and explicit profile/endpoint/bucket. It does not use
+the application uploader or change the immutable original packet. Execution and
+target HTTPS readback remain separately authorized actions.
+
 ### Playback acceptance
 
 Local automatic checks cover the real HLS in Chromium/Firefox: variants and

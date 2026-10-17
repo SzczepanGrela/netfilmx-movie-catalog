@@ -5,7 +5,26 @@ Work continues in [draft PR #1](https://github.com/SzczepanGrela/netfilmx-movie-
 Production has not changed. Accepted R1, recovery/source reconciliation, credits,
 subtitle code at `f4aca03` and earlier desktop/Android observations are preserved.
 
-## Current stage: complete seven-film HLS preparation
+## Current stage: one-time HLS publication tool for review
+
+The coordinator accepted local HLS preparation at `a357fd4`. The exact packet
+and its original metadata remain unchanged. The next implementation is a
+[small publication tool](hls-publication-tool.md), separate from app uploads:
+fully local default preflight, explicit conditional S3 execution, durable
+per-object/attempt journals and an independent HTTPS readback mode.
+
+All PutObject calls require `If-None-Match: *`. Existing/racing objects require
+full content and metadata comparison; unknown results stop before later masters.
+Explicit resume binds the same approved record/list/target and rechecks every
+remote object. HTTP checks retain `browserPlayerAccepted=false`. New tests use
+fake S3 and loopback HTTP, and the actual 1398-object dry-run stays local.
+
+No real transfer, credential discovery, CORS change, manifest activation or
+deployment occurred. The coordinator reviews this tool before a separate
+publication instruction. Existing HLS/browser/manual results are preserved;
+no encoding or film acceptance is repeated. Uploads/worker remain false.
+
+## Accepted seven-film HLS preparation
 
 The operator expanded the media scope to adaptive HLS for all seven retained
 originals. The [HLS technical contract](retained-hls.md) describes the shared

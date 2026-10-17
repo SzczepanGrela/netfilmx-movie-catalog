@@ -68,6 +68,7 @@ jobs:
           python3 qualification/retained_hls.py --help >/dev/null
           python3 qualification/hls_package.py --help >/dev/null
           python3 qualification/hls_preview.py --help >/dev/null
+          python3 qualification/publish_hls.py --help >/dev/null
           node qualification/hls_browser.cjs --help >/dev/null
       - name: Install native media tools
         run: |
