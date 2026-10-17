@@ -310,7 +310,7 @@ public sealed class PostgreSqlMigrationTests : IAsyncLifetime
     {
         await using var db = OpenContext();
         await db.Database.MigrateAsync();
-        var plan = ReadyTestCatalogue();
+        var plan = CataloguePlan.Load();
         await CatalogueImporter.ImportAsync(db, plan, "https://media.example.test");
         db.ChangeTracker.Clear();
         Assert.Equal(7, await db.Videos.CountAsync());
@@ -320,7 +320,8 @@ public sealed class PostgreSqlMigrationTests : IAsyncLifetime
             var sintel=await reopened.Videos.Include(v=>v.Subtitles).SingleAsync(v=>v.Title=="Sintel");
             Assert.Equal(10,sintel.Subtitles.Count);
             Assert.Equal("Polski",sintel.Subtitles.Single(s=>s.Language=="pl").Label);
-            Assert.All(sintel.Subtitles,s=>Assert.StartsWith("https://media.example.test/subtitles/test/sintel/",s.Url));
+            Assert.Equal(plan.Videos[0].Subtitles!.Select(s => "https://media.example.test/" + s.ObjectKey).Order(),
+                sintel.Subtitles.Select(s => s.Url).Order());
             reopened.VideoSubtitles.Add(new VideoSubtitle("stream-2","de","Duplicate","https://media.example.test/subtitles/duplicate.vtt",0){VideoId=sintel.Id});
             await Assert.ThrowsAsync<DbUpdateException>(()=>reopened.SaveChangesAsync());
         }
@@ -329,7 +330,7 @@ public sealed class PostgreSqlMigrationTests : IAsyncLifetime
         Assert.Equal(3, (await db.Series.Include(s => s.Videos).SingleAsync()).Videos.Count);
         var originals = await db.Videos.OrderBy(v => v.Id).Select(v => v.VideoUrl).ToArrayAsync();
         Assert.All(originals, url => Assert.StartsWith("https://media.example.test/videos/", url));
-        Assert.Equal("https://media.example.test/videos/caminandes-gran-dillama.mp4",
+        Assert.Equal("https://media.example.test/" + plan.Videos.Single(v => v.Slug == "caminandes-gran-dillama").PlaybackObjectKey,
             (await db.Videos.SingleAsync(v => v.Title == "Caminandes: Gran Dillama")).VideoUrl);
         Assert.All(await db.Videos.ToArrayAsync(), video => Assert.Equal(DateTimeKind.Utc, video.CreatedAt.Kind));
 
@@ -350,7 +351,7 @@ public sealed class PostgreSqlMigrationTests : IAsyncLifetime
         await using var db = OpenContext();
         await db.Database.MigrateAsync();
         await Assert.ThrowsAsync<CatalogueImportException>(() =>
-            CatalogueImporter.ImportAsync(db, CataloguePlan.Load(), "https://media.example.test"));
+            CatalogueImporter.ImportAsync(db, CataloguePlan.Load() with { Videos = CataloguePlan.Load().Videos.Select(v => v with { PlaybackObjectKey = null }).ToArray() }, "https://media.example.test"));
         Assert.False(await db.Videos.AnyAsync());
         Assert.False(await db.Series.AnyAsync());
         db.Users.Add(new User("retained-user", "retained@example.test", "test-only-hash"));

@@ -5,15 +5,22 @@ namespace NetFilmx_Tests.Unit.Catalogue;
 public sealed class CataloguePlanTests
 {
     [Fact]
-    public void RetainedPlan_SeparatesOriginalObjectsFromPendingPlayback()
+    public void RetainedPlan_IsReadyWithSevenPublishedHlsMastersAndRetainedOriginals()
     {
         var plan = CataloguePlan.Load();
         Assert.Equal(7, plan.Videos.Length);
         Assert.Equal(7, plan.Videos.Select(v => v.Slug).Distinct().Count());
         Assert.Equal(3, plan.Videos.Count(v => v.SeriesSlug == "caminandes"));
-        Assert.Equal(new[] { "caminandes-llama-drama", "sintel" },
-            plan.Videos.Where(v => v.PlaybackObjectKey is null).Select(v => v.Slug).Order().ToArray());
-        Assert.Throws<CatalogueImportException>(plan.EnsureReadyForImport);
+        plan.EnsureReadyForImport();
+        Assert.All(plan.Videos, v =>
+        {
+            Assert.StartsWith($"videos/hls/{v.Slug}/", v.PlaybackObjectKey);
+            Assert.EndsWith("/master.m3u8", v.PlaybackObjectKey);
+            Assert.NotEqual(v.SourceObjectKey, v.PlaybackObjectKey);
+        });
+        Assert.Equal("videos/sintel.mkv", plan.Videos[0].SourceObjectKey);
+        var incomplete = plan with { Videos = plan.Videos.Select((v, i) => i == 0 ? v with { PlaybackObjectKey = null } : v).ToArray() };
+        Assert.Throws<CatalogueImportException>(incomplete.EnsureReadyForImport);
     }
 
     [Theory]
@@ -34,8 +41,8 @@ public sealed class CataloguePlanTests
     {
         var plan=CataloguePlan.Load();var tracks=plan.Videos[0].Subtitles!;
         Assert.Equal(new[]{"de","en","es","fr","it","nl","pl","pt","ru","vi"},tracks.Select(t=>t.Language));
-        Assert.All(tracks,t=>Assert.Null(t.ObjectKey));
-        var playbackOnly=plan with {Videos=plan.Videos.Select(v=>v.PlaybackObjectKey is null?v with {PlaybackObjectKey=$"videos/test/{v.Slug}.mp4"}:v).ToArray()};
+        Assert.All(tracks,t=>Assert.EndsWith(".vtt",t.ObjectKey));
+        var playbackOnly=plan with {Videos=plan.Videos.Select(v=>v with {Subtitles=v.Subtitles?.Select(t=>t with {ObjectKey=null}).ToArray()}).ToArray()};
         Assert.Contains("pending subtitle",Assert.Throws<CatalogueImportException>(playbackOnly.EnsureReadyForImport).Message);
         var complete=playbackOnly with {Videos=playbackOnly.Videos.Select(v=>v with {Subtitles=v.Subtitles?.Select(t=>t with {ObjectKey=$"subtitles/test/{v.Slug}/{t.TrackKey}.vtt"}).ToArray()}).ToArray()};
         complete.EnsureReadyForImport();
