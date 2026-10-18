@@ -167,7 +167,9 @@ internal static class Entry
             }
             request.Headers.Host = Environment.GetEnvironmentVariable("Qualification__GatewayHost") ?? "netfilmx.test";
             request.Headers.Add("X-Forwarded-Proto", "https");
-            request.Headers.Add("X-Forwarded-For", "192.0.2.10");
+            request.Headers.Add("X-Forwarded-For", singleInstance
+                ? context.Connection.RemoteIpAddress?.ToString() ?? throw new InvalidOperationException("Missing proxy peer")
+                : "192.0.2.10");
             try
             {
                 using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);

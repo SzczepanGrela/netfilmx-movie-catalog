@@ -10,7 +10,7 @@ public class RetainedMediaCreditsTests
     private static VideoCardDto Charge() => new()
     {
         Id = 12345, Title = "Translated title",
-        VideoUrl = Origin + "/videos/charge.webm",
+        VideoUrl = Origin + "/" + CataloguePlan.Load().Videos.Single(v => v.Slug == "charge").PlaybackObjectKey,
         ThumbnailUrl = Origin + "/posters/charge_poster.jpg",
         BackdropUrl = Origin + "/backdrops/charge_backdrop.jpg"
     };
@@ -35,14 +35,32 @@ public class RetainedMediaCreditsTests
     }
 
     [Fact]
-    public void UnreviewedArtworkAndPendingPlaybackDoNotAcquireNotices()
+    public void UnreviewedArtworkAndAlternateEditionDoNotAcquireNotices()
     {
         var video = Charge(); video.BackdropUrl = Origin + "/uploads/posters/another.jpg";
         Assert.Null(RetainedMediaCredits.Find(video, Origin));
         Assert.Null(RetainedMediaCredits.Find(Charge(), "http://media.example.test"));
         var sintel = new VideoCardDto { Title = "Sintel", VideoUrl = Origin + "/videos/sintel.mp4", ThumbnailUrl = Origin + "/posters/sintel_poster.jpg" };
         Assert.Null(RetainedMediaCredits.Find(sintel, Origin));
-        Assert.Throws<CatalogueImportException>(() => CataloguePlan.Load().EnsureReadyForImport());
+    }
+
+    [Fact]
+    public void EveryActivatedHlsMasterRetainsItsFilmAndArtworkCredits()
+    {
+        var plan = CataloguePlan.Load();
+        plan.EnsureReadyForImport();
+        foreach (var entry in plan.Videos)
+        {
+            var video = new VideoCardDto { Id = 98765, Title = "Translated",
+                VideoUrl = Origin + "/" + entry.PlaybackObjectKey,
+                ThumbnailUrl = Origin + "/" + entry.PosterObjectKey,
+                BackdropUrl = entry.BackdropObjectKey is null ? null : Origin + "/" + entry.BackdropObjectKey };
+            var credit = RetainedMediaCredits.Find(video, Origin);
+            Assert.Equal(entry.Slug, credit?.Slug);
+            Assert.False(string.IsNullOrWhiteSpace(credit!.License));
+            Assert.False(string.IsNullOrWhiteSpace(credit.Creator));
+            Assert.NotEmpty(credit.Artwork);
+        }
     }
 
     [Fact]

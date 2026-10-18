@@ -35,7 +35,7 @@ def main():
         p.error("Checkout must be at the image source revision")
     if subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT):
         p.error("Commit qualification inputs first")
-    endpoint = subprocess.check_output(["docker", "context", "inspect", "--format", "{{.Endpoints.docker.Host}}"], text=True).strip()
+    endpoint = os.environ.get("DOCKER_HOST") or subprocess.check_output(["docker", "context", "inspect", "--format", "{{.Endpoints.docker.Host}}"], text=True).strip()
     if not endpoint.startswith("unix://"):
         p.error("Local Docker socket required")
     from publish_hls import preflight
@@ -59,8 +59,10 @@ def main():
             '{"id":{{json .Id}},"revision":{{json (index .Config.Labels "org.opencontainers.image.revision")}}}', h.image).stdout)
         if info["revision"] != args.revision: raise recovery.Failure("Image revision mismatch")
         h.result["image"] = info
-        h.command("docker", "build", "--file", "qualification/CatalogueRecovery/Dockerfile",
-                  "--build-arg", "CANDIDATE_IMAGE=" + h.image, "--tag", h.tools, ".", timeout=300)
+        build = h.command("docker", "build", "--file", "qualification/CatalogueRecovery/Dockerfile",
+                  "--build-arg", "CANDIDATE_IMAGE=" + h.image, "--tag", h.tools, ".", timeout=300, check=False)
+        (out/"helper-build.log").write_bytes(build.stdout+build.stderr)
+        if build.returncode: raise recovery.Failure("Helper build failed; inspect helper-build.log")
         for name in ["NetFilmx_Storage.dll", "NetFilmx_Storage.PostgreSql.dll"]:
             a = h.docker("run", "--rm", "--network", "none", "--entrypoint", "sha256sum", h.image, "/app/"+name).stdout.split()[0]
             b = h.docker("run", "--rm", "--network", "none", "--entrypoint", "sha256sum", h.tools, "/qualification/"+name).stdout.split()[0]
