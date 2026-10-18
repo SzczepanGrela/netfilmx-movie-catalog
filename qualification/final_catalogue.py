@@ -158,8 +158,11 @@ def main():
             wrapper = out/(engine+"-wrapper")
             wrapper.write_text("#!/bin/sh\nexec python3 "+shlex.quote(str(ROOT/"qualification/browser_namespace.py"))+" "+shlex.quote(str(config_path))+" "+engine+' "$@"\n')
             wrapper.chmod(0o700)
-        h.command("node", "qualification/hls_browser.cjs", str((args.packet/"publication-record.json").resolve()), str(out/"browser"), str(args.playwright.resolve()), "remote", str(config_path), timeout=1200)
+        browser = h.command("node", "qualification/hls_browser.cjs", str((args.packet/"publication-record.json").resolve()), str(out/"browser"), str(args.playwright.resolve()), "remote", str(config_path), timeout=1200, check=False)
+        (out/"browser-run.log").write_bytes(browser.stdout+browser.stderr)
         h.result["browser"] = json.loads((out/"browser/browser-evidence.json").read_text())
+        if browser.returncode or h.result["browser"]["status"] != "passed":
+            raise recovery.Failure("Actual browser qualification failed; inspect browser evidence/log")
         h.result["status"] = "passed"
     except Exception as error:
         h.result.update(status="failed", error=str(error))

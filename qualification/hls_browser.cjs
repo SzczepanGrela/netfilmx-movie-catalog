@@ -224,6 +224,9 @@ async function main() {
             // other failed fetch, HTTP error or browser CORS error is a failure.
             check(failures.every(f => /ERR_ABORTED|NS_BINDING_ABORTED/.test(f.error || '')), 'Media fetch failure');
             check(network.length > 0 && network.every(r => r.status >= 200 && r.status < 300), 'Media HTTP status');
+            check(network.some(r => r.url === remote.mediaOrigin + '/' + film.masterKey), 'Published approved master fetched directly');
+            if (film.slug === 'sintel') check(packet.objects.filter(o => o.role === 'subtitle').every(o =>
+              network.some(r => r.url === remote.mediaOrigin + '/' + o.proposedKey)), 'All ten published VTTs fetched directly');
             check(network.filter(r => /\.(m3u8|ts|vtt)$/.test(r.url)).every(r => r.cors === origin), 'Target media CORS');
             check(!consoleErrors.some(e => /cors|cross.origin|access.control/i.test(e)), 'Browser CORS error');
           }
@@ -251,6 +254,9 @@ async function main() {
     report.completeCatalogueQualification = (mode === 'full' || !!remote) && !filterSlug && report.engines.length === 2
       && report.engines.every(e => e.entries.length === 7 && e.status === 'passed');
     if (remote) report.targetHttpsCorsAcceptance = report.completeCatalogueQualification && report.status === 'passed';
+  } catch (error) {
+    report.error = error.message;
+    throw error;
   } finally {
     if (browser) await browser.close();
     preview?.kill('SIGTERM');
