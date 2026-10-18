@@ -129,8 +129,17 @@ def main():
                 time.sleep(1)
             raise recovery.Failure("Web readiness failed")
         ready()
-        h.docker("restart", "--time", "25", web_cid)
-        h.docker("restart", "--time", "25", pg_cid)
+        for cid in [pg_cid, web_cid]:
+            # The shared recovery monitor treats an unexpected stopped process
+            # as a failure. Exclude only this explicitly owned restart window.
+            with h.lock:
+                owned = h.active.pop(cid)
+            try:
+                h.docker("restart", "--time", "25", cid)
+            finally:
+                with h.lock:
+                    h.active[cid] = owned
+                    h.previous.pop(cid, None)
         ready()
         h.docker("exec", web_cid, "dotnet", "NetFilmx_Web.dll", "healthcheck")
         h.docker("exec", web_cid, "dotnet", "NetFilmx_Web.dll", "smokecheck")
@@ -167,7 +176,8 @@ def main():
     except Exception as error:
         h.result.update(status="failed", error=str(error))
         for cid in h.containers:
-            log = h.docker("logs", "--tail", "100", cid, check=False)
+            # Diagnostic reads must remain available after a guard has fired.
+            log = subprocess.run(["docker", "logs", "--tail", "100", cid], capture_output=True, timeout=15)
             (out/(cid[:12]+".log")).write_bytes(log.stdout+log.stderr)
         raise
     finally:
