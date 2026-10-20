@@ -9,8 +9,14 @@ before creating the web host.
 
 ## Release operation
 
-Inspect/test the migrations, save a consistent recovery copy, review compatibility
-with the previous image and stop writers if the schema is incompatible. Supply
+For [first catalogue bootstrap, stage A](first-release-plan.md#a--ordered-first-launch-instruction),
+use the fresh independent PostgreSQL with the new web/workers stopped. No legacy
+backup/off-host/restore or archived SQLite migration is a prerequisite. For later
+changes to populated new PG, inspect/test migrations, preserve a consistent
+new-state recovery copy and review compatibility with the previous image; an
+incompatible migration may use a maintenance window with scoped writers stopped.
+Scheduled new-PG/key/configuration backups and proportionate recovery verification
+remain required stage B closeout, separate from first routing. Supply
 the prepared target through `ConnectionStrings__DefaultConnection`, using
 separate administrative credentials for DDL. Never pass credentials as command
 arguments. From the tested published image run:

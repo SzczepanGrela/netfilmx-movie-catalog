@@ -1,16 +1,49 @@
 # NetFilmx candidate status
 
-Updated 2026-10-18 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
+Updated 2026-10-20 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
 Work continues in [draft PR #1](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/1).
 The application has not been deployed; the retained HLS media were published
 through the separately authorized one-time tool. Accepted R1, recovery/source reconciliation, credits,
 subtitle code at `f4aca03` and earlier desktop/Android observations are preserved.
 
-## Current stage: approved media references and local final-image qualification
+## Current stage: release documentation aligned to operator policy
+
+The operator accepts interruptions during preparation, bootstrap and migration.
+The updated [first-release plan](first-release-plan.md) and
+[delivery instructions](release-delivery.md) separate:
+
+- **A — First launch:** protected/scoped release, one web, fresh persistent PG,
+  new accounts/empty history, persistent keys, explicit migration/import, caps
+  and public HTTPS/login/player smoke. Cutover may have downtime.
+- **B — Operational closeout:** actual rolling/compatible rollback, shared schema/
+  keys, overlap headroom and scheduled protected backups of **new** PG/keyring/
+  required configuration with proportionate restore/failure verification.
+- **C — Upload/worker:** separate staging/queue/source/encoder recovery and capacity
+  acceptance. Both flags remain false through A/B.
+
+Further legacy backup refresh, off-host transfer/retrieval and old-version restore
+are withdrawn; preserve their historical results, copies and containers. A does
+not require the whole production rolling/rollback/restore drill before routing,
+and first routing does not complete B. Coordinator supplies the missing target,
+credentials, limits, ingress and new-backup policy values listed in the plan.
+R1 and the normal releaser's healthy-baseline requirement remain intact;
+bootstrap uses the existing separate operator step. No new deploy/recovery code.
+
+This is documentation only. Code, manifest, accepted local image, media/evidence
+and dirty parent stay preserved; PR draft, no merge/GHCR/deploy/provider writes,
+UI or repository cleanup. Required PR CI is checked for the documentation commit;
+no local media, encoding, transfer or deferred manual round is repeated.
+
+## Accepted catalogue activation and local image — October 18
 
 NHP17-1 was accepted at `82f6a7966fced2ff746a6cd33bc8e410ceb0ac5e`.
-The operator separately authorized activation of the exact approved seven HLS
-masters and ten Sintel VTT references on October 18. The shipping manifest now
+The coordinator accepted activation and local final-image qualification at
+`6f57dbb83ab814b3a99a2c90e9cb9652e8b138ab`: seven approved HLS masters,
+ten Sintel VTT references, real PG import/repeat refusal/restart and 14 actual
+Chromium/Firefox MVC/Vidstack public-media cases. No blocking finding remains.
+[CI 39086857490](https://github.com/SzczepanGrela/netfilmx-movie-catalog/actions/runs/39086857490)
+passed 304 .NET/image/scan/Quality; [audit 39086857541](https://github.com/SzczepanGrela/netfilmx-movie-catalog/actions/runs/39086857541)
+passed, Publish/Deploy skipped. The shipping manifest now
 matches the immutable publication proposal byte for byte; sources, artwork,
 prices, licences and credits are preserved. The former two-MP4/ten-VTT patch
 remains historical and unused.
@@ -20,12 +53,19 @@ candidate image, real PostgreSQL CLI migration/import and restart, then actual
 MVC/Vidstack against the public media endpoint with the real application origin
 represented locally. It retains normal TLS/CORS and records image identity,
 catalogue/subtitle mappings and browser evidence. Actual run results and CI
-links are recorded in the restricted report/checkpoint; the procedure alone
-does not claim a pass. No publication/encoding/full HTTP inventory is repeated.
+links and coordinator acceptance are recorded in the restricted report/checkpoint.
+This does not qualify the production app's routing/certificate/proxy or imply
+deployment. No publication/encoding/full HTTP inventory is repeated.
 PR remains draft, uploads/worker false, no merge/GHCR/deploy/provider change.
 Sintel synchronization and deferred manual trials retain their earlier status.
 
-## Accepted NHP17-1 HTTP client identification
+## Historical milestones and their original evidence scope
+
+The dated sections below retain earlier results and then-open questions. Their
+pending publication/import/manual wording describes those checkpoints; the
+October 18 acceptance and current A/B/C plan above define today's status.
+
+### Accepted NHP17-1 HTTP client identification
 
 The coordinator accepted publication of the unchanged 1398-object packet at
 `8c7b8d5`, retention of all existing objects and the complete HTTPS readback
@@ -72,9 +112,9 @@ be activated. At that stage shipping manifest, originals, old MP4s, both checkou
 R1 remain preserved. No provider write, deployment or merge occurred; uploads
 and worker remain false and PR #1 remains draft.
 
-Next is packet review and a separate operator publication decision, actual
+At that checkpoint, next was packet review and an operator publication decision, actual
 HTTPS/CORS readback, then separately authorized manifest activation and final
-image migration/import/restart/real-HLS qualification. Detailed manual trials
+image migration/import/restart/real-HLS qualification, now accepted above. Detailed manual trials
 remain deferred under the operator's reduced scope. Sintel's perceived sync
 cause/full acceptance is unresolved. UI/mobile/credits polish and repository
 hygiene belong to separate later work owned by the coordinator.
@@ -100,7 +140,7 @@ persistence/restart. The local full suite passed 294 tests with no failures/skip
 including disposable PostgreSQL. CI links are in PR Checks and the private
 checkpoint. Native Safari/mobile, listening and target HTTPS/CORS stay open.
 
-The shipped manifest requires ten sidecars but retains their null keys, alongside
+At the October 15 milestone, the shipped manifest required ten sidecars but retained null keys, alongside
 the two pending playback keys. An inactive twelve-field publication proposal
 supersedes the earlier two-field packet. Nothing has been published or activated;
 uploads/worker stay off, both checkouts/originals and accepted R1 stay preserved.
@@ -119,7 +159,7 @@ parent checkout are preserved.
 `986e9aa947a58f18a405fbb59a3fec05df2bad30`: two actual webs, disposable persistent
 PG and shared/restored private keys, uploads/worker off. The importer uses an
 explicitly synthetic completed plan; the real embedded manifest still refuses
-its two pending playback entries. Checks cover seven videos/one series/three
+its two pending playback entries at that source SHA. Checks cover seven videos/one series/three
 links/generated IDs, empty history, repeat/account refusal, runtime grants and
 DDL denial, real HTTPS session/MVC antiforgery across peers/recreation/restore,
 wrong-keyring rejection and restored refresh revocation after logout.
@@ -207,16 +247,16 @@ passed, including image qualification and `Quality gate`. Publication and
 deployment were skipped. Coordinator accepted this correction October 12;
 keep PR #1 a draft.
 
-## First release and data/media acceptance: plan prepared
+## First-release plan: current A/B/C split
 
-The [first-release plan](first-release-plan.md) defines protection/access setup,
-seven-title provenance and derivative acceptance, isolated import/restore and
-two-web qualification for the first catalogue stage. Queue/staging/encoder and
-full-film capacity remain mandatory for later upload/worker activation. It separates initial Coolify
-bootstrap from promotion, which still requires a healthy saved baseline, and
-assigns legacy-writer backup, cutover and activation actions to the
-coordinator/operator. Limits, recovery policy and media rights remain decisions
-to resolve; preparation does not claim acceptance or authorize production changes.
+The [first-release plan](first-release-plan.md) reuses accepted media and local
+recovery evidence. A covers fresh-PG bootstrap/public smoke with allowable
+downtime. B closes actual rolling/rollback/overlap and new-data backups/restore;
+C later covers queue/staging/encoder/source recovery and full-film capacity.
+Normal promotion still requires a healthy compatible baseline; bootstrap is
+separate. Coordinator supplies actual resource/access/limits/ingress values and
+the new-state backup policy. No further legacy backup/off-host/restore is required.
+This documentation authorizes no production action.
 
 ## Durable Data Protection: implemented and locally tested
 
@@ -275,32 +315,21 @@ checks remain available in PR Checks.
 
 ## Remaining gates and next step
 
-Next: review the successor seven-film HLS packet and record the publication
-disposition, including Sintel's unresolved sync and retained manual deferrals.
-Publication and target HTTPS/CORS readback precede separately authorized
-seventeen-field manifest activation/final-image real-media rehearsal. Keep PR #1
-draft. R1 and the scoped synthetic recovery/source milestone are already accepted.
-Coordinator/operator must identify the target Coolify resource and review its
-private contract, protected main/environment, first healthy rollback baseline
-and scoped recovery plan before any production action. On 2026-10-03 the
-operator declared that no NetFilmx Coolify resource exists yet; legacy SSH
-deployment on the VPS may remain. Read-only GitHub API checks found `main`
-unprotected, no environments/rulesets and neither activation flag configured.
-October 5 readback still found main unprotected, zero rulesets/environments and
-both activation flags absent. No approved deployment window has been supplied
-to this implementation session.
+Next execution belongs to coordinator/operator under a separate stage A action:
+current protection/access/target readback, qualified main digest, independent PG/
+keyring, explicit migration/import, one web with caps, allowable cutover downtime
+and public smoke. October 18 coordinator readback still found unprotected main,
+no environments/rulesets and absent activation flags; read back before setup.
+No execution window is authorized by this documentation assignment.
 
 Browser verification passed **3 DOM tests** and the locked vendor-file check.
 Fresh npm install/audit reported **0 vulnerabilities**.
 
-Live key mounts/ownership/restore, legacy writer identification and fresh scoped
-data recovery remain open. The existing derivatives, visible notices and local
-Chromium/Firefox checks are
-prepared; operator rights/notice review, native/manual/public
-playback acceptance, published keys and a real fresh-catalogue import remain open.
-Uploads and worker remain disabled pending
-their separate mounted staging/queue/encoder recovery, rolling, capacity and
-visibility acceptance. Production budgets, backup destination/access,
-cadence/retention/RPO/RTO and the coordinated legacy readback remain operator inputs.
-Public cutover, cleanup and UI follow those gates. No operator production action
-is requested at this implementation checkpoint.
+HLS publication, rights/credits evidence, 17 references and local final-image
+import/player acceptance are complete at 6f57dbb. Actual production app integration
+remains A; final rolling/rollback/schema/key compatibility and scheduled backups
+of new PG/keys/configuration with proportionate restore/failure visibility remain
+B. Production limits, target/runtime/ingress values and new-state backup policy
+are coordinator inputs. No additional old-app backup/off-host/restore or full
+media/manual round is assigned. Sintel stays unresolved; deferred trials stay
+deferred. Uploads/worker remain false until C. UI and cleanup remain separate.

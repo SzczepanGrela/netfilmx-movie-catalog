@@ -21,8 +21,10 @@ directory owned by that UID/GID with mode `0700`. Mount the **same** directory
 read/write into every old/new web instance at the configured path, outside
 `/app`; for example `/var/lib/netfilmx/keyring`. Use a separate mount from
 the database and upload staging. A writable directory alone does not prove a
-persistent mount: effective ownership, recreation, old/new sharing and restore
-must be checked on the target host before release.
+persistent mount. First bootstrap checks effective ownership and persistence.
+Target old/new sharing, session continuity and proportionate restore of the new
+keyring/configuration belong to [stage B operational closeout](first-release-plan.md#b--operational-closeout-after-launch).
+They remain required for final operation; bootstrap may precede that closeout.
 
 The application uses the framework's normal automatic rotation. Retain expired
 keys so existing protected data can still be read. Never prune keys during an
@@ -50,5 +52,7 @@ current key. Independent rings, a different discriminator and modified tokens
 are rejected. Configuration tests cover missing/relative/public paths,
 permissions, symbolic links and corrupt XML.
 
-These tests qualify the code contract locally. Live mounted storage, protected
-backup/isolated restore and actual rolling release acceptance remain open.
+These tests qualify the code contract locally. Live mounted storage is checked
+at first launch; protected scheduled backups of new keys/configuration, scoped
+isolated restore and actual rolling acceptance remain stage B work. No new
+legacy backup/restore or repeat of accepted local tests is assigned.

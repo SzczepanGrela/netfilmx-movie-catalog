@@ -80,8 +80,11 @@ candidate/helper images remain for repeat testing. Cleanup failure marks the run
 failed and retains owned identifiers for reconciliation; no global prune is used.
 
 These results cover an isolated catalogue fixture and real local containers.
-Production mounts, licensed media/browser playback, public identity/rate behavior,
-protected Coolify promotion/rollback, backup policy and legacy writer recovery
-remain separate gates in [the first-release plan](first-release-plan.md).
+HLS publication, 17 references and local real-media final-image qualification at
+`6f57dbb` were accepted separately. Production mounts/public app smoke belong to
+stage A; actual rolling/rollback, overlap and new-PG/key/configuration backups
+with proportionate restore belong to stage B in [the release plan](first-release-plan.md).
+Further legacy backup/off-host/restore work is withdrawn; keep its historical
+results and existing state. Do not repeat this accepted local rehearsal by default.
 Queue/staging/encoder handover/forced stop and full-film budgets belong to later
 upload/worker activation and are not exercised here.
