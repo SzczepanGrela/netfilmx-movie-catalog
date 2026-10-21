@@ -25,14 +25,17 @@ jobs:
       contents: read
     services:
       postgres:
-        image: postgres@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+        image: docker.io/library/postgres:18.6-trixie@sha256:edb0c08dc33befd0262ab3b5cf1c4f3f8cfd8b09e88c05b45adee29d6761ddb6
         env:
+          PGDATA: /var/lib/postgresql/18/docker
           POSTGRES_DB: netfilmx_test
           POSTGRES_USER: netfilmx_test
           POSTGRES_PASSWORD: local-ci-test
         ports:
           - 5432:5432
         options: >-
+          --cpus 1 --memory 512m --memory-swap 512m
+          --tmpfs /var/lib/postgresql:rw,nosuid,nodev,size=384m
           --health-cmd pg_isready
           --health-interval 5s
           --health-timeout 5s

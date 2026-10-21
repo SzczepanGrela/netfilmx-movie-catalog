@@ -39,12 +39,13 @@ internal static class Entry
             switch (args.Single())
             {
                 case "verify-retained":
+                case "snapshot-retained":
                     var origin = CataloguePlan.ValidateBaseUrl(Environment.GetEnvironmentVariable("CloudflareR2__PublicUrl")!);
                     plan.EnsureReadyForImport();
                     var videos = await db.Videos.Include(v => v.Subtitles).Include(v => v.Series).OrderBy(v => v.Id).ToArrayAsync(deadline.Token);
                     Require(videos.Length == 7 && await db.Series.CountAsync(deadline.Token) == 1, "Real catalogue counts");
                     Require(videos.Sum(v => v.Series.Count) == 3 && videos.Sum(v => v.Subtitles.Count) == 10, "Real catalogue links");
-                    Require(!await db.Users.AnyAsync(deadline.Token), "No imported users");
+                    if (args[0] == "verify-retained") Require(!await db.Users.AnyAsync(deadline.Token), "No imported users");
                     foreach (var expected in plan.Videos)
                     {
                         var actual = videos.Single(v => v.Title == expected.Title);
@@ -63,7 +64,9 @@ internal static class Entry
                         }
                     }
                     Console.WriteLine(JsonSerializer.Serialize(new { videos = 7, series = 1, episode_links = 3, subtitles = 10,
+                        series_rows = await db.Series.OrderBy(s => s.Id).Select(s => new { s.Id, s.Name }).ToArrayAsync(deadline.Token),
                         mappings = videos.Select(v => new { v.Id, v.Title, v.VideoUrl,
+                            series_ids = v.Series.OrderBy(s => s.Id).Select(s => s.Id),
                             subtitles = v.Subtitles.OrderBy(s => s.Position).Select(s => new { s.Id, s.VideoId, s.TrackKey, s.Language, s.Label, s.Url, s.Position }) }) }));
                     break;
                 case "import-fixture":

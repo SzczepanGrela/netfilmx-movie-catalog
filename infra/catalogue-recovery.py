@@ -21,9 +21,12 @@ import urllib.parse
 import urllib.request
 import uuid
 
-PG_IMAGE = "postgres@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea"
 MIB = 1024 * 1024
 ROOT = Path(__file__).resolve().parent.parent
+PG_CONFIG = json.loads((ROOT / "infra/postgresql.json").read_text())
+PG_IMAGE = PG_CONFIG["image"]
+PG_DATA = PG_CONFIG["pgdata"]
+PG_VOLUME = PG_CONFIG["volumeTarget"]
 
 
 class Failure(RuntimeError):
@@ -76,8 +79,11 @@ class Browser:
 
 
 class Harness:
-    def __init__(self, image, revision, output):
+    def __init__(self, image, revision, output, *, database_only=False, media_origin="https://media.example.test"):
         self.image, self.revision = image, revision
+        self.database_only, self.media_origin = database_only, media_origin
+        self.pg_volumes = {}
+        self.pg_instances = []
         self.scope = "netfilmx-catalogue-" + uuid.uuid4().hex[:12]
         self.network = self.scope + "-network"
         self.ingress_network = self.scope + "-loopback"
@@ -99,6 +105,11 @@ class Harness:
                 "maximum_container_cpu_sum": 5.5, "maximum_container_ram_sum_bytes": 2816 * MIB,
                 "minimum_host_available_memory_bytes": 4096 * MIB,
                 "minimum_host_free_disk_bytes": 4096 * MIB, "maximum_seconds": 480}}
+
+        if database_only:
+            self.result["fixture"] = "NP18-1 real embedded catalogue; synthetic account; no media requests"
+        self.result["postgres_selection"] = PG_CONFIG
+        self.result["postgres_instances"] = self.pg_instances
 
     def check(self):
         if self.guard_error:
@@ -160,6 +171,8 @@ class Harness:
         self.docker("stop", "--time", "25", cid)
         state = json.loads(self.docker("inspect", "--format",
             '{"running":{{.State.Running}},"oom":{{.State.OOMKilled}},"exit":{{.State.ExitCode}}}', cid).stdout)
+        self.result.setdefault("orderly_stops", []).append({"container":cid, **state,
+            "restartCount":int(self.docker("inspect", "--format", '{{.RestartCount}}', cid).stdout)})
         if state != {"running": False, "oom": False, "exit": 0}:
             raise Failure("Scoped orderly shutdown did not exit cleanly")
 
@@ -201,7 +214,7 @@ class Harness:
             self.previous[cid] = usage, now
             metric["cpu_usage_usec"] = max(metric["cpu_usage_usec"], usage)
         if spec["database"]:
-            disk = subprocess.run(["docker", "exec", cid, "du", "-sb", "/var/lib/postgresql/data"],
+            disk = subprocess.run(["docker", "exec", cid, "du", "-sb", PG_VOLUME],
                 capture_output=True, timeout=5)
             with self.lock:
                 if cid not in self.active:
@@ -229,15 +242,48 @@ class Harness:
                 self.guard_error = str(error) if isinstance(error, Failure) else "Resource monitor failed"
                 return
 
-    def pg(self, suffix):
-        volume = self.volume(suffix + "-data")
+    def pg(self, suffix, *, volume=None):
+        if volume is None:
+            volume = self.volume(suffix + "-data")
+        else:
+            # Recreate only this run's named volume, never a discovered/dev/PG16 volume.
+            if volume not in self.volumes:
+                raise Failure("PG reuse requires a volume created by this run")
+            label = self.docker("volume", "inspect", "--format",
+                '{{index .Labels "netfilmx.qualification"}}', volume).stdout.decode().strip()
+            if label != self.scope:
+                raise Failure("PG volume ownership differs")
+        self.pg_volumes[suffix] = volume
         name,cid = self.start(suffix, ["--cpus", "1", "--memory", "512m", "--memory-swap", "512m",
-            "--pids-limit", "128", "--mount", f"type=volume,source={volume},target=/var/lib/postgresql/data",
+            "--pids-limit", "128", "--mount", f"type=volume,source={volume},target={PG_VOLUME}",
+            "--env", "PGDATA=" + PG_DATA,
             "--env", "POSTGRES_USER=qual_admin", "--env", "POSTGRES_PASSWORD=local-qualification",
-            "--env", "POSTGRES_DB=catalogue", PG_IMAGE, "-c", "max_wal_size=64MB", "-c", "min_wal_size=32MB",
-            "-c", "temp_file_limit=32768"], database=True)
+            "--env", "POSTGRES_DB=catalogue", PG_IMAGE,
+            *[value for setting in PG_CONFIG["settings"] for value in ("-c", setting)]], database=True)
         for _ in range(45):
-            if self.docker("exec", name, "pg_isready", "-U", "qual_admin", "-d", "catalogue", check=False).returncode == 0:
+            if self.docker("exec", name, "pg_isready", "-h", "127.0.0.1", "-U", "qual_admin", "-d", "catalogue", check=False).returncode == 0:
+                info = json.loads(self.docker("inspect", "--format",
+                    '{"image":{{json .Config.Image}},"mounts":{{json .Mounts}},"restartCount":{{.RestartCount}}}', cid).stdout)
+                mounts = [m for m in info["mounts"] if m["Destination"].startswith(PG_VOLUME)]
+                if len(mounts) != 1 or mounts[0]["Type"] != "volume" or mounts[0].get("Name") != volume or mounts[0]["Destination"] != PG_VOLUME:
+                    raise Failure("PG parent volume missing or anonymous/nested data mount")
+                settings = json.loads(self.sql(name, """SELECT json_build_object(
+                    'version', current_setting('server_version'),
+                    'server_version_num', current_setting('server_version_num'),
+                    'data_directory', current_setting('data_directory'),
+                    'max_wal_size', current_setting('max_wal_size'),
+                    'min_wal_size', current_setting('min_wal_size'),
+                    'temp_file_limit', current_setting('temp_file_limit'),
+                    'shared_buffers', current_setting('shared_buffers'),
+                    'work_mem', current_setting('work_mem'),
+                    'max_connections', current_setting('max_connections'));""").stdout)
+                if not settings["version"].startswith(PG_CONFIG["version"] + " ") or settings["data_directory"] != PG_DATA:
+                    raise Failure("Effective PG version/data_directory differs")
+                tools = {tool:self.docker("exec", name, tool, "--version").stdout.decode().strip()
+                    for tool in ["postgres", "pg_dump", "pg_restore"]}
+                if not all(PG_CONFIG["version"] in version for version in tools.values()):
+                    raise Failure("Dump/restore tool version differs from selected PG")
+                self.pg_instances.append({"name": suffix, "volume": volume, **info, "settings": settings, "tools": tools})
                 return name,cid
             time.sleep(1)
         raise Failure("PG readiness deadline reached")
@@ -249,7 +295,9 @@ class Harness:
     def grants(self, pg, db="catalogue", *, create_role=False):
         if create_role:
             self.sql(pg, "CREATE ROLE qual_runtime LOGIN PASSWORD 'local-runtime-qualification' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOINHERIT;")
-        self.sql(pg, '''GRANT CONNECT ON DATABASE catalogue TO qual_runtime;
+        if not re.fullmatch(r"[a-z][a-z0-9_]*", db):
+            raise Failure("Unsafe fixture database identifier")
+        self.sql(pg, f'''GRANT CONNECT ON DATABASE "{db}" TO qual_runtime;
             GRANT USAGE ON SCHEMA public TO qual_runtime;
             GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO qual_runtime;
             GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO qual_runtime;
@@ -258,6 +306,13 @@ class Harness:
             role="qual_runtime", check=False)
         if denied.returncode == 0 or b"42501" not in denied.stderr:
             raise Failure("Runtime unexpectedly has schema DDL permissions")
+        for statement in [
+            'INSERT INTO "__EFMigrationsHistory" SELECT * FROM "__EFMigrationsHistory" LIMIT 1;',
+            "UPDATE \"__EFMigrationsHistory\" SET \"ProductVersion\" = '18-fixture' WHERE false;",
+            'DELETE FROM "__EFMigrationsHistory" WHERE false;']:
+            denied = self.sql(pg, "BEGIN; " + statement + " ROLLBACK;", db, role="qual_runtime", check=False)
+            if denied.returncode == 0 or b"42501" not in denied.stderr:
+                raise Failure("Runtime unexpectedly can modify migration history")
         flags = self.sql(pg, "SELECT rolsuper OR rolcreatedb OR rolcreaterole OR rolreplication FROM pg_roles WHERE rolname='qual_runtime';", db).stdout.strip()
         if flags != b"f":
             raise Failure("Runtime role capabilities exceed fixture contract")
@@ -276,7 +331,7 @@ class Harness:
             "DataProtection__KeyRingPath": "/var/lib/netfilmx/keyring",
             "JwtSettings__SecretKey": "SyntheticQualificationJwtKeyAtLeast32Bytes",
             "JwtSettings__Issuer": "qualification", "JwtSettings__Audience": "qualification",
-            "CloudflareR2__PublicUrl": "https://media.example.test", "Uploads__Enabled": "false",
+            "CloudflareR2__PublicUrl": self.media_origin, "Uploads__Enabled": "false",
             "Worker__Enabled": "false", "Database__SeedDemoData": "false",
             "AllowedHosts": "netfilmx.test;localhost;127.0.0.1", "Proxy__KnownProxies__0": gateway_ip,
             "Proxy__ForwardLimit": "1"}
@@ -304,9 +359,17 @@ class Harness:
         if image_info["revision"] != self.revision:
             raise Failure("Image revision differs from requested source")
         self.result["image"] = image_info
-        # Compilation is outside the runtime measurement window, bounded independently.
-        self.command("docker", "build", "--file", "qualification/CatalogueRecovery/Dockerfile",
-            "--build-arg", "CANDIDATE_IMAGE=" + self.image, "--tag", self.tools, ".", timeout=180)
+        # Helper compilation is included in the wall deadline, before runtime sampling.
+        build = self.command("docker", "build", "--file", "qualification/CatalogueRecovery/Dockerfile",
+            "--build-arg", "CANDIDATE_IMAGE=" + self.image, "--tag", self.tools, ".", timeout=180, check=False)
+        (self.output / "helper-build.log").write_bytes(build.stdout + build.stderr)
+        if build.returncode:
+            raise Failure("Helper compilation failed; see helper-build.log")
+        pg_image = json.loads(self.docker("image", "inspect", "--format",
+            '{"id":{{json .Id}},"os":{{json .Os}},"architecture":{{json .Architecture}},"env":{{json .Config.Env}},"volumes":{{json .Config.Volumes}}}', PG_IMAGE).stdout)
+        if pg_image["os"] + "/" + pg_image["architecture"] != PG_CONFIG["platform"] or "PGDATA=" + PG_DATA not in pg_image["env"] or list(pg_image["volumes"]) != [PG_VOLUME]:
+            raise Failure("Selected PG image platform/default storage differs")
+        self.result["postgres_image"] = pg_image
         for library in ["NetFilmx_Storage.dll", "NetFilmx_Storage.PostgreSql.dll"]:
             one = self.docker("run", "--rm", "--network", "none", "--entrypoint", "sha256sum", self.image, "/app/"+library).stdout.split()[0]
             two = self.docker("run", "--rm", "--network", "none", "--entrypoint", "sha256sum", self.tools, "/qualification/"+library).stdout.split()[0]
@@ -321,7 +384,7 @@ class Harness:
             admin = self.env("admin", {"ConnectionStrings__DefaultConnection":self.connection(pg,admin=True)})
             self.cli(self.image, admin, "database", "migrate", "--confirm-reviewed-migrations")
             self.grants(pg, create_role=True)
-            runtime = self.env("runtime", {"ConnectionStrings__DefaultConnection":self.connection(pg), "CloudflareR2__PublicUrl":"https://media.example.test"})
+            runtime = self.env("runtime", {"ConnectionStrings__DefaultConnection":self.connection(pg), "CloudflareR2__PublicUrl":self.media_origin})
             plan = json.loads(self.cli(self.image, runtime, "catalogue", "plan").stdout)
             if len(plan["pendingPlayback"]) not in (0, 2):
                 raise Failure("Unexpected embedded manifest; review fixture assumptions")
@@ -329,10 +392,22 @@ class Harness:
                 refused = self.cli(self.image,runtime,"catalogue","import","--confirm-empty-database","--confirm-reviewed-media",check=False)
                 if refused.returncode != 1 or b"pending playback derivatives" not in refused.stderr:
                     raise Failure("Shipped incomplete manifest must refuse before import")
-            # An activated manifest is covered by final_catalogue.py and the
-            # image smoke. Recovery below deliberately retains synthetic URLs.
-            self.cli(self.tools, runtime, "import-fixture")
-            self.cli(self.tools, runtime, "refuse-repeat")
+            # NP18 uses the production CLI. Default recovery retains synthetic URLs.
+            if self.database_only:
+                if plan["pendingPlayback"] or plan["pendingSubtitles"]:
+                    raise Failure("NP18 requires the approved complete manifest")
+                self.cli(self.image, runtime, "catalogue", "import", "--confirm-empty-database", "--confirm-reviewed-media")
+                snapshot = json.loads(self.cli(self.tools, runtime, "verify-retained").stdout)
+                refused = self.cli(self.image, runtime, "catalogue", "import", "--confirm-empty-database", "--confirm-reviewed-media", check=False)
+                if refused.returncode != 1:
+                    raise Failure("Real catalogue repeat did not refuse")
+                if snapshot != json.loads(self.cli(self.tools, runtime, "verify-retained").stdout):
+                    raise Failure("Real catalogue changed after repeat refusal")
+                self.result["catalogue_after_import"] = snapshot
+                self.result["repeat_import_refused"] = True
+            else:
+                self.cli(self.tools, runtime, "import-fixture")
+                self.cli(self.tools, runtime, "refuse-repeat")
             initial = json.loads(self.cli(self.tools, runtime, "counts").stdout)
             if initial != {"videos":7,"series":1,"episode_links":3,"users":0,"sessions":0,"comments":0,"likes":0,"purchases":0,"upload_intents":0}:
                 raise Failure("Fixture catalogue counts/empty history differ")
@@ -343,7 +418,7 @@ class Harness:
             self.grants(pg,"nonempty")
             nonempty = self.env("nonempty-runtime", {"ConnectionStrings__DefaultConnection":self.connection(pg,"nonempty")})
             self.cli(self.tools,nonempty,"refuse-account")
-            self.phase("Migration, synthetic import/counts/relations/sequence, repeat/account refusal and runtime DDL denial pass")
+            self.phase("Migration, catalogue import/counts/relations, repeat/account refusal, runtime DDL/history denial pass")
 
             keys = self.private_volume("keys")
             tls = self.output / "tls"
@@ -394,7 +469,14 @@ class Harness:
             saved_form=form_browser.token("a","/auth/login")
             invalid_login={"Username":"qualification_user","Password":"WrongFixture123!","__RequestVerificationToken":saved_form}
             form_browser.request("b","/auth/login",form=invalid_login)
-            self.phase("Two actual webs: shared keys, HTTPS MVC registration, session and cross-instance CSRF/refresh pass")
+            # Successful login must be exercised separately from registration and invalid-form checks.
+            login_browser = Browser(url,str(tls/"cert.pem"))
+            login_token = login_browser.token("a", "/auth/login")
+            login_browser.request("b", "/auth/login", form={"Username":"qualification_user", "Password":"Qualification123!",
+                "__RequestVerificationToken":login_token}, status=302)
+            login_browser.request("a", "/auth/refresh", form={}, csrf=login_browser.csrf("b"))
+            login_browser.request("b", "/auth/logout", form={}, csrf=login_browser.csrf("a"), status=302)
+            self.phase("Two actual webs: shared keys, HTTPS MVC registration/login, session and cross-instance CSRF/refresh/logout pass")
 
             self.retire(b_cid)
             self.remove(b_cid)
@@ -407,6 +489,28 @@ class Harness:
             before=json.loads(self.cli(self.tools,runtime,"counts").stdout)
             self.retire(a_cid); self.retire(b_cid)
             for cid in [a_cid,b_cid]:self.remove(cid)
+            if self.database_only:
+                before_recreation = json.loads(self.cli(self.tools,runtime,"snapshot-retained").stdout)
+                volume = self.pg_volumes["pg-original"]
+                self.retire(pg_cid); self.remove(pg_cid)
+                pg,pg_cid = self.pg("pg-original", volume=volume)
+                if before_recreation != json.loads(self.cli(self.tools,runtime,"snapshot-retained").stdout):
+                    raise Failure("Same-volume PG recreation changed IDs/mappings")
+                self.result["same_volume_recreation"] = {"volume":volume, "catalogue_unchanged":True}
+                a,a_cid=self.web("a",pg,keys,gateway_ip)
+                b,b_cid=self.web("b",pg,keys,gateway_ip)
+                for instance in ["a", "b"]:
+                    ready=json.loads(browser.request(instance,"/health/ready"))
+                    if ready != {"status":"ready","revision":self.revision}:
+                        raise Failure("Readiness after PG recreation differs")
+                    form_browser.request(instance,"/auth/login",form=invalid_login)
+                browser.request("a","/auth/refresh",form={},csrf=browser.csrf("b"))
+                saved_authenticated_csrf=browser.csrf("a")
+                before=json.loads(self.cli(self.tools,runtime,"counts").stdout)
+                self.retire(a_cid); self.retire(b_cid)
+                for cid in [a_cid,b_cid]:self.remove(cid)
+                before_snapshot=json.loads(self.cli(self.tools,runtime,"snapshot-retained").stdout)
+                self.phase("Same named PG18 parent volume survives container recreation; IDs, 17 mappings, readiness, keys/session/CSRF retained")
             dump=self.output/"catalogue.dump"
             restore_started=time.monotonic()
             with dump.open("xb") as file:
@@ -414,24 +518,32 @@ class Harness:
             dump.chmod(0o600)
             if not 0 < dump.stat().st_size <= 64*MIB:raise Failure("Dump size outside bound")
             ring=self.output/"keyring.tar"
-            with ring.open("xb") as file:
-                self.docker("run","--rm","--network","none","--entrypoint","tar","--mount",f"type=volume,source={keys},target=/keys,readonly",
-                    self.image,"-C","/keys","-cf","-",".",stdout=file)
-            ring.chmod(0o600)
-            if not 0 < ring.stat().st_size <= MIB:raise Failure("Key archive size outside bound")
+            if not self.database_only:
+                with ring.open("xb") as file:
+                    self.docker("run","--rm","--network","none","--entrypoint","tar","--mount",f"type=volume,source={keys},target=/keys,readonly",
+                        self.image,"-C","/keys","-cf","-",".",stdout=file)
+                ring.chmod(0o600)
+                if not 0 < ring.stat().st_size <= MIB:raise Failure("Key archive size outside bound")
             self.retire(pg_cid)
             restored,restored_cid=self.pg("pg-restored")
             self.sql(restored,"CREATE ROLE qual_runtime LOGIN PASSWORD 'local-runtime-qualification' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOINHERIT;")
             self.docker("exec","-i",restored,"pg_restore","--exit-on-error","--single-transaction","--no-owner","-U","qual_admin","-d","catalogue",data=dump.read_bytes())
             self.grants(restored)
-            restored_keys=self.private_volume("keys-restored")
-            self.docker("run","--rm","--network","none","--interactive","--entrypoint","tar","--mount",f"type=volume,source={restored_keys},target=/keys",
-                self.image,"-C","/keys","-xf","-",data=ring.read_bytes())
-            restored_runtime=self.env("restored-runtime",{"ConnectionStrings__DefaultConnection":self.connection(restored)})
+            restored_keys=keys
+            if not self.database_only:
+                restored_keys=self.private_volume("keys-restored")
+                self.docker("run","--rm","--network","none","--interactive","--entrypoint","tar","--mount",f"type=volume,source={restored_keys},target=/keys",
+                    self.image,"-C","/keys","-xf","-",data=ring.read_bytes())
+            restored_runtime=self.env("restored-runtime",{"ConnectionStrings__DefaultConnection":self.connection(restored), "CloudflareR2__PublicUrl":self.media_origin})
             after=json.loads(self.cli(self.tools,restored_runtime,"counts").stdout)
             if before != after:raise Failure("Restored database counts differ")
             self.result.update(before_restore_counts=before,after_restore_counts=after,dump_bytes=dump.stat().st_size,
-                keyring_archive_bytes=ring.stat().st_size,restore_seconds=round(time.monotonic()-restore_started,3))
+                keyring_archive_bytes=0 if self.database_only else ring.stat().st_size, keyring_reused=self.database_only,restore_seconds=round(time.monotonic()-restore_started,3))
+            if self.database_only:
+                after_snapshot=json.loads(self.cli(self.tools,restored_runtime,"snapshot-retained").stdout)
+                if before_snapshot != after_snapshot:
+                    raise Failure("Restored catalogue IDs/relations/media mappings differ")
+                self.result["catalogue_after_restore"]=after_snapshot
             a,a_cid=self.web("a",restored,restored_keys,gateway_ip)
             b,b_cid=self.web("b",restored,restored_keys,gateway_ip)
             form_browser.request("a","/auth/login",form=invalid_login)
@@ -439,20 +551,27 @@ class Harness:
             browser.request("b","/admin/category",status=403)
             browser.request("b","/auth/refresh",form={},csrf=saved_authenticated_csrf)
             self.phase("Consistent persistent PG/keyring restore: counts, runtime grants, old MVC form and live session pass on both webs")
-            self.retire(b_cid);self.remove(b_cid)
-            wrong_keys=self.private_volume("keys-wrong")
-            b,b_cid=self.web("b",restored,wrong_keys,gateway_ip)
-            form_browser.request("b","/auth/login",form=invalid_login,status=400)
-            self.retire(b_cid);self.remove(b_cid)
-            b,b_cid=self.web("b",restored,restored_keys,gateway_ip)
-            form_browser.request("b","/auth/login",form=invalid_login)
+            if not self.database_only:
+                self.retire(b_cid);self.remove(b_cid)
+                wrong_keys=self.private_volume("keys-wrong")
+                b,b_cid=self.web("b",restored,wrong_keys,gateway_ip)
+                form_browser.request("b","/auth/login",form=invalid_login,status=400)
+                self.retire(b_cid);self.remove(b_cid)
+                b,b_cid=self.web("b",restored,restored_keys,gateway_ip)
+                form_browser.request("b","/auth/login",form=invalid_login)
             replay=Browser(url,str(tls/"cert.pem"))
             for cookie in browser.jar:replay.jar.set_cookie(copy.copy(cookie))
             browser.request("a","/auth/logout",form={},csrf=browser.csrf("b"),status=302)
             replay.request("b","/auth/refresh",form={},csrf=replay.csrf("a"),status=401)
-            self.phase("Wrong restored keyring rejects old form; correct ring recovers; cross-web logout revokes restored refresh session")
+            self.phase("Restored DB and matching keys preserve forms/session; cross-web logout revokes restored refresh session")
+            self.result["final_container_states"] = []
             for cid in list(self.active):
                 self.sample(cid)
+                state = json.loads(self.docker("inspect", "--format",
+                    '{"running":{{.State.Running}},"oom":{{.State.OOMKilled}},"restartCount":{{.RestartCount}}}', cid).stdout)
+                if not state["running"] or state["oom"] or state["restartCount"]:
+                    raise Failure("Final container state differs")
+                self.result["final_container_states"].append({"name":self.active[cid]["name"], **state})
             self.check()
             self.result["status"]="passed"
         finally:
@@ -488,6 +607,8 @@ def main():
     parser.add_argument("image")
     parser.add_argument("revision")
     parser.add_argument("--output",type=Path)
+    parser.add_argument("--database-only", action="store_true", help="NP18: real embedded catalogue, same-volume PG recreation, DB-only restore with original keyring; no media requests")
+    parser.add_argument("--media-origin", default="https://media.example.test", help="Reviewed origin used to verify stored mappings; not fetched")
     args=parser.parse_args()
     if not re.fullmatch(r"[a-f0-9]{40}",args.revision):parser.error("Full lowercase source SHA required")
     # A remote Docker context would violate this assignment's local-only scope.
@@ -499,7 +620,10 @@ def main():
     if not output.is_relative_to(ROOT/"artifacts"):parser.error("Output must stay inside ignored artifacts")
     output.mkdir(parents=True,mode=0o700)
     os.chmod(output,0o700)
-    harness=Harness(args.image,args.revision,output)
+    origin=urllib.parse.urlsplit(args.media_origin)
+    if origin.scheme != "https" or not origin.netloc or origin.username or origin.password or origin.query or origin.fragment or origin.path not in ("", "/"):
+        parser.error("A credential-free HTTPS media origin is required")
+    harness=Harness(args.image,args.revision,output,database_only=args.database_only,media_origin=args.media_origin.rstrip("/"))
     try:
         harness.execute()
     except Exception as error:

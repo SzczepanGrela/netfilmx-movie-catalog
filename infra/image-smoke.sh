@@ -3,6 +3,18 @@ set -euo pipefail
 image=${1:?Supply the exact image reference}
 revision=${2:?Supply the full source revision}
 [[ "$revision" =~ ^[a-f0-9]{40}$ ]] || exit 64
+# Shared local selection; CI/Compose parity is checked by tests/test_postgresql_config.py.
+mapfile -t pg_config < <(python3 - <<'PYCONFIG'
+import json
+from pathlib import Path
+c = json.loads(Path("infra/postgresql.json").read_text())
+print(c["image"]); print(c["volumeTarget"]); print(c["pgdata"])
+for setting in c["settings"]: print(setting)
+PYCONFIG
+)
+[[ ${#pg_config[@]} == 6 ]]
+pg_options=()
+for setting in "${pg_config[@]:3}"; do pg_options+=(-c "$setting"); done
 scope="netfilmx-smoke-$(date +%s)-$$"
 network="${scope}-network"
 database="${scope}-postgres"
@@ -27,14 +39,15 @@ docker run --rm --network none --user 0:0 --entrypoint sh \
     --mount "type=volume,source=$keys,target=/keys" "$image" \
     -c 'chown 10001:10001 /keys && chmod 0700 /keys'
 docker run --detach --name "$database" --network "$network" --network-alias database \
-    --cpus 1 --memory 512m --pids-limit 128 \
-    --tmpfs /var/lib/postgresql/data:rw,nosuid,nodev,size=384m \
+    --cpus 1 --memory 512m --memory-swap 512m --pids-limit 128 \
+    --tmpfs "${pg_config[1]}:rw,nosuid,nodev,size=384m" \
+    --env "PGDATA=${pg_config[2]}" \
     --env POSTGRES_USER=netfilmx_test --env POSTGRES_PASSWORD=local-image-test \
     --env POSTGRES_DB=netfilmx_test \
-    postgres@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea >/dev/null
+    "${pg_config[0]}" "${pg_options[@]}" >/dev/null
 database_created=true
 for _ in {1..30}; do
-    if docker exec "$database" pg_isready -U netfilmx_test -d netfilmx_test >/dev/null; then break; fi
+    if docker exec "$database" pg_isready -h 127.0.0.1 -U netfilmx_test -d netfilmx_test >/dev/null; then break; fi
     sleep 1
 done
 connection='Host=database;Database=netfilmx_test;Username=netfilmx_test;Password=local-image-test'
