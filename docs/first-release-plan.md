@@ -1,6 +1,6 @@
 # First release and operational closeout
 
-Updated 2026-10-20 to the operator's clarified policy: interruptions during
+Updated 2026-10-22 to the operator's clarified policy: interruptions during
 preparation, bootstrap and migration are acceptable. Final Coolify operation
 still requires rolling updates and backups of necessary data, keys and recovery
 configuration. First routing does not complete that target. No numerical uptime
@@ -33,6 +33,22 @@ routing/certificate/proxy belong to A. Earlier desktop/Android results retain
 their scope. Sintel synchronization/cause remain unresolved; deferred Safari/
 mobile/VLC/listening trials remain deferred. No new media/manual round is assigned.
 
+## PostgreSQL 18 preparation (NP18-1)
+
+The fresh database target now uses the [reviewed PG18 selection and storage](postgresql18.md).
+CI, Compose, smoke and both qualification consumers share the 18.6-trixie digest.
+A new parent volume at `/var/lib/postgresql` retains PGDATA
+`/var/lib/postgresql/18/docker`; never reuse the old PG16 volume. Exact local
+image, migration/import/persistence/session/restore results and CI are in the
+NP18-1 restricted report/checkpoint. Earlier accepted PG16/media evidence keeps
+its scope. No deployment or production rolling/restore acceptance is implied.
+
+Coordinator's October 20 readback confirms main/production protection and both
+release flags false. October 21 records an empty proposed target network;
+Coolify destination registration, actual proxy peers and startup remain pending.
+Read back current scoped values at execution time; do not reapply installed
+protection or infer proxy addresses from a subnet.
+
 ## Three stages
 
 | Stage | Completion | Still separate |
@@ -52,7 +68,7 @@ public docs or report contents.
 | --- | --- |
 | A — Protection/access | Effective main `Quality gate` ruleset, main-only reviewed `production` environment, single-operator review policy, scoped OIDC/private API and GHCR pull access; existing credential consumers retained |
 | A — Target/release | Coolify application/project/environment/destination IDs, private API URL, reviewed resource contract, actual published main digest/full SHA (`EXPECTED_REVISION` / `ACCEPTED_MAIN_SHA`), deployment reconciliation owner and maintenance/cutover instruction |
-| A — PostgreSQL | Reviewed version/image, independent database/network/volume, private DDL connection, separate runtime connection and table/sequence/lock grants; no public DB port |
+| A — PostgreSQL | Confirm [PG18 pin/parent mount/caps](postgresql18.md), new independent volume/database/network, private DDL connection, separate runtime connection and table/sequence/lock grants; no public DB port |
 | A — Keys/auth | Persistent mount and absolute `DataProtection__KeyRingPath` outside `/app`; UID/GID `10001:10001`, directory `0700`; stable `JwtSettings__SecretKey`, `JwtSettings__Issuer`, `JwtSettings__Audience` and private recovery access |
 | A — Ingress | `PRODUCTION_URL`, exact `AllowedHosts`, `Proxy__KnownProxies__N`, `Proxy__ForwardLimit`, app network/subnet, destination/domain/Tunnel/proxy mapping and health timings |
 | A — Capacity | Effective web/PG CPU, RAM+swap, disk/free-space budgets and start/stop grace; headroom for other services/tools and any actual overlap; mount/ownership readback |
@@ -82,8 +98,8 @@ the affected step; do not substitute guessed values.
 
 ### A1. Protect access and select the image
 
-1. Read current settings, save affected configuration and install/read back the
-   reviewed main/production protection. Keep repository variables
+1. Read back the installed main/production protection (coordinator October 20);
+   preserve current scoped settings before any separately approved change. Keep repository variables
    `PRODUCTION_DEPLOY_ENABLED=false` and `COOLIFY_RELEASE_CONTRACT_ACCEPTED=false`.
    Use the existing [delivery contract](release-delivery.md#promotion-contract).
 2. After separate merge/publication authorization, main CI publishes its same

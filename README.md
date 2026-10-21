@@ -75,3 +75,6 @@ kontraktu i warunków odzyskiwania danych. Szczegóły:
 Ta gałąź usuwa dawny deploy przez SSH; produkcja nadal wymaga osobnego
 przeglądu i przełączenia. Nie przywracaj Nginx Proxy Manager na podstawie
 historycznych skryptów.
+
+Fresh developer PostgreSQL 18 setup, pinned image, separate volume and qualification:
+[PostgreSQL 18](docs/postgresql18.md). Existing PG16 development data is retained.

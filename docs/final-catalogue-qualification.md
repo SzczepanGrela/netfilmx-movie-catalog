@@ -32,7 +32,7 @@ python3 qualification/final_catalogue.py \
 
 The harness requires a clean checkout at the supplied image SHA and local Unix
 Docker socket. It records the immutable local image ID and revision label.
-It reuses the recovery harness, pinned PostgreSQL image and helper linked to
+It reuses the recovery harness, [current pinned PostgreSQL 18 selection](postgresql18.md) and helper linked to
 byte-identical candidate storage/import libraries. The candidate image itself
 runs the explicit migration and real embedded-manifest CLI import. There is no
 synthetic replacement of catalogue URLs or pricing. Assert seven films, one
@@ -76,3 +76,6 @@ not public application routing, production proxy/limits, cutover or native
 Safari/mobile. Earlier manual observations retain their scope. Audible quality,
 deferred device trials and Sintel's unresolved synchronization are not promoted
 to passes. No offsets are changed. Uploads/worker stay false and PR #1 stays draft.
+
+NP18-1 changes the shared database fixture; the accepted `6f57dbb` run used PG16.
+Its media/browser evidence is retained, without rerunning it for this database task.

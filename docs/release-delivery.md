@@ -1,14 +1,15 @@
 # Immutable image delivery candidate
 
-Updated 2026-10-20 under the operator's clarified policy. Preparation, bootstrap
+Updated 2026-10-22 under the operator's clarified policy. Preparation, bootstrap
 and migration may interrupt service. Final Coolify operation still requires
 readiness-gated rolling releases and backups of necessary new data/keys/configuration.
 No numerical uptime SLA or HA is introduced. [PR #1](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/1)
 stays draft; this documentation update performs no merge, publication or deployment.
 
-Coordinator's October 18 GitHub readback found unprotected main, no environments/
-rulesets and absent activation flags. These are dated facts: coordinator must
-supply current target/protection/access values before execution, as listed in
+Coordinator's October 18 readback found missing protections; October 20
+readback confirms main/production protection and both flags explicitly false.
+Refresh relevant readback before execution and supply remaining private
+target/access values as listed in
 [the first-release plan](first-release-plan.md#coordinator-inputs-before-execution).
 
 ## Three delivery stages
@@ -23,6 +24,10 @@ First routing completes A only. The ordered commands, expected results and stop
 actions are in [the existing release plan](first-release-plan.md#a--ordered-first-launch-instruction).
 No further backup refresh/off-host/restore of old NetFilmx is required. Preserve
 legacy copies, containers, media and accepted historical results.
+
+The fresh database target is now [PostgreSQL 18.6 with pinned storage/configuration](postgresql18.md).
+NP18-1 qualifies the database change locally without another film/browser round;
+previous PG16/media evidence is historical. Coolify startup awaits coordinator review.
 
 ## Build and qualify once
 

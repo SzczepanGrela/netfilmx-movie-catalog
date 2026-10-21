@@ -1,5 +1,8 @@
 # Explicit migrations and readiness
 
+Fresh catalogue target: [PostgreSQL 18 pin, parent volume and qualification](postgresql18.md).
+Do not attach existing PG16 data. Earlier PG16 tests retain their historical scope.
+
 Web startup checks the application schema before accepting HTTP or starting a
 worker. It never calls `Migrate()`. Connection configuration is explicit; there
 is no built-in database/password fallback. Missing/unreachable databases,

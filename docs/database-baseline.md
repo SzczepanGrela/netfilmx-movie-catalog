@@ -1,7 +1,8 @@
 # Database baseline and retained media
 
-This branch prepares NetFilmx for a separate PostgreSQL database. It is not yet
-a production deployment or a completed data import.
+This branch targets a fresh [PostgreSQL 18 database](postgresql18.md), with an
+explicitly isolated new development volume. Local catalogue import is qualified;
+production deployment/import remains separate.
 
 The recovered local commits included about 1.7 GB of media in `r2_assets/`.
 Those files remain in the original local checkout/source backup and are excluded
@@ -85,34 +86,15 @@ Starting a new database does not require uploading the same media again.
 Existing object keys/URLs can be imported along with the catalogue metadata,
 provided those objects are retained and the mappings are verified.
 
-Before implementing or running the import:
-
-1. Identify the authoritative SQLite file and which running instance writes it.
-2. Inventory catalogue tables, links, migrations and the R2 object mapping.
-   The original schema links videos through `VideoCategory`, `VideoSeries`
-   and `VideoTag`. A missing newer `Bundles` table is consistent with that
-   older schema; it does not by itself indicate database corruption. Inspect
-   the stored media-reference shape: repository demo URLs are not evidence
-   that production videos exist in the application's object bucket.
-3. Agree which catalogue metadata to retain and whether accounts, comments,
-   purchases and other user data are to be retained or archived.
-4. Back up the live database consistently, retain an off-host copy, and test
-   restoration in isolation.
-5. Rehearse import into a separate PostgreSQL database. Preserve identifiers
-   where required, reset identity sequences after explicit-ID inserts, and
-   validate counts, relationships, playback and thumbnails.
-6. Keep the [media-lifetime policy](retained-catalogue.md#media-lifetime-and-upload-keys):
-   new uploads use random object keys rather than database IDs, and catalogue
-   deletion retains media. Follow the [upload-processing guide](upload-processing.md)
-   for durable staging/queue configuration and remaining production acceptance.
-
-No live database or R2 objects have been changed by this preparatory work.
-
-For the accepted fresh catalogue direction, see the
-[retained-media plan and explicit import command](retained-catalogue.md).
-It keeps the original source keys, deduplicates the seven selected entries,
-and refuses import while two playback derivatives remain pending. It does
-not blindly copy the legacy YouTube catalogue or local demo streams.
+The operator-selected first launch uses fresh PG, new accounts and empty history.
+The accepted manifest contains seven published HLS masters and ten Sintel VTT
+references; the former two-derivative/licence blocker is resolved. Use the
+[explicit catalogue CLI](retained-catalogue.md) and ordered
+[first-release plan](first-release-plan.md); no additional legacy inventory,
+backup/off-host/restore or SQLite-to-PG data import is assigned. Preserve the
+legacy history, copies and source mappings. New-state backup/recovery belongs
+to stage B. Catalogue deletion retains media; future uploads retain their
+separate [processing acceptance](upload-processing.md).
 
 ## Remaining release gates
 

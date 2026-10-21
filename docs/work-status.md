@@ -1,12 +1,26 @@
 # NetFilmx candidate status
 
-Updated 2026-10-20 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
+Updated 2026-10-22 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
 Work continues in [draft PR #1](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/1).
 The application has not been deployed; the retained HLS media were published
 through the separately authorized one-time tool. Accepted R1, recovery/source reconciliation, credits,
 subtitle code at `f4aca03` and earlier desktop/Android observations are preserved.
 
-## Current stage: release documentation aligned to operator policy
+## Current stage: PostgreSQL 18 preparation (NP18-1)
+
+The October 20 release plan at `052f439` was accepted by the coordinator.
+[PG18 selection and procedure](postgresql18.md) now align CI, fresh developer
+Compose storage, image smoke and existing recovery/final-catalogue consumers.
+The focused DB mode checks real-manifest CLI import/repeat refusal, runtime
+DDL/history denial, same-volume PG recreation, two-web sessions/antiforgery and
+one small PG18 restore using the retained keyring. Exact committed local-image,
+PG/server versions, effective mounts/caps/settings, measured results and CI are
+recorded in the restricted NP18-1 report/checkpoint. Dependencies and migrations
+are unchanged; this stage does not repeat media qualification or recover legacy.
+Coordinator October 20 protection readback is installed; both release flags are
+false. Target destination/proxy/resource values and PG startup remain separate.
+
+### Accepted release documentation and A/B/C policy
 
 The operator accepts interruptions during preparation, bootstrap and migration.
 The updated [first-release plan](first-release-plan.md) and
