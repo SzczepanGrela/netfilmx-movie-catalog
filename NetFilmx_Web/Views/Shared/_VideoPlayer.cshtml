@@ -1,0 +1,15 @@
+@model NetFilmx_Service.Dtos.Video.VideoCardDto
+@{
+    // Native HLS must not finish metadata loading before the hls.js provider is
+    // ready, or Vidstack can skip populating its quality list. MP4 preload is retained.
+    var preload = Model.VideoUrl?.EndsWith(".m3u8", StringComparison.OrdinalIgnoreCase) == true ? "none" : "metadata";
+}
+<media-player id="main-video-player" src="@Model.VideoUrl" title="@Model.Title" view-type="video" stream-type="on-demand" preload="@preload" playsinline crossorigin="anonymous" style="width: 100%; height: 100%;">
+    <media-provider>
+        @foreach (var subtitle in Model.Subtitles)
+        {
+            <track id="subtitle-@subtitle.TrackKey" src="@subtitle.Url" kind="subtitles" srclang="@subtitle.Language" label="@subtitle.Label" data-type="vtt" />
+        }
+    </media-provider>
+    <media-video-layout></media-video-layout>
+</media-player>

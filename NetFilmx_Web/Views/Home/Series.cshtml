@@ -1,0 +1,107 @@
+@model NetFilmx_Web.ViewModels.SeriesPageViewModel
+@{
+    ViewData["Title"] = "Series";
+}
+
+<div style="padding-top: 100px; min-height: 100vh; padding-bottom: 4rem;">
+    <div style="max-width: 1600px; margin: 0 auto; padding: 0 4%;">
+        
+        <!-- Header Info -->
+        <div style="margin-bottom: 1.5rem;">
+            <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem;" data-i18n="t_katalog_serii">Series Catalog</h1>
+            <p style="color: var(--color-text-secondary); font-size: 1rem;" data-i18n="t_katalog_serii_podpis">Watch full series, miniseries and animation anthologies.</p>
+        </div>
+
+        <!-- Centered Search Hub -->
+        <div style="margin-bottom: 2.5rem; display: flex; justify-content: flex-start;">
+            <form method="get" asp-action="Series" class="nfx-search-hub" style="width: 100%; max-width: 900px;">
+                <div class="nfx-search-input-wrap">
+                    <i class="fas fa-search nfx-search-icon"></i>
+                    <input type="text" name="search" value="@Model.SearchTerm" class="nfx-search-input"
+                           placeholder="Search series, titles..." data-i18n-placeholder="t_szukaj_serii_placeholder" />
+                </div>
+
+                <button type="submit" class="nfx-search-submit">
+                    <i class="fas fa-search"></i>
+                    <span data-i18n="t_szukaj">Search</span>
+                </button>
+
+                @if (!string.IsNullOrEmpty(Model.SearchTerm))
+                {
+                    <a asp-action="Series" class="nfx-search-clear" title="Clear filters">
+                        <i class="fas fa-times"></i>
+                        <span data-i18n="t_wyczysc_filtry">Clear</span>
+                    </a>
+                }
+            </form>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.DidYouMeanSuggestion))
+        {
+            <div style="margin-top: -1.5rem; margin-bottom: 2rem; padding: 0.75rem 1.25rem; background: rgba(123, 44, 191, 0.15); border: 1px solid rgba(123, 44, 191, 0.4); border-radius: 12px; display: inline-flex; align-items: center; gap: 0.75rem; color: #fff; font-size: 0.95rem;">
+                <i class="fas fa-lightbulb" style="color: #ffb703; font-size: 1.1rem;"></i>
+                <span>
+                    <span data-i18n="t_czy_chodzilo_o">Did you mean:</span>
+                    <a asp-action="Series" asp-route-search="@Model.DidYouMeanSuggestion" style="color: #4cc9f0; font-weight: 600; text-decoration: underline; margin-left: 0.25rem;">
+                        @Model.DidYouMeanSuggestion
+                    </a>?
+                </span>
+            </div>
+        }
+
+        <!-- Series Grid -->
+        @if (Model.Series != null && Model.Series.Any())
+        {
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem;">
+                @foreach (var s in Model.Series)
+                {
+                    var imgUrl = s.PosterUrl ?? s.BackdropUrl ?? "https://netfilmx-assets.grela.dev/posters/sintel_poster.jpg";
+                    <div class="nfx-card" style="aspect-ratio: 2/3; width: 100%; max-width: none;">
+                        <a asp-controller="Home" asp-action="SeriesDetails" asp-route-id="@s.Id" style="display: block; width: 100%; height: 100%;">
+                            <img src="@imgUrl" alt="@s.Name" class="nfx-card-img" loading="lazy" />
+                        </a>
+                        <div class="nfx-card-overlay" style="opacity: 1; background: linear-gradient(to top, rgba(4, 8, 20, 0.95) 0%, rgba(4, 8, 20, 0.5) 60%, transparent 100%);">
+                            <div style="width: 100%; position: relative; z-index: 20;">
+                                @if (!string.IsNullOrEmpty(s.QualityBadge))
+                                {
+                                    <span class="nfx-badge" style="font-size: 0.7rem; padding: 0.2rem 0.5rem; margin-bottom: 0.4rem; display: inline-block;">@s.QualityBadge</span>
+                                }
+                                <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">@s.Name</h3>
+                                <div style="font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 0.8rem;">
+                                    <span>@(s.ReleaseYear?.ToString() ?? "2026")</span>
+                                </div>
+                                <a asp-controller="Home" asp-action="SeriesDetails" asp-route-id="@s.Id" class="nfx-btn nfx-btn-primary" style="width: 100%; padding: 0.5rem; font-size: 0.85rem; position: relative; z-index: 30;" data-i18n="t_zobacz_odcinki">
+                                    Episodes & Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Pagination -->
+            @if (Model.TotalPages > 1)
+            {
+                <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 3rem;">
+                    @for (int p = 1; p <= Model.TotalPages; p++)
+                    {
+                        <a asp-action="Series" asp-route-page="@p" asp-route-search="@Model.SearchTerm"
+                           class="nfx-btn @(p == Model.CurrentPage ? "nfx-btn-primary" : "nfx-btn-secondary")" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                            @p
+                        </a>
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            <div style="text-align: center; padding: 5rem 1rem; background: rgba(10, 17, 40, 0.4); border-radius: var(--border-radius); border: 1px solid rgba(123, 44, 191, 0.2);">
+                <i class="fas fa-layer-group" style="font-size: 3rem; color: var(--color-text-secondary); margin-bottom: 1rem; display: block;"></i>
+                <h3 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;" data-i18n="t_nie_znaleziono_serii">No series found</h3>
+                <p style="color: var(--color-text-secondary); max-width: 500px; margin: 0 auto 1.5rem;" data-i18n="t_brak_serii_opis">No series match the selected search criteria.</p>
+                <a asp-action="Series" class="nfx-btn nfx-btn-secondary" data-i18n="t_zresetuj_filtry">Reset filters</a>
+            </div>
+        }
+
+    </div>
+</div>

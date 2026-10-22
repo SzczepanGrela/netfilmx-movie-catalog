@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using NetFilmx_Service.Mappings;
 using MediatR;
 using NetFilmx_Service.Result;
 using NetFilmx_Storage.Repositories;
@@ -8,9 +8,9 @@ namespace NetFilmx_Service.Query.Series
     public sealed class GetSeriesByVideoIdQueryHandler<TDto> : IRequestHandler<GetSeriesByVideoIdQuery<TDto>, QResult<List<TDto>>>
     {
         private readonly ISeriesRepository _repository;
-        private readonly IMapper _mapper;
+        private readonly ICatalogueMapper _mapper;
 
-        public GetSeriesByVideoIdQueryHandler(ISeriesRepository repository, IMapper mapper)
+        public GetSeriesByVideoIdQueryHandler(ISeriesRepository repository, ICatalogueMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;
@@ -23,7 +23,7 @@ namespace NetFilmx_Service.Query.Series
             try
             {
                 var series = await _repository.GetSeriesByVideoIdAsync(query.VideoId);
-                seriesDto = _mapper.Map<List<TDto>>(series);
+                seriesDto = _mapper.MapList<TDto>(series);
                 return QResult<List<TDto>>.Ok(seriesDto);
             }
             catch (Exception ex)

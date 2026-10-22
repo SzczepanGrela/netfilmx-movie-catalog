@@ -1,5 +1,6 @@
 using FluentAssertions;
-using NetFilmx_Web.Auth;
+using NetFilmx_Service.Security;
+using NetFilmx_Service.Security;
 
 namespace NetFilmx_Tests.Unit.Auth
 {
@@ -9,7 +10,7 @@ namespace NetFilmx_Tests.Unit.Auth
 
         public PasswordHasherTests()
         {
-            _hasher = new PasswordHasher();
+            _hasher = new Argon2idPasswordHasher();
         }
 
         [Fact]
@@ -20,7 +21,7 @@ namespace NetFilmx_Tests.Unit.Auth
 
             // Assert
             hash.Should().StartWith("$argon2id$v=19$");
-            hash.Should().Contain("m=19456,t=2,p=1");
+            hash.Should().Contain("m=131072,t=4,p=8");
         }
 
         [Fact]
@@ -56,28 +57,17 @@ namespace NetFilmx_Tests.Unit.Auth
         }
 
         [Fact]
-        public void VerifyPassword_ShouldHandleLegacyBCryptHash()
-        {
-            // Arrange — simulate a BCrypt hash from the old system
-            var password = "LegacyPassword123";
-            var bcryptHash = BCrypt.Net.BCrypt.HashPassword(password);
-
-            // Act & Assert — should still verify BCrypt hashes
-            _hasher.VerifyPassword(password, bcryptHash).Should().BeTrue();
-        }
-
-        [Fact]
-        public void NeedsRehash_ShouldReturnTrueForBCryptHash()
+        public void NeedsRehash_ShouldReturnTrueForInvalidHash()
         {
             // Arrange
-            var bcryptHash = BCrypt.Net.BCrypt.HashPassword("test");
+            var invalidHash = "$argon2id$v=19$m=1,t=1,p=1$salt$hash";
 
             // Act & Assert
-            _hasher.NeedsRehash(bcryptHash).Should().BeTrue();
+            _hasher.NeedsRehash(invalidHash).Should().BeTrue();
         }
 
         [Fact]
-        public void NeedsRehash_ShouldReturnFalseForArgon2idHash()
+        public void NeedsRehash_ShouldReturnFalseForValidHash()
         {
             // Arrange
             var argon2Hash = _hasher.HashPassword("test");

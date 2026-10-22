@@ -1,0 +1,32 @@
+@model IEnumerable<NetFilmx_Service.Dtos.Series.SeriesListDto>
+
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h1 class="mb-0">Usuń serie użytkownika: @ViewBag.UserUsername</h1>
+        </div>
+        <div class="card-body">
+            @if (!Model.Any())
+            {
+                <p>Brak serii w bibliotece użytkownika</p>
+            }
+            else
+            {
+                <form asp-action="RemoveSeries" method="post">
+                    <input type="hidden" name="userId" value="@ViewBag.UserId" />
+                    <input type="hidden" name="userUsername" value="@ViewBag.UserUsername" />
+                    <div class="list-group">
+                        @foreach (var series in Model)
+                        {
+                            <label class="list-group-item admin-label">
+                                <input type="checkbox" name="seriesIds" value="@series.Id" />
+                                @series.Name
+                            </label>
+                        }
+                    </div>
+                    <button type="submit" class="nfx-btn nfx-btn-secondary mt-3" style="background: rgba(220, 53, 69, 0.2); color: #ff6b6b; border-color: rgba(220, 53, 69, 0.3);" data-i18n="t_usun_wybrane_serie">Usuń wybrane serie</button>
+                </form>
+            }
+        </div>
+    </div>
+</div>

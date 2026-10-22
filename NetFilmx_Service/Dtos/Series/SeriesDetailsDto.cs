@@ -3,7 +3,7 @@
     public class SeriesDetailsDto : ISeriesDto
     {
 
-        public SeriesDetailsDto(int id, string name, string description, decimal price, DateTime createdAt, DateTime updatedAt)
+        public SeriesDetailsDto(int id, string name, string? description, decimal price, DateTime createdAt, DateTime updatedAt)
         {
             Id = id;
             Name = name;
@@ -17,7 +17,7 @@
 
         public int Id { get; }
 
-        public string Description { get; }
+        public string? Description { get; }
 
         public decimal Price { get; }
 

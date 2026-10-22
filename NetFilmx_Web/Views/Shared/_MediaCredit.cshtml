@@ -1,0 +1,26 @@
+@model NetFilmx_Web.Services.FilmCredit
+@if (Model is not null)
+{
+    <section class="media-credit" id="credit-@Model.Slug" aria-labelledby="credit-title-@Model.Slug">
+        <h2 id="credit-title-@Model.Slug">@Model.Title — <span data-i18n="t_media_credits">Creators and licences</span></h2>
+        <p>@Model.Creator</p>
+        <p>@Model.Production</p>
+        <p><a href="@Model.SourceUrl" rel="noreferrer">@Model.Title — <span data-i18n="t_credit_source">source and credits</span></a>
+            @if (Model.LicenseUrl is not null) { <span> · <a href="@Model.LicenseUrl" rel="noreferrer">@Model.License</a></span> }
+        </p>
+        @if (Model.Pending is not null) { <p class="media-credit-pending">@Model.Pending</p> }
+        <p>@Model.Changes</p>
+        <h3 data-i18n="t_credit_artwork">Artwork</h3>
+        <ul>
+            @foreach (var art in Model.Artwork)
+            {
+                <li><strong>@art.Role:</strong> @art.Creator
+                    <a href="@art.SourceUrl" rel="noreferrer">@Model.Title — @art.Role <span data-i18n="t_credit_source">source and credits</span></a>
+                    @if (art.LicenseUrl is not null) { <span> · <a href="@art.LicenseUrl" rel="noreferrer">@art.License</a></span> }
+                    <p>@art.Changes</p>
+                </li>
+            }
+        </ul>
+        <p data-i18n="t_credit_full_roll">The complete film credits are retained in the video.</p>
+    </section>
+}

@@ -1,0 +1,40 @@
+@model IEnumerable<NetFilmx_Service.Dtos.Series.SeriesListDto>
+
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h1 class="mb-0">Serie filmu: @ViewBag.VideoName</h1>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <form asp-action="AddSeries" method="get" class="d-inline">
+                    <input type="hidden" name="videoId" value="@ViewBag.VideoId" />
+                    <input type="hidden" name="videoTitle" value="@ViewBag.VideoTitle" />
+                    <button type="submit" class="nfx-btn nfx-btn-primary mb-2">Dodaj serie</button>
+                </form>
+
+                <form asp-action="RemoveSeries" method="get" class="d-inline">
+                    <input type="hidden" name="videoId" value="@ViewBag.VideoId" />
+                    <input type="hidden" name="videoTitle" value="@ViewBag.VideoTitle" />
+                    <button type="submit" class="nfx-btn nfx-btn-secondary mb-2" style="background: rgba(220, 53, 69, 0.2); color: #ff6b6b; border-color: rgba(220, 53, 69, 0.3);">Usuń serie</button>
+                </form>
+            </div>
+
+            @if (!Model.Any())
+            {
+                <p data-i18n="t_nie_znaleziono_serii">Nie znaleziono serii</p>
+            }
+            else
+            {
+                <ul class="list-group">
+                    @foreach (var series in Model)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <a href="@Url.Action("Details", "Series", new { seriesId = series.Id })">@series.Name</a>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>

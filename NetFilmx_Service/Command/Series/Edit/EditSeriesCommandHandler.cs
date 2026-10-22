@@ -37,7 +37,7 @@ namespace NetFilmx_Service.Command.Series
 
                 series.Description = command.Description;
 
-                series.UpdatedAt = DateTime.Now;
+                series.UpdatedAt = DateTime.UtcNow;
 
                 await _repository.UpdateSeriesAsync(series);
 

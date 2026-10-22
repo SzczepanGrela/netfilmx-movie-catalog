@@ -1,0 +1,31 @@
+@model IEnumerable<NetFilmx_Service.Dtos.Video.VideoListDto>
+
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h1 class="mb-0">Dodaj filmy do serii: @ViewBag.SeriesName</h1>
+        </div>
+        <div class="card-body">
+        @if (!Model.Any())
+        {
+            <p>Nie znaleziono filmów spoza tej serii.</p>
+        }
+        else
+        {
+            <form asp-action="AddVideos" method="post">
+                <input type="hidden" name="seriesId" value="@ViewBag.SeriesId" />
+                <div class="list-group">
+                    @foreach (var video in Model)
+                    {
+                        <label class="list-group-item">
+                            <input type="checkbox" name="videoIds" value="@video.Id" />
+                            @video.Title
+                        </label>
+                    }
+                </div>
+                <button type="submit" class="nfx-btn nfx-btn-primary mt-3" data-i18n="t_dodaj_wybrane_filmy">Dodaj wybrane filmy</button>
+            </form>
+        }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,7 @@
+@model IReadOnlyList<NetFilmx_Web.Services.FilmCredit>
+@{ ViewData["Title"] = "Media credits"; }
+<div class="media-credits-page">
+    <h1 data-i18n="t_media_credits">Creators and licences</h1>
+    <p data-i18n="t_credit_intro">Film and artwork attribution for the retained catalogue, with licence sources and changes listed below.</p>
+    @foreach (var credit in Model) { <partial name="_MediaCredit" model="credit" /> }
+</div>

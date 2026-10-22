@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 2,
+  "series": [
+    {
+      "slug": "caminandes",
+      "name": "Caminandes",
+      "description": "Przygody lamy Koro w Patagonii.",
+      "price": 250
+    }
+  ],
+  "videos": [
+    {
+      "slug": "sintel",
+      "title": "Sintel",
+      "price": 225,
+      "description": "Sintel wyrusza na poszukiwanie smoka Scales.",
+      "releaseYear": 2010,
+      "sourceObjectKey": "videos/sintel.mkv",
+      "playbackObjectKey": "videos/hls/sintel/f1eea76a48d8747de6647303e95ec869a5cef067b6f02bff6fc59c577cacb277/master.m3u8",
+      "posterObjectKey": "posters/sintel_poster.jpg",
+      "subtitles": [
+        {
+          "trackKey": "stream-2",
+          "language": "de",
+          "label": "Deutsch",
+          "position": 0,
+          "objectKey": "subtitles/sintel/de/6f5215565b1664375bae67344fb2ddac2ba80740393b29b37488afc9a16eecd4.vtt"
+        },
+        {
+          "trackKey": "stream-3",
+          "language": "en",
+          "label": "English",
+          "position": 1,
+          "objectKey": "subtitles/sintel/en/76eb696b2eccd9df9d3342248fb5c262da151138e052876c37fb3fb7ddb3cebd.vtt"
+        },
+        {
+          "trackKey": "stream-4",
+          "language": "es",
+          "label": "Español",
+          "position": 2,
+          "objectKey": "subtitles/sintel/es/79ca2cfb0d0e25a1a0de7cab7015b07ab8dd0d25adc8887415df42c8e065c8a2.vtt"
+        },
+        {
+          "trackKey": "stream-5",
+          "language": "fr",
+          "label": "Français",
+          "position": 3,
+          "objectKey": "subtitles/sintel/fr/0ead8922c60c8e846cab71c24b5313d87acf0f198658a7e418108620c6116705.vtt"
+        },
+        {
+          "trackKey": "stream-6",
+          "language": "it",
+          "label": "Italiano",
+          "position": 4,
+          "objectKey": "subtitles/sintel/it/5164cae5ccdbf4c03fbe5aea2fc5ba2eb69400c852a52d715b6772956d3dfedb.vtt"
+        },
+        {
+          "trackKey": "stream-7",
+          "language": "nl",
+          "label": "Nederlands",
+          "position": 5,
+          "objectKey": "subtitles/sintel/nl/63377a58b35fed83ebc21308d3994e7f2cec99ef083b6ea7563963a509475591.vtt"
+        },
+        {
+          "trackKey": "stream-8",
+          "language": "pl",
+          "label": "Polski",
+          "position": 6,
+          "objectKey": "subtitles/sintel/pl/97d49542f04b3d8d95e4da845a568ef01b23768b057953a125a173d9156b48ad.vtt"
+        },
+        {
+          "trackKey": "stream-9",
+          "language": "pt",
+          "label": "Português",
+          "position": 7,
+          "objectKey": "subtitles/sintel/pt/fc41165e6883e938fc8492013fab76cae071ccbc1f64fcdd06f034903c84f6e6.vtt"
+        },
+        {
+          "trackKey": "stream-10",
+          "language": "ru",
+          "label": "Русский",
+          "position": 8,
+          "objectKey": "subtitles/sintel/ru/83d06c5f7f2955bf35ded8eb28deff4e3169b68ea11006ad37bc8221afda6144.vtt"
+        },
+        {
+          "trackKey": "stream-11",
+          "language": "vi",
+          "label": "Tiếng Việt",
+          "position": 9,
+          "objectKey": "subtitles/sintel/vi/982ab48512df1fcd4e42c3f28b3e461295231a84764fd7201f5c72694ef09b61.vtt"
+        }
+      ]
+    },
+    {
+      "slug": "tears-of-steel",
+      "title": "Tears of Steel",
+      "price": 180,
+      "description": "Naukowcy i wojownicy w Amsterdamie próbują powstrzymać armię robotów.",
+      "releaseYear": 2012,
+      "sourceObjectKey": "videos/tears-of-steel.mp4",
+      "playbackObjectKey": "videos/hls/tears-of-steel/49fe21de31cc610bb7cb893461788041f396ab3ef07b844346b08954bceb48c3/master.m3u8",
+      "posterObjectKey": "posters/tears-of-steel_poster.png",
+      "backdropObjectKey": "backdrops/tears-of-steel_backdrop.jpg"
+    },
+    {
+      "slug": "charge",
+      "title": "Charge",
+      "price": 50,
+      "description": "Mężczyzna włamuje się do stacji ładowania w dystopijnej przyszłości.",
+      "releaseYear": 2022,
+      "sourceObjectKey": "videos/charge.webm",
+      "playbackObjectKey": "videos/hls/charge/d64cfdf68553d2ef70d4b827676166e41572dde44b7a0c398f243a60f744e094/master.m3u8",
+      "posterObjectKey": "posters/charge_poster.jpg",
+      "backdropObjectKey": "backdrops/charge_backdrop.jpg"
+    },
+    {
+      "slug": "elephants-dream",
+      "title": "Elephants Dream",
+      "price": 150,
+      "description": "Emo i Proog przemierzają tajemniczy mechaniczny świat.",
+      "releaseYear": 2006,
+      "sourceObjectKey": "videos/elephants-dream.mp4",
+      "playbackObjectKey": "videos/hls/elephants-dream/4a7081137fc5ded2731ff00a5e469f808c283dae18ae5a7b51fb26dd6f8afbd3/master.m3u8",
+      "posterObjectKey": "posters/elephants-dream_poster.jpg",
+      "backdropObjectKey": "backdrops/elephants-dream_backdrop.jpg"
+    },
+    {
+      "slug": "caminandes-llama-drama",
+      "title": "Caminandes: Llama Drama",
+      "price": 50,
+      "description": "Lama Koro próbuje przejść przez drogę w Patagonii.",
+      "releaseYear": 2013,
+      "seriesSlug": "caminandes",
+      "sourceObjectKey": "videos/caminandes-llama-drama.ogv",
+      "playbackObjectKey": "videos/hls/caminandes-llama-drama/144602a9f5b01d661b78df32ca3e9a340a89d1671bd47f835a4efec9e882bcbe/master.m3u8",
+      "posterObjectKey": "posters/caminandes-llama-drama_poster.jpg",
+      "backdropObjectKey": "backdrops/caminandes-llama-drama_backdrop.jpg"
+    },
+    {
+      "slug": "caminandes-gran-dillama",
+      "title": "Caminandes: Gran Dillama",
+      "price": 50,
+      "description": "Koro próbuje dostać się do jagody po drugiej stronie ogrodzenia.",
+      "releaseYear": 2013,
+      "seriesSlug": "caminandes",
+      "sourceObjectKey": "videos/caminandes-gran-dillama.mp4",
+      "playbackObjectKey": "videos/hls/caminandes-gran-dillama/2ee87cba7a7e28951b0950057bba13e62b00a69912f6f1deb382771a631b91c0/master.m3u8",
+      "posterObjectKey": "posters/caminandes-gran-dillama_poster.jpg",
+      "backdropObjectKey": "backdrops/caminandes-gran-dillama_backdrop.jpg"
+    },
+    {
+      "slug": "caminandes-llamigos",
+      "title": "Caminandes: Llamigos",
+      "price": 50,
+      "description": "Koro i Oti spotykają się podczas zimy w Patagonii.",
+      "releaseYear": 2016,
+      "seriesSlug": "caminandes",
+      "sourceObjectKey": "videos/caminandes-llamigos.webm",
+      "playbackObjectKey": "videos/hls/caminandes-llamigos/a814b43103405182f781ce2cff73314ca31ffc4a4f64934e6f2f7a7d35825a28/master.m3u8",
+      "posterObjectKey": "posters/caminandes-llamigos_poster.jpg",
+      "backdropObjectKey": "backdrops/caminandes-llamigos_backdrop.jpg"
+    }
+  ]
+}

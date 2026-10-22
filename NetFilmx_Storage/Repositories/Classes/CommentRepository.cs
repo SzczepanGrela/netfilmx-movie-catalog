@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NetFilmx_Storage.Context;
 using NetFilmx_Storage.Entities;
 
@@ -15,7 +15,32 @@ namespace NetFilmx_Storage.Repositories
 
         public async Task<List<Comment>> GetAllCommentsAsync()
         {
-            return await _context.Comments.ToListAsync();
+            var comments = await _context.Comments.ToListAsync();
+            return comments;
+        }
+
+        public async Task<(IEnumerable<Comment>, int totalCount)> GetPagedCommentsAsync(int pageNumber, int pageSize, string searchTerm)
+        {
+            var query = _context.Comments
+                .Include(c => c.User)
+                .Include(c => c.Video)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                query = query.Where(c => c.Content.ToLower().Contains(searchTerm.ToLower()) || 
+                                         c.User.Username.ToLower().Contains(searchTerm.ToLower()) ||
+                                         c.Video.Title.ToLower().Contains(searchTerm.ToLower()));
+            }
+
+            var totalCount = await query.CountAsync();
+            var comments = await query
+                .OrderByDescending(c => c.CreatedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (comments, totalCount);
         }
 
         public async Task<List<Comment>> GetCommentsByVideoIdAsync(int videoId)

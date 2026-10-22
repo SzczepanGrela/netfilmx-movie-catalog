@@ -7,7 +7,7 @@ namespace NetFilmx_Service.Dtos.Category
         public CategoryAddDto()
         {
         }
-        public CategoryAddDto(string name, string description)
+        public CategoryAddDto(string name, string? description)
         {
             Name = name;
             Description = description;

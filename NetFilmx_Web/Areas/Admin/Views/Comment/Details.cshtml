@@ -1,0 +1,46 @@
+@model NetFilmx_Service.Dtos.Comment.CommentDetailsDto
+
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="container mt-5">
+        <div class="admin-card">
+            <div class="admin-card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h1 class="mb-0">Szczegóły komentarza</h1>
+                <div class="btn-group" role="group" aria-label="Comment Actions">
+                    <a asp-action="Details" asp-controller="Video" asp-route-videoId="@Model.VideoId" class="nfx-btn nfx-btn-primary mx-1">Szczegóły wideo</a>
+                    <a asp-action="Details" asp-controller="User" asp-route-userId="@Model.UserId" class="nfx-btn nfx-btn-primary mx-1">Szczegóły użytkownika</a>
+                    <button type="button" class="nfx-btn nfx-btn-secondary mx-1" style="background: rgba(220, 53, 69, 0.2); color: #ff6b6b; border-color: rgba(220, 53, 69, 0.3);" data-toggle="modal" data-target="#deleteModal">Usuń</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <p><strong>Treść:</strong> @Model.Content</p>
+                <p><strong>ID Wideo:</strong> @Model.VideoId</p>
+                <p><strong>ID Użytkownika:</strong> @Model.UserId</p>
+                <p><strong>Data utworzenia:</strong> @Model.CreatedAt</p>
+                <p><strong>Data modyfikacji:</strong> @Model.UpdatedAt</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Potwierdź usunięcie</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Zamknij">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" data-i18n="t_czy_na_pewno_chcesz_usunac_ten">
+                    Czy na pewno chcesz usunąć ten komentarz?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="nfx-btn nfx-btn-secondary" data-dismiss="modal">Anuluj</button>
+                    <form asp-action="Delete" method="post">
+                        <input type="hidden" name="commentId" value="@Model.Id" />
+                        <button type="submit" class="nfx-btn nfx-btn-secondary" style="background: rgba(220, 53, 69, 0.2); color: #ff6b6b; border-color: rgba(220, 53, 69, 0.3);">Usuń</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

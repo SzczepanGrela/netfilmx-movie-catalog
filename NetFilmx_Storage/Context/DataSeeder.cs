@@ -1,5 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NetFilmx_Storage.Entities;
+using System;
 
 namespace NetFilmx_Storage.Context
 {
@@ -7,251 +8,431 @@ namespace NetFilmx_Storage.Context
     {
         public static void SeedData(ModelBuilder modelBuilder)
         {
-            var categories = new[]
-            {
-                new Category { Id = 1, Name = "Zwierzęta", Description = "Podziwiaj niesamowity świat natury" },
-                new Category { Id = 2, Name = "Rozwój", Description = "Filmy edukacyjne" },
-                new Category { Id = 3, Name = "Rozrywka", Description = "Zabawne i edukacyjne filmy" },
-            };
-
-            var tags = new[]
-            {
-                new Tag { Id = 1, Name = "Zwierzęta" },
-                new Tag { Id = 2, Name = "Koty" },
-                new Tag { Id = 3, Name = "Rozrywka" },
-                new Tag { Id = 4, Name = "Zabawne" },
-                new Tag { Id = 5, Name = "Edukacyjne" },
-                new Tag { Id = 6, Name = "Rozwój" },
-                new Tag { Id = 7, Name = "Programowanie" },
-                new Tag { Id = 8, Name = "Lockpicking" },
-            };
-
-            var series = new[]
-            {
-                new Series { Id = 1, Name = "Pakiet wszystkich startowych filmów", Price = 149.99m, Description = "Kup zestaw oryginalnych 9 filmów dostępnych na platformie", CreatedAt = DateTime.Now, UpdatedAt = DateTime.Now },
-                new Series { Id = 2, Name = "Pakiet świata zwierząt", Price = 49.99m, Description = "Zestaw zawierający 6 filmów poświęconych zwierzętom", CreatedAt = DateTime.Now, UpdatedAt = DateTime.Now },
-                new Series { Id = 3, Name = "Pakiet rozwoju", Price = 59.99m, Description = "Zestaw zawierający 3 filmy edukacyjne", CreatedAt = DateTime.Now, UpdatedAt = DateTime.Now },
-                new Series { Id = 4, Name = "Pakiet promocyjny", Price = 19.99m, Description = "Zestaw zawierający 3 filmy promocyjne, po jednym z każdej kategorii", CreatedAt = DateTime.Now, UpdatedAt = DateTime.Now }
-            };
-
             var videos = new[]
             {
                 new Video
                 {
                     Id = 1,
-                    Title = "Amazing Scene of Wild Animals In 4K",
-                    Description = "Discover amazing wildlife and relax! ...",
-                    Price = 9.99m,
-                    VideoUrl = "5kozt0uDa4c",
-                    ThumbnailUrl = "https://i.ytimg.com/vi/5kozt0uDa4c/hqdefault.jpg",
-                    CreatedAt = new DateTime(2021, 8, 15),
-                    UpdatedAt = DateTime.Now
+                    Title = "Sintel",
+                    Description = "Samotna młoda wojowniczka imieniem Sintel ratuje i wychowuje rannego małego smoka, którego nazywa Scales. Kiedy dorosły smok porywa Scales, Sintel wyrusza w pełną niebezpieczeństw podróż przez surowe krajobrazy, by go uratować.",
+                    Price = 225m,
+                    VideoUrl = "/videos/sintel.mp4" ?? "missing",
+                    ThumbnailUrl = "https://cdn.grela.dev/posters/sintel_poster.jpg" ?? "missing",
+                    BackdropUrl = "https://cdn.grela.dev/backdrops/sintel_backdrop.png",
+                    ReleaseYear = 2010,
+                    DurationMinutes = 15,
+                    Director = "Colin Levy",
+                    Cast = "Halina Reijn, Thom Hoffman",
+                    AgeRating = "13+",
+                    QualityBadge = "4K HDR",
+                    MaturityWarning = "Przemoc, Sceny Walki",
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
                 },
                 new Video
                 {
                     Id = 2,
-                    Title = "Ultimate Wild Animals Collection in 8K ULTRA HD",
-                    Description = "Ultimate Wild Animals Collection in 8K ULTRA HD ...",
-                    Price = 4.99m,
-                    VideoUrl = "Zv11L-ZfrSg",
-                    ThumbnailUrl = "https://i.ytimg.com/vi/Zv11L-ZfrSg/hqdefault.jpg",
-                    CreatedAt = new DateTime(2021, 1, 24),
-                    UpdatedAt = DateTime.Now
+                    Title = "Tears of Steel",
+                    Description = "W dystopijnym Amsterdamie grupa naukowców i wojowników zbiera się w Oude Kerk, aby odtworzyć kluczowe wspomnienie z przeszłości i ocalić ludzkość przed armią destrukcyjnych robotów.",
+                    Price = 180m,
+                    VideoUrl = "/videos/tears-of-steel.mp4" ?? "missing",
+                    ThumbnailUrl = "https://cdn.grela.dev/posters/tears-of-steel_poster.png" ?? "missing",
+                    BackdropUrl = "https://cdn.grela.dev/backdrops/tears-of-steel_backdrop.jpg",
+                    ReleaseYear = 2012,
+                    DurationMinutes = 12,
+                    Director = "Ian Hubert",
+                    Cast = "Derek de Lint, Sergio Hasselbaink, Denise Rebergen",
+                    AgeRating = "13+",
+                    QualityBadge = "HD",
+                    MaturityWarning = "Przemoc, Wulgaryzmy",
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
                 },
                 new Video
                 {
                     Id = 3,
-                    Title = "Baby Animals 4K - Amazing World Of Young Animals",
-                    Description = "Sit back and relax while enjoying this scenic film ...",
-                    Price = 6.99m,
-                    VideoUrl = "oRDRfikj2z8",
-                    ThumbnailUrl = "https://i.ytimg.com/vi/oRDRfikj2z8/hqdefault.jpg",
-                    CreatedAt = new DateTime(2022, 9, 16),
-                    UpdatedAt = DateTime.Now
+                    Title = "Big Buck Bunny",
+                    Description = "Spokojny dzień olbrzymiego królika w lesie zostaje zrujnowany przez trzy złośliwe gryzonie, które niszczą motyla i nękają go. Królik planuje serię pomysłowych i komicznych pułapek, by się zemścić.",
+                    Price = 150m,
+                    VideoUrl = null ?? "missing",
+                    ThumbnailUrl = "https://cdn.grela.dev/posters/big-buck-bunny_poster.jpg" ?? "missing",
+                    BackdropUrl = "https://cdn.grela.dev/backdrops/big-buck-bunny_backdrop.png",
+                    ReleaseYear = 2008,
+                    DurationMinutes = 10,
+                    Director = "Sacha Goedegebure",
+                    Cast = "Jan Morgenstern",
+                    AgeRating = "7+",
+                    QualityBadge = "4K",
+                    MaturityWarning = null,
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
                 },
                 new Video
                 {
                     Id = 4,
-                    Title = "20 Minutes of Adorable Kittens",
-                    Description = "Cute, cuddly, and utterly chaotic! ...",
-                    Price = 14.99m,
-                    VideoUrl = "y0sF5xhGreA",
-                    ThumbnailUrl = "https://i.ytimg.com/vi/y0sF5xhGreA/hqdefault.jpg",
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    Title = "Spring",
+                    Description = "Młoda pasterka i jej wierny pies wędrują w górski las spowity mgłą, by stawić czoła pradawnym duchom i odprawić rytuał przodków, który zwiastuje nadejście wiosny.",
+                    Price = 120m,
+                    VideoUrl = "/videos/spring.mp4" ?? "missing",
+                    ThumbnailUrl = null ?? "missing",
+                    BackdropUrl = null,
+                    ReleaseYear = 2019,
+                    DurationMinutes = 8,
+                    Director = "Andreas Goralczyk",
+                    Cast = "Sander Houtman (dźwięk)",
+                    AgeRating = "7+",
+                    QualityBadge = "4K HDR",
+                    MaturityWarning = null,
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
                 },
                 new Video
                 {
                     Id = 5,
-                    Title = "Baby Cats - Cute and Funny Cat Videos Compilation",
-                    Description = "Watching funny baby cats is the hardest try not to laugh challenge.",
-                    Price = 19.99m,
-                    VideoUrl = "cytJLvf-eVs",
-                    ThumbnailUrl = "https://i.ytimg.com/vi/cytJLvf-eVs/hqdefault.jpg",
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    Title = "Charge",
+                    Description = "W dystopijnej przyszłości wątły staruszek włamuje się do zautomatyzowanej stacji ładowania baterii, by pozyskać energię, co wywołuje konfrontację ze śmiercionośnym robotem ochronnym.",
+                    Price = 50m,
+                    VideoUrl = "/videos/charge.webm" ?? "missing",
+                    ThumbnailUrl = "https://cdn.grela.dev/posters/charge_poster.jpg" ?? "missing",
+                    BackdropUrl = "https://cdn.grela.dev/backdrops/charge_backdrop.jpg",
+                    ReleaseYear = 2022,
+                    DurationMinutes = 3,
+                    Director = "Hjalti Hjálmarsson",
+                    Cast = "Sander Houtman (dźwięk)",
+                    AgeRating = "13+",
+                    QualityBadge = "4K HDR",
+                    MaturityWarning = "Przemoc",
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
                 },
                 new Video
                 {
                     Id = 6,
-                    Title = "Cute and Funny Cat Videos to Keep You Smiling!",
-                    Description = "Hoomans! Rufus here! ...",
-                    Price = 12.99m,
-                    VideoUrl = "tpiyEe_CqB4",
-                    ThumbnailUrl = "https://i.ytimg.com/vi/tpiyEe_CqB4/hqdefault.jpg",
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    Title = "Elephants Dream",
+                    Description = "Proog i Emo eksplorują dziwaczny, mechaniczny świat znany jako 'Maszyna'. Przemierzając jej zmieniające się, surrealistyczne pokoje, ich odmienne światopoglądy prowadzą do dramatycznego punktu zwrotnego.",
+                    Price = 165m,
+                    VideoUrl = "/videos/elephants-dream.mp4" ?? "missing",
+                    ThumbnailUrl = "https://cdn.grela.dev/posters/elephants-dream_poster.jpg" ?? "missing",
+                    BackdropUrl = "https://cdn.grela.dev/backdrops/elephants-dream_backdrop.jpg",
+                    ReleaseYear = 2006,
+                    DurationMinutes = 11,
+                    Director = "Bassam Kurdali",
+                    Cast = "Tygo Gernandt, Cas Jansen",
+                    AgeRating = "13+",
+                    QualityBadge = "HD",
+                    MaturityWarning = "Surrealizm",
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
                 },
                 new Video
                 {
                     Id = 7,
-                    Title = "Entity Framework Core Migration",
-                    Description = "Asp.net core MVC 6.0 tutorial for beginners.",
-                    Price = 14.99m,
-                    VideoUrl = "fFY9nxfILJQ",
-                    ThumbnailUrl = "https://i.ytimg.com/vi/fFY9nxfILJQ/hqdefault.jpg",
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    Title = "Agent 327: Operation Barbershop",
+                    Description = "Holenderski tajny agent 327 bada salon fryzjerski będący przykrywką dla syndykatu przestępczego w Amsterdamie. Czeka go pełna akcji walka z groźnym fryzjerem-złoczyńcą.",
+                    Price = 60m,
+                    VideoUrl = null ?? "missing",
+                    ThumbnailUrl = "https://cdn.grela.dev/posters/agent-327_poster.jpg" ?? "missing",
+                    BackdropUrl = null,
+                    ReleaseYear = 2017,
+                    DurationMinutes = 4,
+                    Director = "Colin Levy, Hjalti Hjálmarsson",
+                    Cast = "Sander Houtman (dźwięk)",
+                    AgeRating = "7+",
+                    QualityBadge = "4K",
+                    MaturityWarning = null,
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
                 },
                 new Video
                 {
                     Id = 8,
-                    Title = "The Most Significant Security Flaw in North America",
-                    Description = "This video explores a significant security flaw discussed by LockPickingLawyer.",
-                    Price = 19.99m,
-                    VideoUrl = "U5-qy2tbDG8",
-                    ThumbnailUrl = "https://i.ytimg.com/vi/U5-qy2tbDG8/hqdefault.jpg",
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    Title = "Coffee Run",
+                    Description = "Młoda kobieta wychodzi kupić kawę, co prowadzi do napędzanej kofeiną emocjonalnej sekwencji, w której przeżywa kluczowe momenty i wspomnienia z dawnego romansu.",
+                    Price = 50m,
+                    VideoUrl = null ?? "missing",
+                    ThumbnailUrl = null ?? "missing",
+                    BackdropUrl = null,
+                    ReleaseYear = 2020,
+                    DurationMinutes = 3,
+                    Director = "Hjalti Hjálmarsson",
+                    Cast = "Sander Houtman (dźwięk)",
+                    AgeRating = "7+",
+                    QualityBadge = "4K",
+                    MaturityWarning = null,
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
                 },
                 new Video
                 {
                     Id = 9,
-                    Title = "The Unity Tutorial For Complete Beginners",
-                    Description = "Unity is an amazingly powerful game engine - but it can be hard to learn ...",
-                    Price = 12.99m,
-                    VideoUrl = "XtQMytORBmM",
-                    ThumbnailUrl = "https://i.ytimg.com/vi/XtQMytORBmM/hqdefault.jpg",
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    Title = "Caminandes: Llama Drama",
+                    Description = "Lama Koro próbuje przejść przez opustoszałą drogę gruntową w Patagonii, napotykając serię komicznych zagrożeń, w tym uparty płot i pędzące samochody.",
+                    Price = 50m,
+                    VideoUrl = "/videos/caminandes-llama-drama.mp4" ?? "missing",
+                    ThumbnailUrl = "https://cdn.grela.dev/posters/caminandes-llama-drama_poster.jpg" ?? "missing",
+                    BackdropUrl = "https://cdn.grela.dev/backdrops/caminandes-llama-drama_backdrop.jpg",
+                    ReleaseYear = 2013,
+                    DurationMinutes = 2,
+                    Director = "Pablo Vázquez",
+                    Cast = "Jan Morgenstern (dźwięk)",
+                    AgeRating = "7+",
+                    QualityBadge = "HD",
+                    MaturityWarning = null,
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
+                },
+                new Video
+                {
+                    Id = 10,
+                    Title = "Caminandes: Gran Dillama",
+                    Description = "Lama Koro odkrywa soczystą jagodę po drugiej stronie ogrodzenia z drutu kolczastego, podejmując absurdalne próby dotarcia do przysmaku.",
+                    Price = 50m,
+                    VideoUrl = "/videos/caminandes-gran-dillama.zip" ?? "missing",
+                    ThumbnailUrl = "https://cdn.grela.dev/posters/caminandes-gran-dillama_poster.jpg" ?? "missing",
+                    BackdropUrl = "https://cdn.grela.dev/backdrops/caminandes-gran-dillama_backdrop.jpg",
+                    ReleaseYear = 2013,
+                    DurationMinutes = 2,
+                    Director = "Pablo Vázquez",
+                    Cast = "Jan Morgenstern (dźwięk)",
+                    AgeRating = "7+",
+                    QualityBadge = "HD",
+                    MaturityWarning = null,
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
+                },
+                new Video
+                {
+                    Id = 11,
+                    Title = "Caminandes: Llamigos",
+                    Description = "W śnieżnej scenerii lama Koro spotyka pingwina Oti. Dwie ekscentryczne postacie wdają się w slapstickową rywalizację o jedną czerwoną jagodę na lodzie.",
+                    Price = 50m,
+                    VideoUrl = "/videos/caminandes-llamigos.webm" ?? "missing",
+                    ThumbnailUrl = "https://cdn.grela.dev/posters/caminandes-llamigos_poster.jpg" ?? "missing",
+                    BackdropUrl = "https://cdn.grela.dev/backdrops/caminandes-llamigos_backdrop.jpg",
+                    ReleaseYear = 2016,
+                    DurationMinutes = 3,
+                    Director = "Pablo Vázquez",
+                    Cast = "Sander Houtman (dźwięk)",
+                    AgeRating = "7+",
+                    QualityBadge = "HD",
+                    MaturityWarning = null,
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
+                },
+                new Video
+                {
+                    Id = 12,
+                    Title = "Caminandes: Llama Drama",
+                    Description = "Lama Koro próbuje przejść przez opustoszałą drogę gruntową w Patagonii, napotykając serię komicznych zagrożeń, w tym uparty płot i pędzące samochody.",
+                    Price = 50m,
+                    VideoUrl = "/videos/caminandes-llama-drama.mp4" ?? "missing",
+                    ThumbnailUrl = "https://cdn.grela.dev/posters/caminandes-llama-drama_poster.jpg" ?? "missing",
+                    BackdropUrl = "https://cdn.grela.dev/backdrops/caminandes-llama-drama_backdrop.jpg",
+                    ReleaseYear = 2013,
+                    DurationMinutes = 2,
+                    Director = "Pablo Vázquez",
+                    Cast = "Jan Morgenstern (dźwięk)",
+                    AgeRating = "7+",
+                    QualityBadge = "HD",
+                    MaturityWarning = null,
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
+                },
+                new Video
+                {
+                    Id = 13,
+                    Title = "Caminandes: Gran Dillama",
+                    Description = "Lama Koro odkrywa soczystą jagodę po drugiej stronie ogrodzenia z drutu kolczastego, podejmując absurdalne próby dotarcia do przysmaku.",
+                    Price = 50m,
+                    VideoUrl = "/videos/caminandes-gran-dillama.zip" ?? "missing",
+                    ThumbnailUrl = null ?? "missing",
+                    BackdropUrl = null,
+                    ReleaseYear = 2013,
+                    DurationMinutes = 2,
+                    Director = "Pablo Vázquez",
+                    Cast = "Jan Morgenstern (dźwięk)",
+                    AgeRating = "7+",
+                    QualityBadge = "HD",
+                    MaturityWarning = null,
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
+                },
+                new Video
+                {
+                    Id = 14,
+                    Title = "Caminandes: Llamigos",
+                    Description = "W śnieżnej scenerii lama Koro spotyka pingwina Oti. Dwie ekscentryczne postacie wdają się w slapstickową rywalizację o jedną czerwoną jagodę na lodzie.",
+                    Price = 50m,
+                    VideoUrl = "/videos/caminandes-llamigos.webm" ?? "missing",
+                    ThumbnailUrl = "https://cdn.grela.dev/posters/caminandes-llamigos_poster.jpg" ?? "missing",
+                    BackdropUrl = "https://cdn.grela.dev/backdrops/caminandes-llamigos_backdrop.jpg",
+                    ReleaseYear = 2016,
+                    DurationMinutes = 3,
+                    Director = "Pablo Vázquez",
+                    Cast = "Sander Houtman (dźwięk)",
+                    AgeRating = "7+",
+                    QualityBadge = "HD",
+                    MaturityWarning = null,
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
+                },
+                new Video
+                {
+                    Id = 15,
+                    Title = "Caminandes: Llama Drama",
+                    Description = "Lama Koro próbuje przejść przez opustoszałą drogę gruntową w Patagonii, napotykając serię komicznych zagrożeń, w tym uparty płot i pędzące samochody.",
+                    Price = 50m,
+                    VideoUrl = "/videos/caminandes-llama-drama.mp4" ?? "missing",
+                    ThumbnailUrl = "https://cdn.grela.dev/posters/caminandes-llama-drama_poster.jpg" ?? "missing",
+                    BackdropUrl = "https://cdn.grela.dev/backdrops/caminandes-llama-drama_backdrop.jpg",
+                    ReleaseYear = 2013,
+                    DurationMinutes = 2,
+                    Director = "Pablo Vázquez",
+                    Cast = "Jan Morgenstern (dźwięk)",
+                    AgeRating = "7+",
+                    QualityBadge = "HD",
+                    MaturityWarning = null,
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
+                },
+                new Video
+                {
+                    Id = 16,
+                    Title = "Caminandes: Gran Dillama",
+                    Description = "Lama Koro odkrywa soczystą jagodę po drugiej stronie ogrodzenia z drutu kolczastego, podejmując absurdalne próby dotarcia do przysmaku.",
+                    Price = 50m,
+                    VideoUrl = "/videos/caminandes-gran-dillama.zip" ?? "missing",
+                    ThumbnailUrl = null ?? "missing",
+                    BackdropUrl = null,
+                    ReleaseYear = 2013,
+                    DurationMinutes = 2,
+                    Director = "Pablo Vázquez",
+                    Cast = "Jan Morgenstern (dźwięk)",
+                    AgeRating = "7+",
+                    QualityBadge = "HD",
+                    MaturityWarning = null,
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
+                },
+                new Video
+                {
+                    Id = 17,
+                    Title = "Caminandes: Llamigos",
+                    Description = "W śnieżnej scenerii lama Koro spotyka pingwina Oti. Dwie ekscentryczne postacie wdają się w slapstickową rywalizację o jedną czerwoną jagodę na lodzie.",
+                    Price = 50m,
+                    VideoUrl = "/videos/caminandes-llamigos.webm" ?? "missing",
+                    ThumbnailUrl = "https://cdn.grela.dev/posters/caminandes-llamigos_poster.jpg" ?? "missing",
+                    BackdropUrl = "https://cdn.grela.dev/backdrops/caminandes-llamigos_backdrop.jpg",
+                    ReleaseYear = 2016,
+                    DurationMinutes = 3,
+                    Director = "Pablo Vázquez",
+                    Cast = "Sander Houtman (dźwięk)",
+                    AgeRating = "7+",
+                    QualityBadge = "HD",
+                    MaturityWarning = null,
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
                 }
             };
 
-            var users = new[]
+            var series = new[]
             {
-                new User { Id = 1, Username = "User1", Email = "user1@example.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("User1"), CreatedAt = DateTime.Now, UpdatedAt = DateTime.Now },
-                new User { Id = 2, Username = "User2", Email = "user2@example.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("User2"), CreatedAt = DateTime.Now, UpdatedAt = DateTime.Now },
-                new User { Id = 3, Username = "User3", Email = "user3@example.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("User3"), CreatedAt = DateTime.Now, UpdatedAt = DateTime.Now },
+                new Series
+                {
+                    Id = 1,
+                    Name = "Caminandes",
+                    Description = "Seria trzech zabawnych krótkometrażówek o lamie Koro, która w Patagonii napotyka coraz bardziej absurdalne przeszkody.",
+                    Price = 250m,
+                    PosterUrl = null,
+                    BackdropUrl = null,
+                    ReleaseYear = 2013,
+                    Director = "Pablo Vázquez",
+                    Cast = "Jan Morgenstern, Sander Houtman (dźwięk)",
+                    AgeRating = "7+",
+                    QualityBadge = "HD",
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
+                }
             };
 
-            var comments = new[]
+            var bundles = new[]
             {
-                new Comment { Id = 1, VideoId = 1, UserId = 1, Content = "This is a comment for the first video.", CreatedAt = DateTime.Now, UpdatedAt = DateTime.Now },
-                new Comment { Id = 2, VideoId = 2, UserId = 2, Content = "This is a comment for the second video.", CreatedAt = DateTime.Now, UpdatedAt = DateTime.Now }
-            };
-
-            var likes = new[]
-            {
-                new Like { Id = 1, VideoId = 1, UserId = 1, CreatedAt = DateTime.Now },
-                new Like { Id = 2, VideoId = 2, UserId = 2, CreatedAt = DateTime.Now }
-            };
-
-            var VideoPurchases = new[]
-            {
-            new VideoPurchase { Id = 1, UserId = 2, VideoId = 4, PurchaseDate = DateTime.Now },
-            new VideoPurchase { Id = 2, UserId = 3, VideoId = 5, PurchaseDate = DateTime.Now },
-            };
-
-            var SeriesPurchases = new[]
-            {
-            new SeriesPurchase { Id = 1, UserId = 1, SeriesId = 1, PurchaseDate = DateTime.Now },
-            new SeriesPurchase { Id = 2, UserId = 1, SeriesId = 2, PurchaseDate = DateTime.Now },
-            new SeriesPurchase { Id = 3, UserId = 1, SeriesId = 3, PurchaseDate = DateTime.Now },
-            new SeriesPurchase { Id = 4, UserId = 1, SeriesId = 4, PurchaseDate = DateTime.Now },
-            new SeriesPurchase { Id = 5, UserId = 2, SeriesId = 2, PurchaseDate = DateTime.Now }
-            };
-
-
-
-
-            var videoTags = new[]
-            {
-                new { VideoId = 1, TagId = 1 },
-                new { VideoId = 1, TagId = 5 },
-                new { VideoId = 2, TagId = 1 },
-                new { VideoId = 2, TagId = 5 },
-                new { VideoId = 3, TagId = 1 },
-                new { VideoId = 3, TagId = 5 },
-                new { VideoId = 4, TagId = 2 },
-                new { VideoId = 4, TagId = 4 },
-                new { VideoId = 5, TagId = 2 },
-                new { VideoId = 5, TagId = 4 },
-                new { VideoId = 6, TagId = 2 },
-                new { VideoId = 6, TagId = 4 },
-                new { VideoId = 6, TagId = 1 },
-                new { VideoId = 5, TagId = 1 },
-                new { VideoId = 4, TagId = 1 },
-                new { VideoId = 7, TagId = 7 },
-                new { VideoId = 8, TagId = 8 },
-                new { VideoId = 9, TagId = 6 },
-                new { VideoId = 9, TagId = 7 },
-                new { VideoId = 7, TagId = 6 }
-            };
-
-            var videoCategories = new[]
-            {
-                new { VideoId = 1, CategoryId = 1 },
-                new { VideoId = 1, CategoryId = 3 },
-                new { VideoId = 2, CategoryId = 1 },
-                new { VideoId = 2, CategoryId = 3 },
-                new { VideoId = 3, CategoryId = 1 },
-                new { VideoId = 3, CategoryId = 3 },
-                new { VideoId = 4, CategoryId = 1 },
-                new { VideoId = 4, CategoryId = 3 },
-                new { VideoId = 5, CategoryId = 1 },
-                new { VideoId = 5, CategoryId = 3 },
-                new { VideoId = 6, CategoryId = 1 },
-                new { VideoId = 6, CategoryId = 3 },
-                new { VideoId = 7, CategoryId = 2 },
-                new { VideoId = 8, CategoryId = 2 },
-                new { VideoId = 8, CategoryId = 3 },
-                new { VideoId = 9, CategoryId = 2 }
-            };
-
-            var videoSeries = new[]
-            {
-                new { VideoId = 1, SeriesId = 1 },
-                new { VideoId = 2, SeriesId = 1 },
-                new { VideoId = 3, SeriesId = 1 },
-                new { VideoId = 4, SeriesId = 1 },
-                new { VideoId = 5, SeriesId = 1 },
-                new { VideoId = 6, SeriesId = 1 },
-                new { VideoId = 1, SeriesId = 2 },
-                new { VideoId = 2, SeriesId = 2 },
-                new { VideoId = 3, SeriesId = 2 },
-                new { VideoId = 4, SeriesId = 2 },
-                new { VideoId = 5, SeriesId = 2 },
-                new { VideoId = 6, SeriesId = 2 },
-                new { VideoId = 7, SeriesId = 3 },
-                new { VideoId = 8, SeriesId = 3 },
-                new { VideoId = 9, SeriesId = 3 },
-                new { VideoId = 7, SeriesId = 4 },
-                new { VideoId = 8, SeriesId = 4 },
-                new { VideoId = 9, SeriesId = 4 }
+                new Bundle
+                {
+                    Id = 1,
+                    Name = "Blender Studio Classics",
+                    Description = "Sintel, Big Buck Bunny i Elephants Dream w jednym pakiecie.",
+                    Price = 600m,
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
+                },
+                new Bundle
+                {
+                    Id = 2,
+                    Name = "Sci-Fi & Cyberpunk Collection",
+                    Description = "Tears of Steel i Charge — dwie wizje przyszłości.",
+                    Price = 300m,
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
+                },
+                new Bundle
+                {
+                    Id = 3,
+                    Name = "NetFilmx Full Experience",
+                    Description = "Wszystkie filmy i seriale w jednym pakiecie.",
+                    Price = 1200m,
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    UpdatedAt = new DateTime(2025, 1, 1)
+                }
             };
 
             modelBuilder.Entity<Video>().HasData(videos);
-            modelBuilder.Entity<Category>().HasData(categories);
-            modelBuilder.Entity<Tag>().HasData(tags);
             modelBuilder.Entity<Series>().HasData(series);
+            modelBuilder.Entity<Bundle>().HasData(bundles);
+
+            // Junction tables (Implicit Many-to-Many)
+            // Assuming EF Core default conventions for implicit many-to-many junction tables
+            
+            var videoSeries = new[]
+            {
+                new { VideosId = 15, SeriesId = 1 },
+                new { VideosId = 16, SeriesId = 1 },
+                new { VideosId = 17, SeriesId = 1 }
+            };
+            
+            var bundleVideos = new[]
+            {
+                new { BundlesId = 1, VideosId = 1 },
+                new { BundlesId = 1, VideosId = 3 },
+                new { BundlesId = 1, VideosId = 6 },
+                new { BundlesId = 2, VideosId = 2 },
+                new { BundlesId = 2, VideosId = 5 },
+                new { BundlesId = 3, VideosId = 1 },
+                new { BundlesId = 3, VideosId = 2 },
+                new { BundlesId = 3, VideosId = 3 },
+                new { BundlesId = 3, VideosId = 4 },
+                new { BundlesId = 3, VideosId = 5 },
+                new { BundlesId = 3, VideosId = 6 },
+                new { BundlesId = 3, VideosId = 7 },
+                new { BundlesId = 3, VideosId = 8 }
+            };
+            
+            var bundleSeries = new[]
+            {
+                new { BundlesId = 3, SeriesId = 1 }
+            };
+
+            modelBuilder.Entity("SeriesVideo").HasData(videoSeries);
+            modelBuilder.Entity("BundleVideo").HasData(bundleVideos);
+            modelBuilder.Entity("BundleSeries").HasData(bundleSeries);
+            
+            // Add some base users
+            var users = new[]
+            {
+                new User { Id = 1, Username = "Admin", Email = "admin@netfilmx.pl", PasswordHash = "$argon2id$v=19$m=131072,t=4,p=8$bU6pyAC6bLUqvG2PoPZlEA==$toTuazRwhHzVf9uXC8cxKFFo823X4vz1x1qv/xkZxCQ=", Role = UserRole.Admin, CreatedAt = new DateTime(2025, 1, 1), UpdatedAt = new DateTime(2025, 1, 1) },
+                new User { Id = 2, Username = "User", Email = "user@netfilmx.pl", PasswordHash = "$argon2id$v=19$m=131072,t=4,p=8$vS9lXQHm4yERia89MaHh+A==$du5OA68CWWu66WayByFV4qUvQGrTkNryYBAqzuuvuhE=", Role = UserRole.User, CreatedAt = new DateTime(2025, 1, 1), UpdatedAt = new DateTime(2025, 1, 1) },
+            };
             modelBuilder.Entity<User>().HasData(users);
-            modelBuilder.Entity<Comment>().HasData(comments);
-            modelBuilder.Entity<Like>().HasData(likes);
-            modelBuilder.Entity<VideoPurchase>().HasData(VideoPurchases);
-            modelBuilder.Entity<SeriesPurchase>().HasData(SeriesPurchases);
-            modelBuilder.Entity("VideoTag").HasData(videoTags);
-            modelBuilder.Entity("VideoCategory").HasData(videoCategories);
-            modelBuilder.Entity("VideoSeries").HasData(videoSeries);
         }
     }
 }

@@ -34,7 +34,7 @@ namespace NetFilmx_Service.Command.Comment
                 //var comment = task.Result;
 
                 comment.Content = command.Content;
-                comment.UpdatedAt = DateTime.Now;
+                comment.UpdatedAt = DateTime.UtcNow;
 
                 await _repository.UpdateCommentAsync(comment);
                 return CResult.Ok();

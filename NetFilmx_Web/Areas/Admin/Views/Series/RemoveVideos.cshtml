@@ -1,0 +1,31 @@
+@model IEnumerable<NetFilmx_Service.Dtos.Video.VideoListDto>
+
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h1 class="mb-0">Usuń filmy z serii: @ViewBag.SeriesName</h1>
+        </div>
+        <div class="card-body">
+        @if (!Model.Any())
+        {
+            <p>Brak filmów w serii @ViewBag.SeriesName</p>
+        }
+        else
+        {
+            <form asp-action="RemoveVideos" method="post">
+                <input type="hidden" name="seriesId" value="@ViewBag.SeriesId" />
+                <div class="list-group">
+                    @foreach (var video in Model)
+                    {
+                        <label class="list-group-item admin-label">
+                            <input type="checkbox" name="videoIds" value="@video.Id" />
+                            @video.Title
+                        </label>
+                    }
+                </div>
+                <button type="submit" class="nfx-btn nfx-btn-secondary mt-3" style="background: rgba(220, 53, 69, 0.2); color: #ff6b6b; border-color: rgba(220, 53, 69, 0.3);" data-i18n="t_usun_wybrane_filmy">Usuń wybrane filmy</button>
+            </form>
+        }
+        </div>
+    </div>
+</div>
