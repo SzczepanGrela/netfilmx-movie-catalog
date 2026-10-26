@@ -89,3 +89,11 @@ Implementation follows Microsoft's
 [proxy guidance](https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/proxy-load-balancer?view=aspnetcore-8.0),
 [rate limiter guidance](https://learn.microsoft.com/en-us/aspnet/core/performance/rate-limit?view=aspnetcore-8.0)
 and [upload guidance](https://learn.microsoft.com/en-us/aspnet/core/mvc/models/file-uploads?view=aspnetcore-8.0).
+
+## NAB26-1 playback and administrator boundary
+
+[Playback protection](playback-protection.md) withdraws public signup/wallet UI,
+retains stored data and requires Managed Turnstile for administrator login and
+anonymous film grants. Refresh/logout retain CSRF without another challenge.
+The separate read-only media Worker verifies every protected cache/R2 request;
+CORS and public R2 URLs alone provide no authorization. Cutover is not executed.

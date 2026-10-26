@@ -11,6 +11,7 @@ on:
       - '.config/dotnet-tools.json'
       - 'NuGet.Config'
       - 'NetFilmx_Web/package*.json'
+      - 'media-worker/package*.json'
       - 'NetFilmx_Web/scripts/**'
       - 'NetFilmx_Web/wwwroot/lib/**'
       - 'NetFilmx_Web/Views/Shared/_ValidationScriptsPartial.cshtml'
@@ -51,3 +52,7 @@ jobs:
           npm audit --audit-level=low
           npm run vendor:check
           npm test
+      - name: Audit locked media gateway tooling
+        run: |
+          npm --prefix media-worker ci --ignore-scripts
+          npm --prefix media-worker audit --audit-level=low

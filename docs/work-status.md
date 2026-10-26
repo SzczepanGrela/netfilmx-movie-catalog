@@ -1,12 +1,49 @@
 # NetFilmx candidate status
 
-Updated 2026-10-22 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
+Updated 2026-10-26 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
 Work continues in [draft PR #1](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/1).
 The application has not been deployed; the retained HLS media were published
 through the separately authorized one-time tool. Accepted R1, recovery/source reconciliation, credits,
 subtitle code at `f4aca03` and earlier desktop/Android observations are preserved.
 
-## Current stage: PostgreSQL 18 preparation (NP18-1)
+## Current stage: NAB26-1 anonymous protected playback candidate
+
+Base is merged main `a5a0d90a332cc47931b5aff924f817ab6366918c`; PR #1 is merged.
+New work uses `feature/playback-protection` in a clean worktree; the old dirty
+parent and candidate/evidence are retained. The October 24 first public launch
+is accepted in its dated scope. This new protection has not been deployed.
+
+Implemented: anonymous catalogue/watch, withdrawn public signup/wallet UI,
+retained data/schema, guarded operator admin CLI, admin-only login/refresh with
+Managed Turnstile and current-role checks; separate 30-minute RSA film/version
+grants; private read-only R2 Worker with authentication before every cache lookup,
+canonical shared byte cache, MIME/CORS/HEAD/conditional/Range and abuse limits.
+Player renewal retains position, manual/Auto quality and language/Off. The
+[release contract](playback-protection.md) lists exact configuration/secret
+consumers, allowlist generation, key rotation and coordinated closed cutover.
+
+Local source checks include backend rejection/session/admin regressions, 80
+Python tests, cross-runtime .NET/Worker vectors and 22 Worker tests including
+real workerd Cache/R2. A bounded actual MVC/Vidstack fixture passed Chromium
+151 and Firefox 153 with synthetic 16-second/two-quality HLS, ten sidecars,
+expiry/retry, seek/end, Auto/Off and admin creation/login/refresh/logout on local
+PG18. Widget/Siteverify are test-assembly simulations, not live bot acceptance.
+Native URI transport is tested separately; Safari/iOS remains untested.
+The warm-HEAD Node CPU proxy measured about 0.18 ms/request; production
+Cloudflare 10 ms CPU and shared 100000/day availability are not accepted by that.
+CI/exact tested source and image are recorded in this PR and the restricted
+NAB26-1 report/checkpoint; final review links follow qualification.
+
+No app/Worker publication, deploy, provider configuration, media rewrite or
+original-film retest. Uploads/worker and deployment activation flags remain false.
+Sintel synchronization and prior manual/device deferrals are unchanged. Stage B
+rolling/new-state backups and stage C uploads remain separate. Coordinator must
+review the exact draft head and supply the actual widget/domain/binding/keys/
+limits and protected rollback or closed maintenance sequence before production.
+
+## Historical PostgreSQL 18 preparation and accepted release stages
+
+### PostgreSQL 18 preparation (NP18-1)
 
 The October 20 release plan at `052f439` was accepted by the coordinator.
 [PG18 selection and procedure](postgresql18.md) now align CI, fresh developer

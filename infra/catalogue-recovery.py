@@ -107,7 +107,7 @@ class Harness:
                 "minimum_host_free_disk_bytes": 4096 * MIB, "maximum_seconds": 480}}
 
         if database_only:
-            self.result["fixture"] = "NP18-1 real embedded catalogue; synthetic account; no media requests"
+            self.result["fixture"] = "NAB26-1 real embedded catalogue and guarded admin bootstrap; provider closed; no media requests"
         self.result["postgres_selection"] = PG_CONFIG
         self.result["postgres_instances"] = self.pg_instances
 
@@ -321,10 +321,10 @@ class Harness:
         role,password = ("qual_admin","local-qualification") if admin else ("qual_runtime","local-runtime-qualification")
         return f"Host={pg};Database={db};Username={role};Password={password};Timeout=5;Command Timeout=30"
 
-    def cli(self, image, env, *args, check=True):
-        return self.docker("run", "--rm", "--network", self.network, "--cpus", "1", "--memory", "512m",
+    def cli(self, image, env, *args, check=True, data=None):
+        return self.docker("run", "--rm", *(["--interactive"] if data is not None else []), "--network", self.network, "--cpus", "1", "--memory", "512m",
             "--memory-swap", "512m", "--pids-limit", "128", "--cap-drop", "ALL", "--init",
-            "--env-file", env, image, *args, check=check)
+            "--env-file", env, image, *args, check=check, data=data)
 
     def web(self, instance, pg, keys, gateway_ip):
         values = {"ConnectionStrings__DefaultConnection": self.connection(pg),
@@ -420,6 +420,14 @@ class Harness:
             self.cli(self.tools,nonempty,"refuse-account")
             self.phase("Migration, catalogue import/counts/relations, repeat/account refusal, runtime DDL/history denial pass")
 
+            provision = self.env("admin-provision", {"ConnectionStrings__DefaultConnection":self.connection(pg),
+                "AdminProvisioning__Username":"qualification_admin", "AdminProvisioning__Email":"admin@example.test"})
+            self.cli(self.image, provision, "admin", "create", "--confirm-operator-access", "--confirm-create-admin", data=b"Qualification123!\n")
+            admin_counts = self.sql(pg, 'SELECT (SELECT count(*) FROM "Users" WHERE "Role"=1), (SELECT count(*) FROM "WalletTransactions");').stdout.strip()
+            if admin_counts != b"1|0": raise Failure("Explicit fixture admin/empty wallet contract differs")
+            self.result["authentication_scope"] = "Exact image: guarded admin CLI, retained cross-peer forms and closed-provider denial. Authenticated login/refresh/logout belongs to the isolated Siteverify/browser fixture; no production bypass."
+            self.phase("Guarded admin provisioning uses runtime DML; no public signup or wallet seed")
+
             keys = self.private_volume("keys")
             tls = self.output / "tls"
             tls.mkdir(mode=0o700)
@@ -454,38 +462,26 @@ class Harness:
                 ready=json.loads(browser.request(instance,"/health/ready"))
                 if ready != {"status":"ready","revision":self.revision}:raise Failure("HTTPS readiness/revision differs")
                 for path in ["/", "/home/movies", "/home/series", "/js/site.js"]:browser.request(instance,path)
-            token=browser.token("a","/auth/register")
-            browser.request("b","/auth/register",form={"Username":"qualification_user","Email":"qualification@example.test",
-                "Password":"Qualification123!","__RequestVerificationToken":token},status=302)
-            cookie_flags=[{"name":c.name,"secure":c.secure,
-                "http_only":c.has_nonstandard_attr("HttpOnly") or c.has_nonstandard_attr("httponly")} for c in browser.jar]
-            self.result["session_cookie_flags"]=cookie_flags
-            if not all(any(c["name"]==name and c["secure"] and c["http_only"] for c in cookie_flags)
-                for name in ["access_token","refresh_token"]):
-                raise Failure("Secure session cookies missing")
-            browser.request("a","/admin/category",status=403)
-            browser.request("b","/auth/refresh",form={},csrf=browser.csrf("a"))
+            browser.request("a", "/auth/register", status=404)
+            browser.request("b", "/auth/register", form={}, status=404)
+            browser.request("a", "/admin/category", status=302)
             form_browser=Browser(url,str(tls/"cert.pem"))
             saved_form=form_browser.token("a","/auth/login")
-            invalid_login={"Username":"qualification_user","Password":"WrongFixture123!","__RequestVerificationToken":saved_form}
+            invalid_login={"Username":"qualification_admin","Password":"WrongFixture123!","__RequestVerificationToken":saved_form}
             form_browser.request("b","/auth/login",form=invalid_login)
-            # Successful login must be exercised separately from registration and invalid-form checks.
-            login_browser = Browser(url,str(tls/"cert.pem"))
-            login_token = login_browser.token("a", "/auth/login")
-            login_browser.request("b", "/auth/login", form={"Username":"qualification_user", "Password":"Qualification123!",
-                "__RequestVerificationToken":login_token}, status=302)
-            login_browser.request("a", "/auth/refresh", form={}, csrf=login_browser.csrf("b"))
-            login_browser.request("b", "/auth/logout", form={}, csrf=login_browser.csrf("a"), status=302)
-            self.phase("Two actual webs: shared keys, HTTPS MVC registration/login, session and cross-instance CSRF/refresh/logout pass")
+            browser.request("b","/auth/refresh",form={},csrf=browser.csrf("a"),status=401)
+            if self.sql(pg,'SELECT count(*) FROM "UserSessions";').stdout.strip()!=b"0":
+                raise Failure("Closed Siteverify issued an admin session")
+            self.phase("Two actual webs: shared keys and forms; absent signup and closed-provider login/refresh denial pass")
 
             self.retire(b_cid)
             self.remove(b_cid)
             browser.request("a","/health/ready")
             b,b_cid=self.web("b",pg,keys,gateway_ip)
             form_browser.request("b","/auth/login",form=invalid_login)
-            browser.request("b","/admin/category",status=403)
-            self.phase("Web recreation retains existing MVC form and session; peer remains ready")
-            saved_authenticated_csrf=browser.csrf("a")
+            browser.request("b","/admin/category",status=302)
+            self.phase("Web recreation retains existing MVC form; peer remains ready, provider remains closed")
+            saved_csrf=browser.csrf("a")
             before=json.loads(self.cli(self.tools,runtime,"counts").stdout)
             self.retire(a_cid); self.retire(b_cid)
             for cid in [a_cid,b_cid]:self.remove(cid)
@@ -504,13 +500,13 @@ class Harness:
                     if ready != {"status":"ready","revision":self.revision}:
                         raise Failure("Readiness after PG recreation differs")
                     form_browser.request(instance,"/auth/login",form=invalid_login)
-                browser.request("a","/auth/refresh",form={},csrf=browser.csrf("b"))
-                saved_authenticated_csrf=browser.csrf("a")
+                browser.request("a","/auth/refresh",form={},csrf=browser.csrf("b"),status=401)
+                saved_csrf=browser.csrf("a")
                 before=json.loads(self.cli(self.tools,runtime,"counts").stdout)
                 self.retire(a_cid); self.retire(b_cid)
                 for cid in [a_cid,b_cid]:self.remove(cid)
                 before_snapshot=json.loads(self.cli(self.tools,runtime,"snapshot-retained").stdout)
-                self.phase("Same named PG18 parent volume survives container recreation; IDs, 17 mappings, readiness, keys/session/CSRF retained")
+                self.phase("Same named PG18 parent volume survives container recreation; IDs, 17 mappings, readiness, keys and CSRF retained")
             dump=self.output/"catalogue.dump"
             restore_started=time.monotonic()
             with dump.open("xb") as file:
@@ -548,9 +544,9 @@ class Harness:
             b,b_cid=self.web("b",restored,restored_keys,gateway_ip)
             form_browser.request("a","/auth/login",form=invalid_login)
             form_browser.request("b","/auth/login",form=invalid_login)
-            browser.request("b","/admin/category",status=403)
-            browser.request("b","/auth/refresh",form={},csrf=saved_authenticated_csrf)
-            self.phase("Consistent persistent PG/keyring restore: counts, runtime grants, old MVC form and live session pass on both webs")
+            browser.request("b","/admin/category",status=302)
+            browser.request("b","/auth/refresh",form={},csrf=saved_csrf,status=401)
+            self.phase("Consistent PG/keyring restore: counts, runtime grants, old MVC forms and closed-provider denial pass on both webs")
             if not self.database_only:
                 self.retire(b_cid);self.remove(b_cid)
                 wrong_keys=self.private_volume("keys-wrong")
@@ -563,7 +559,7 @@ class Harness:
             for cookie in browser.jar:replay.jar.set_cookie(copy.copy(cookie))
             browser.request("a","/auth/logout",form={},csrf=browser.csrf("b"),status=302)
             replay.request("b","/auth/refresh",form={},csrf=replay.csrf("a"),status=401)
-            self.phase("Restored DB and matching keys preserve forms/session; cross-web logout revokes restored refresh session")
+            self.phase("Restored DB/keys preserve forms; anonymous cross-web logout/refresh stays closed. Authenticated admin flow is tested separately with the isolated provider fixture")
             self.result["final_container_states"] = []
             for cid in list(self.active):
                 self.sample(cid)
@@ -607,7 +603,7 @@ def main():
     parser.add_argument("image")
     parser.add_argument("revision")
     parser.add_argument("--output",type=Path)
-    parser.add_argument("--database-only", action="store_true", help="NP18: real embedded catalogue, same-volume PG recreation, DB-only restore with original keyring; no media requests")
+    parser.add_argument("--database-only", action="store_true", help="Real embedded catalogue, same-volume PG recreation, DB-only restore with original keyring; no media requests")
     parser.add_argument("--media-origin", default="https://media.example.test", help="Reviewed origin used to verify stored mappings; not fetched")
     args=parser.parse_args()
     if not re.fullmatch(r"[a-f0-9]{40}",args.revision):parser.error("Full lowercase source SHA required")

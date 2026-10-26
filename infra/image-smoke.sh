@@ -74,6 +74,17 @@ if docker run "${catalogue_args[@]}" "$image" catalogue import --confirm-empty-d
     echo 'Repeated catalogue import unexpectedly succeeded.' >&2; exit 1
 fi
 [[ "$(snapshot)" == "$initial_catalogue" ]]
+# Provision only this disposable DB through the guarded operator command.
+# Password is synthetic fixture input on stdin, never a production default.
+printf '%s' 'ImageQualification123!' | docker run --rm --interactive --network "$network" \
+    --cpus 1 --memory 512m --memory-swap 512m --cap-drop ALL --init \
+    --env "ConnectionStrings__DefaultConnection=$connection" \
+    --env AdminProvisioning__Username=image_qualification_admin \
+    --env AdminProvisioning__Email=image-admin@example.test "$image" \
+    admin create --confirm-operator-access --confirm-create-admin
+[[ "$(docker exec "$database" psql -X -qAt -U netfilmx_test -d netfilmx_test -c 'SELECT count(*) FROM "Users" WHERE "Role"=1 AND "Balance"=0;')" == 1 ]]
+[[ "$(docker exec "$database" psql -X -qAt -U netfilmx_test -d netfilmx_test -c 'SELECT count(*) FROM "WalletTransactions";')" == 0 ]]
+initial_catalogue=$(snapshot)
 docker run --detach --name "$application" --network "$network" \
     --cpus 1 --memory 512m --memory-swap 512m --cap-drop ALL --init \
     --mount "type=volume,source=$keys,target=/var/lib/netfilmx/keyring" \
