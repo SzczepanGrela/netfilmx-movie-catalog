@@ -39,7 +39,9 @@ function createGateway(catalogue, { now = () => Math.floor(Date.now() / 1e3), ca
     try {
       if (!["GET", "HEAD", "OPTIONS"].includes(request.method)) return error(405, "method", { "Allow": "GET, HEAD, OPTIONS" });
       const url = new URL(request.url);
-      if (url.protocol !== "https:" || url.search || /[%\\]/.test(url.pathname) || url.pathname.includes("//")) return error(400, "path");
+      // Inspect the received path before WHATWG URL normalization hides dot segments.
+      const rawPath = /^https:\/\/[^/?#]+(\/[^?#]*)$/.exec(request.url)?.[1];
+      if (!rawPath || rawPath !== url.pathname || url.protocol !== "https:" || /[%\\]/.test(rawPath) || rawPath.includes("//")) return error(400, "path");
       const origin = request.headers.get("Origin");
       if (!env.APP_ORIGIN || origin && origin !== env.APP_ORIGIN) return error(403, "origin");
       let key, film, claims;

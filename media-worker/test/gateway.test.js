@@ -3,6 +3,20 @@ import assert from "node:assert/strict";
 import { fixture, grant, jwk } from "./fixture.js";
 import { verifyGrant } from "../src/grant.js";
 import { readFile } from "node:fs/promises";
+import { createGateway } from "../src/gateway.js";
+
+test("received dot segments, encoded paths and empty queries are rejected before normalization or cache access", async () => {
+  const f = fixture();
+  const gateway = createGateway(f.catalogue, { cache: f.cache });
+  // A Request constructor can normalize these before the Worker receives them.
+  // Preserve the received URL verbatim to exercise the entry's raw-path check.
+  for (const path of ["/posters/x/../sintel.jpg", "/posters/%2e/sintel.jpg", "/posters/sintel.jpg?", "/posters/sintel.jpg#x", "/posters/./sintel.jpg"]) {
+    const request = { url: "https://media.example.test" + path, method: "GET", headers: new Headers() };
+    assert.equal((await gateway.fetch(request, f.env, { waitUntil() {} })).status, 400);
+  }
+  assert.equal(f.stats.heads + f.stats.gets, 0);
+  assert.equal(f.cache.lookups, 0);
+});
 for (const path of ["/videos/sintel/master.m3u8", "/videos/sintel.mkv", "/unknown", "/__objects/x", "/posters/unknown.jpg", "/g/invalid/sintel/videos/sintel/master.m3u8", "/g/invalid/charge/videos/sintel/master.m3u8"]) {
   test("denied path never touches cache/R2: " + path, async () => {
     const f = fixture(), r = await f.fetch(path);

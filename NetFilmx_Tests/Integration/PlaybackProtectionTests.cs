@@ -82,6 +82,26 @@ public class PlaybackProtectionTests : IDisposable
         Assert.True(accepted.Headers.CacheControl?.NoStore);Assert.Equal("no-referrer",accepted.Headers.GetValues("Referrer-Policy").Single());
         using var replay=await Send();Assert.Equal(HttpStatusCode.BadRequest,replay.StatusCode);Assert.DoesNotContain("/g/",await replay.Content.ReadAsStringAsync());
     }
+    [Theory]
+    [InlineData("Turnstile:SiteKey", "1x00000000000000000000AA")]
+    [InlineData("Turnstile:SiteKey", "2x00000000000000000000AB")]
+    [InlineData("Turnstile:SiteKey", "3x00000000000000000000FF")]
+    [InlineData("Turnstile:SecretKey", "1x0000000000000000000000000000000AA")]
+    public async Task KnownProviderTestingCredentialsCannotAuthorizePlayback(string name, string value)
+    {
+        using var app=Configured().WithWebHostBuilder(builder=>builder.ConfigureAppConfiguration((_,config)=>
+            config.AddInMemoryCollection(new Dictionary<string,string?>{[name]=value})));
+        var id=await Seed(app.Services);
+        using var client=app.CreateClient(new(){BaseAddress=new Uri("https://localhost")});
+        var csrf=await client.GetFromJsonAsync<JsonElement>("/auth/csrf");
+        using var request=new HttpRequestMessage(HttpMethod.Post,"/playback/grant")
+        {Content=new FormUrlEncodedContent(new Dictionary<string,string>{{"videoId",id.ToString()},{"token","mock-netfilmx-playback"}})};
+        request.Headers.Add("X-CSRF-TOKEN",csrf.GetProperty("token").GetString());
+        using var response=await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.BadRequest,response.StatusCode);
+        Assert.Equal(0,_factory.Siteverify.Calls);
+        Assert.DoesNotContain("/g/",await response.Content.ReadAsStringAsync());
+    }
     [Fact]
     public async Task OrdinaryCredentialsCannotObtainAdminSession_ProvisioningNeverPromotesThem()
     {
