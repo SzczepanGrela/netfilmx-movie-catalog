@@ -13,7 +13,7 @@ namespace NetFilmx_Tests.Integration;
 public sealed class SubtitlePersistenceTests
 {
     [Fact]
-    public async Task MigratedSubtitleLinksDtoAndActualWatchViewSurviveHostRestart()
+    public async Task SubtitleLinksDtoSurviveRestart_AndWatchRequiresPlaybackGrant()
     {
         string root=Path.Combine(Path.GetTempPath(),"netfilmx-subtitle-restart-"+Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);string dbPath=Path.Combine(root,"catalogue.db"),keys=Path.Combine(root,"keys");
@@ -33,9 +33,9 @@ public sealed class SubtitlePersistenceTests
                 Assert.False(db.Database.HasPendingModelChanges());
                 using var client=factory.CreateClient(new(){BaseAddress=new Uri("https://localhost")});
                 var html=await client.GetStringAsync("/Home/Watch/"+captioned);
-                Assert.Equal(2,Regex.Matches(html,"<track id=\"subtitle-").Count);
-                Assert.Contains("label=\"Polski &amp;",html);
-                Assert.Contains("srclang=\"ru\"",html);
+                Assert.DoesNotContain("<track id=\"subtitle-",html);
+                Assert.Contains("data-video-id=\""+captioned+"\"",html);
+                Assert.DoesNotContain("https://media.example.test/subtitles/",html);
                 Assert.Contains("/lib/vidstack/player.js",html);
                 Assert.DoesNotContain("cdn.vidstack.io",html);
                 Assert.DoesNotContain("<track id=\"subtitle-",await client.GetStringAsync("/Home/Watch/"+plain));
@@ -48,7 +48,7 @@ public sealed class SubtitlePersistenceTests
                 Assert.Equal(new[]{"pl","ru"},dto.Subtitles.Select(t=>t.Language));
                 Assert.Equal("Polski & źródło",dto.Subtitles[0].Label);
                 using var client=factory.CreateClient(new(){BaseAddress=new Uri("https://localhost")});
-                Assert.Equal(2,Regex.Matches(await client.GetStringAsync("/Home/Watch/"+captioned),"<track id=\"subtitle-").Count);
+                Assert.DoesNotContain("<track id=\"subtitle-",await client.GetStringAsync("/Home/Watch/"+captioned));
                 db.VideoSubtitles.Add(new VideoSubtitle("stream-2","en","Duplicate","https://media.example.test/subtitles/duplicate.vtt",0){VideoId=captioned});
                 await Assert.ThrowsAsync<DbUpdateException>(()=>db.SaveChangesAsync());
                 db.ChangeTracker.Clear();db.Videos.Remove(await db.Videos.SingleAsync(v=>v.Id==captioned));await db.SaveChangesAsync();

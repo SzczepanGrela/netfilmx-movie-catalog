@@ -8,30 +8,35 @@ using NetFilmx_Service.Command.Auth;
 using NetFilmx_Service.Security;
 using System.Security.Claims;
 using NetFilmx_Storage.Repositories;
+using NetFilmx_Web.Playback;
+using NetFilmx_Storage.Entities;
 
 namespace NetFilmx_Web.Controllers
 {
     [Route("auth")]
-    [RequestSizeLimit(16_384)]
+    [RequestSizeLimit(4096)]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public class AuthController : Controller
     {
         private readonly IMediator _mediator;
         private readonly IJwtTokenService _jwtTokenService;
         private readonly ISessionService _sessionService;
         private readonly IUserRepository _userRepository;
+        private readonly ITurnstileVerifier _turnstile;
 
-        public AuthController(IMediator mediator, IJwtTokenService jwtTokenService, ISessionService sessionService, IUserRepository userRepository)
+        public AuthController(IMediator mediator, IJwtTokenService jwtTokenService, ISessionService sessionService, IUserRepository userRepository, ITurnstileVerifier turnstile)
         {
             _mediator = mediator;
             _jwtTokenService = jwtTokenService;
             _sessionService = sessionService;
             _userRepository = userRepository;
+            _turnstile = turnstile;
         }
 
         [HttpGet("login")]
         public IActionResult Login(string returnUrl = "/")
         {
-            if (User.Identity != null && User.Identity.IsAuthenticated)
+            if (User.IsInRole("Admin"))
             {
                 return LocalRedirect(Url.IsLocalUrl(returnUrl) ? returnUrl : "/");
             }
@@ -50,12 +55,17 @@ namespace NetFilmx_Web.Controllers
                 return View(request);
             }
 
+            if (!await _turnstile.VerifyAsync(Request.Form["cf-turnstile-response"], TurnstileVerifier.AdminAction, HttpContext.RequestAborted))
+            {
+                ModelState.AddModelError(string.Empty, "Administrator verification failed. Please try again.");
+                return View(request);
+            }
             var command = new LoginCommand(request.Username, request.Password, request.RememberMe);
             var result = await _mediator.Send(command);
 
-            if (!result.IsSuccess)
+            if (!result.IsSuccess || result.Data?.Role != UserRole.Admin)
             {
-                ModelState.AddModelError(string.Empty, "Invalid login attempt. " + result.Message);
+                ModelState.AddModelError(string.Empty, "Invalid administrator credentials.");
                 return View(request);
             }
 
@@ -66,53 +76,6 @@ namespace NetFilmx_Web.Controllers
             SetTokenCookies(accessToken, refreshToken, session.ExpiresAt);
             
             return LocalRedirect(Url.IsLocalUrl(returnUrl) ? returnUrl : "/");
-        }
-
-        [HttpGet("register")]
-        public IActionResult Register(string returnUrl = "/")
-        {
-            if (User.Identity != null && User.Identity.IsAuthenticated)
-            {
-                return LocalRedirect(Url.IsLocalUrl(returnUrl) ? returnUrl : "/");
-            }
-            ViewData["ReturnUrl"] = returnUrl;
-            return View(new RegisterRequest());
-        }
-
-        [HttpPost("register")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(RegisterRequest request, string returnUrl = "/")
-        {
-            ViewData["ReturnUrl"] = returnUrl;
-
-            if (!ModelState.IsValid)
-            {
-                return View(request);
-            }
-
-            var command = new RegisterCommand(request.Username, request.Email, request.Password);
-            var result = await _mediator.Send(command);
-
-            if (!result.IsSuccess)
-            {
-                ModelState.AddModelError(string.Empty, result.Message);
-                return View(request);
-            }
-
-            // Auto-login
-            var loginCommand = new LoginCommand(request.Username, request.Password, false);
-            var loginResult = await _mediator.Send(loginCommand);
-            
-            if (loginResult.IsSuccess)
-            {
-                var user = loginResult.Data;
-                var accessToken = _jwtTokenService.GenerateAccessToken(user);
-                var (refreshToken, session) = await _sessionService.CreateSessionAsync(user.Id, false);
-                SetTokenCookies(accessToken, refreshToken, session.ExpiresAt);
-                return LocalRedirect(Url.IsLocalUrl(returnUrl) ? returnUrl : "/");
-            }
-            
-            return RedirectToAction(nameof(Login));
         }
 
         [HttpPost("logout")]
@@ -148,6 +111,11 @@ namespace NetFilmx_Web.Controllers
                 return Unauthorized();
 
             var user = await _userRepository.GetUserByIdAsync(sessionResult.Value.newSession.UserId);
+            if (user?.Role != UserRole.Admin)
+            {
+                await _sessionService.RevokeSessionAsync(sessionResult.Value.newRefreshToken);
+                return Unauthorized();
+            }
             var accessToken = _jwtTokenService.GenerateAccessToken(user);
             
             SetTokenCookies(accessToken, sessionResult.Value.newRefreshToken, sessionResult.Value.newSession.ExpiresAt);
@@ -168,16 +136,6 @@ namespace NetFilmx_Web.Controllers
             Response.Cookies.Append("access_token", accessToken, cookieOptions);
             Response.Cookies.Append("refresh_token", refreshToken, cookieOptions);
         }
-    }
-
-    public class RegisterRequest
-    {
-        [Required, StringLength(50, MinimumLength = 3)]
-        public string Username { get; set; } = "";
-        [Required, EmailAddress, StringLength(50)]
-        public string Email { get; set; } = "";
-        [Required, StringLength(128, MinimumLength = 8)]
-        public string Password { get; set; } = "";
     }
 
     public class LoginRequest

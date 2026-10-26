@@ -17,10 +17,18 @@ namespace NetFilmx_Tests.Integration.Fixtures
         private readonly bool _ownsDatabase;
         private readonly bool _ownsKeyRing;
         private readonly bool _prepareDatabase;
+        public SyntheticSiteverifyHandler Siteverify { get; } = new();
+        internal async Task CreateAdminAsync(string name)
+        {
+            var config = Services.GetRequiredService<IConfiguration>();
+            var values = new Dictionary<string,string?> { ["AdminProvisioning:Username"]=name, ["AdminProvisioning:Email"]=name[..Math.Min(name.Length,30)]+"@example.test" };
+            var supplied = new ConfigurationBuilder().AddConfiguration(config).AddInMemoryCollection(values).Build();
+            Assert.Equal(0, await NetFilmx_Web.AdminCommand.RunAsync(["create", "--confirm-operator-access", "--confirm-create-admin"], supplied, new StringReader("Password123!")));
+        }
 
         public TestWebApplicationFactory() : this(null, null) { }
 
-        internal TestWebApplicationFactory(string? databasePath, string? keyRingPath, bool prepareDatabase = true)
+        protected internal TestWebApplicationFactory(string? databasePath, string? keyRingPath, bool prepareDatabase = true)
         {
             _prepareDatabase = prepareDatabase;
             _ownsDatabase = databasePath == null;
@@ -54,7 +62,9 @@ namespace NetFilmx_Tests.Integration.Fixtures
                     {"JwtSettings:Audience", "Test"},
                     {"JwtSettings:AccessTokenTtlMinutes", "15"},
                     {"JwtSettings:RefreshTokenTtlDays", "7"},
-                    {"WalletSettings:RegistrationBonus", "100.00"},
+                    {"Turnstile:SecretKey", "isolated-mock-secret"},
+                    {"Turnstile:SiteKey", "isolated-mock-sitekey"},
+                    {"Turnstile:ExpectedHostname", "localhost"},
                     {"DataProtection:KeyRingPath", _keyRingPath},
                     {"ConnectionStrings:DefaultConnection", "Data Source=" + _databasePath + ";Pooling=false"}
                 });
@@ -62,6 +72,8 @@ namespace NetFilmx_Tests.Integration.Fixtures
 
             builder.ConfigureServices(services =>
             {
+                services.AddHttpClient<NetFilmx_Web.Playback.ITurnstileVerifier, NetFilmx_Web.Playback.TurnstileVerifier>()
+                    .ConfigurePrimaryHttpMessageHandler(() => Siteverify);
                 var descriptor = services.Single(d => d.ServiceType == typeof(DbContextOptions<NetFilmxDbContext>));
                 services.Remove(descriptor);
                 services.AddDbContext<NetFilmxDbContext>(options =>

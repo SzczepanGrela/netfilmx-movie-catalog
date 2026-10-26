@@ -13,27 +13,24 @@ public class AuthFlowTests : IDisposable
     public void Dispose() => _factory.Dispose();
 
     [Theory]
-    [InlineData("not-an-email", "Password123!")]
-    [InlineData("valid@example.test", "short")]
-    public async Task InvalidRegistration_DoesNotCreateAccount(string email, string password)
+    [InlineData("GET")]
+    [InlineData("POST")]
+    public async Task PublicRegistrationIsAbsent(string method)
     {
         using var browser = new AuthBrowser(_factory);
-        var name = "invalid" + Guid.NewGuid().ToString("N");
-        var token = await browser.FormTokenAsync("/auth/register");
-        using var response = await browser.SendAsync(HttpMethod.Post, "/auth/register", new()
-        {
-            ["Username"] = name, ["Email"] = email, ["Password"] = password, ["__RequestVerificationToken"] = token
-        });
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode); Assert.Empty(browser.Cookie("access_token"));
+        using var response = await browser.SendAsync(new HttpMethod(method), "/auth/register");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         using var scope = _factory.Services.CreateScope();
-        Assert.False(await scope.ServiceProvider.GetRequiredService<NetFilmxDbContext>().Users.AnyAsync(u => u.Username == name));
+        Assert.False(await scope.ServiceProvider.GetRequiredService<NetFilmxDbContext>().Users.AnyAsync());
     }
 
     [Fact]
-    public async Task Registration_RefreshRotation_Logout_RejectTokenReplay()
+    public async Task AdminLogin_RefreshRotation_Logout_RejectTokenReplay()
     {
         using var browser = new AuthBrowser(_factory);
-        using var registered = await browser.RegisterAsync("flow" + Guid.NewGuid().ToString("N"));
+        var name = "flow" + Guid.NewGuid().ToString("N");
+        await _factory.CreateAdminAsync(name);
+        using var registered = await browser.LoginAsync(name);
         Assert.Equal(HttpStatusCode.Redirect, registered.StatusCode);
         var oldRefresh = browser.Cookie("refresh_token");
         Assert.NotEmpty(oldRefresh);
@@ -41,7 +38,7 @@ public class AuthFlowTests : IDisposable
         Assert.All(registered.Headers.GetValues("Set-Cookie").Where(c => c.StartsWith("access_token=") || c.StartsWith("refresh_token=")),
             c => { Assert.Contains("secure", c); Assert.Contains("httponly", c); Assert.Contains("samesite=strict", c); });
         using var forbidden = await browser.SendAsync(HttpMethod.Get, "/admin/category");
-        Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, forbidden.StatusCode);
 
         using var getLogout = await browser.SendAsync(HttpMethod.Get, "/auth/logout");
         Assert.Equal(HttpStatusCode.MethodNotAllowed, getLogout.StatusCode);
@@ -73,9 +70,8 @@ public class AuthFlowTests : IDisposable
     }
 
     [Theory]
-    [InlineData("/auth/register")]
     [InlineData("/auth/login")]
-    public async Task LoginAndRegistration_RejectMissingCsrf(string path)
+    public async Task AdminLogin_RejectsMissingCsrf(string path)
     {
         using var browser = new AuthBrowser(_factory);
         using var response = await browser.SendAsync(HttpMethod.Post, path, new()
@@ -90,8 +86,7 @@ public class AuthFlowTests : IDisposable
     public async Task RememberedLogin_RotationPreservesExpiry_AndExternalReturnUrlIsIgnored()
     {
         var name = "remember" + Guid.NewGuid().ToString("N");
-        using (var register = new AuthBrowser(_factory))
-        using (var response = await register.RegisterAsync(name)) Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        await _factory.CreateAdminAsync(name);
         using var browser = new AuthBrowser(_factory);
         using var login = await browser.LoginAsync(name, true, "https://external.example/");
         Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);

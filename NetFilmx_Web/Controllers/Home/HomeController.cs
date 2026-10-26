@@ -218,15 +218,6 @@ namespace NetFilmx_Web.Controllers
             if (commentsResult.IsSuccess && commentsResult.Data != null)
                 viewModel.Comments = commentsResult.Data;
 
-            if (User?.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(User.Identity.Name))
-            {
-                var user = await _userRepository.GetUserByUsernameAsync(User.Identity.Name);
-                if (user != null)
-                {
-                    viewModel.UserBalance = user.Balance;
-                }
-            }
-
             return View(viewModel);
         }
 
@@ -249,15 +240,6 @@ namespace NetFilmx_Web.Controllers
                 Episodes = episodesResult.IsSuccess && episodesResult.Data != null ? episodesResult.Data : new List<VideoCardDto>()
             };
 
-            if (User?.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(User.Identity.Name))
-            {
-                var user = await _userRepository.GetUserByUsernameAsync(User.Identity.Name);
-                if (user != null)
-                {
-                    viewModel.UserBalance = user.Balance;
-                }
-            }
-
             return View(viewModel);
         }
 
@@ -274,15 +256,6 @@ namespace NetFilmx_Web.Controllers
             {
                 Video = result.Data
             };
-
-            if (User?.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(User.Identity.Name))
-            {
-                var user = await _userRepository.GetUserByUsernameAsync(User.Identity.Name);
-                if (user != null)
-                {
-                    viewModel.UserBalance = user.Balance;
-                }
-            }
 
             return View(viewModel);
         }
