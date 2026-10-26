@@ -115,7 +115,7 @@ six-second segment per request, 600 segment requests/hour already implies at mos
 about 167 viewer-hours/day before all other traffic; it is not reserved capacity.
 A bot can exhaust availability. Never reopen public R2 or fall back to an origin.
 Local Node/V8 measurement of 1000 authorized warm HEADs with real RSA verification
-is approximately 0.18 ms process CPU/request, zero R2 calls. Actual workerd Cache/R2
+is approximately 0.2 ms process CPU/request, zero R2 calls. Actual workerd Cache/R2
 semantics are tested separately. Node process CPU is a proxy, not Cloudflare
 billable CPU; real Free-plan CPU/quota acceptance remains an operator check.
 
@@ -187,7 +187,9 @@ Public `/auth/register` is absent; user/history tables remain unchanged.
 Generate/store a separate RSA private key with owner-only access and expose only
 its public JWK to the Worker. Do not reuse JWT, Turnstile or Data Protection keys.
 Deploy verification keys `[old,new]` first, then switch backend path/key ID after
-readback. Once every issuer instance has stopped using old, retain old verification
+readback. Each issuer loads its private key once per process; replace/restart all
+reviewed issuer instances to change the key. Overwriting a mounted PEM does not
+hot-reload it. Once every issuer instance has stopped using old, retain old verification
 for at least 1830 seconds and reconcile overlap before removing it. Removing a key
 revokes its grants even with warm cache. In compromise, close issuance/remove the
 key and require fresh challenges; do not restore a public media fallback.

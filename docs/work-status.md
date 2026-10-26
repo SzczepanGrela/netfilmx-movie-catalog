@@ -1,10 +1,13 @@
 # NetFilmx candidate status
 
-Updated 2026-10-26 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
-Work continues in [draft PR #1](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/1).
-The application has not been deployed; the retained HLS media were published
-through the separately authorized one-time tool. Accepted R1, recovery/source reconciliation, credits,
-subtitle code at `f4aca03` and earlier desktop/Android observations are preserved.
+Updated 2026-10-26. Current work is **NAB26-1** on
+`feature/playback-protection`, based on main
+`a5a0d90a332cc47931b5aff924f817ab6366918c`, in
+[draft PR #2](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/2).
+PR #1 and the first public launch were accepted before this task. Earlier
+candidate entries below are historical; this protection has not been deployed.
+Accepted R1, catalogue/media, credits, subtitles and earlier device observations
+remain preserved.
 
 ## Current stage: NAB26-1 anonymous protected playback candidate
 
@@ -23,16 +26,44 @@ Player renewal retains position, manual/Auto quality and language/Off. The
 consumers, allowlist generation, key rotation and coordinated closed cutover.
 
 Local source checks include backend rejection/session/admin regressions, 80
-Python tests, cross-runtime .NET/Worker vectors and 22 Worker tests including
+Python tests, cross-runtime .NET/Worker vectors and 23 Worker tests including
 real workerd Cache/R2. A bounded actual MVC/Vidstack fixture passed Chromium
 151 and Firefox 153 with synthetic 16-second/two-quality HLS, ten sidecars,
 expiry/retry, seek/end, Auto/Off and admin creation/login/refresh/logout on local
 PG18. Widget/Siteverify are test-assembly simulations, not live bot acceptance.
 Native URI transport is tested separately; Safari/iOS remains untested.
-The warm-HEAD Node CPU proxy measured about 0.18 ms/request; production
+The warm-HEAD Node CPU proxy measured about 0.2 ms/request; production
 Cloudflare 10 ms CPU and shared 100000/day availability are not accepted by that.
-CI/exact tested source and image are recorded in this PR and the restricted
-NAB26-1 report/checkpoint; final review links follow qualification.
+Exact implementation head: `10cb38ccb4781c82d4a7b91e67a54f11ab42cea8`.
+Later status-only documentation commits do not change that implementation.
+[CI/image/scan/quality gate](https://github.com/SzczepanGrela/netfilmx-movie-catalog/actions/runs/40394792961)
+and [dependency audits](https://github.com/SzczepanGrela/netfilmx-movie-catalog/actions/runs/40394792956)
+passed on that exact implementation head: **321 .NET tests, 80 Python tests,
+23 Worker tests and Chromium/Firefox**, plus image migration/import/admin/
+readiness/restart, security scan and SBOM. Publish/deploy were skipped.
+The [draft head checks](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/2/checks)
+and restricted NAB26-1 report record checks of any later status-only head.
+The initial audit failure was a pre-existing dev-tool `undici` advisory; the
+lockfile-only patch to 8.12.3 passes audit and retains identical vendored files.
+
+Local exact app image source `cf71ddbc8e3404a6f87cc04b8a606ddd7d3aefac`,
+image `sha256:b788135513664fdd6a58fee5c3c4c66fe7278e67d8ef3270d7ba255e4c36f3d8`,
+passed explicit migration/import/repeat refusal, guarded admin provisioning,
+two-web readiness/shared keys/forms, same-volume PG18 recreation and a bounded
+new-PG/keyring restore. The catalogue remains 7 films / 1 series / 3 episode links /
+10 subtitles, with all 17 mappings retained. Production-provider authentication
+is closed in that image test; successful admin login/refresh/logout is proved in
+the isolated provider/browser fixture, not by a production bypass. Later changes
+are Worker path validation, dependency/test/status changes; final exact-image
+qualification also remains in required CI.
+
+Local evidence: `artifacts/nab26-1/image-run-01/results.json`,
+`artifacts/nab26-1/browser-08/result.json`, `tests/*.trx`,
+`worker-final-local.log`, `worker-cpu-node-current.json`,
+`preservation-after.json`, `report.md` and `checkpoint.md` under the same root.
+These ignored artifacts are retained locally; no secrets/private configuration
+are published. Parent HEAD/status and accepted manifest/publication-record hashes
+match the task baseline; no schema migration, R1 or publisher change.
 
 No app/Worker publication, deploy, provider configuration, media rewrite or
 original-film retest. Uploads/worker and deployment activation flags remain false.
