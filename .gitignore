@@ -372,3 +372,6 @@ appsettings.json
 appsettings.*.json
 upload_to_r2.sh
 r2_assets/
+
+# Generated local media Worker state (NAB26-1)
+.wrangler/

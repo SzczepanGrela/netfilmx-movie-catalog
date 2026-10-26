@@ -1,0 +1,21 @@
+{
+  "name":"netfilmx-media-gateway",
+  "main":"dist/worker.js",
+  "compatibility_date":"2026-07-30",
+  "workers_dev":false,
+  "preview_urls":false,
+  "observability":{"enabled":false},
+  "r2_buckets":[{"binding":"MEDIA","bucket_name":"COORDINATOR_SUPPLIES_EXISTING_BUCKET"}],
+  "ratelimits":[
+    {"name":"REQUEST_LIMIT","namespace_id":"COORDINATOR_SUPPLIES_UNUSED_POSITIVE_INTEGER","simple":{"limit":1200,"period":60}},
+    {"name":"GRANT_LIMIT","namespace_id":"COORDINATOR_SUPPLIES_ANOTHER_UNUSED_POSITIVE_INTEGER","simple":{"limit":180,"period":60}}
+  ],
+  "vars":{
+    "APP_ORIGIN":"https://app.example.invalid",
+    "GRANT_ISSUER":"COORDINATOR_SUPPLIES_ISSUER",
+    "GRANT_AUDIENCE":"COORDINATOR_SUPPLIES_AUDIENCE",
+    "GRANT_PUBLIC_KEYS":"COORDINATOR_SUPPLIES_PUBLIC_RSA_JWKS"
+  }
+  // Add only the reviewed media domain after removing its R2 attachment.
+  // No fetch fallback, account IDs, secrets or production routes in this template.
+}
