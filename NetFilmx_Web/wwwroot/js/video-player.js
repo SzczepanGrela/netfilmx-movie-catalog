@@ -53,7 +53,7 @@ if (gate && player) {
     const panel = document.getElementById('playback-verification');
     const button = document.getElementById('playback-start');
     const message = document.getElementById('playback-status');
-    let widget, busy = false, issuing = false, expiry = 0, timer;
+    let activeAttempt, busy = false, expiry = 0, timer;
     let resume = {time: 0, height: null, auto: true, language: null, paused: false};
     const text = (key, fallback) => { const value = window.NetFilmxI18n?.t?.(key); return value && value !== key ? value : fallback; };
     function show(stage, key, fallback) {
@@ -83,15 +83,37 @@ if (gate && player) {
     document.addEventListener('visibilitychange', () => {
         if (expiry && Date.now() >= expiry * 1000) stop();
     });
-    function failure() {
+    const verifying = attempt => activeAttempt === attempt && attempt.phase === 'verifying';
+    function removeWidget(attempt) {
+        const widget = attempt.widget;
+        attempt.widget = undefined;
+        if (widget !== undefined) {
+            try { window.turnstile.remove(widget); } catch { /* Callbacks remain retired even if SDK cleanup fails. */ }
+        }
+    }
+    function finishAttempt(attempt) {
+        // Retire identity/phase before SDK cleanup, including any queued events.
+        if (activeAttempt === attempt) activeAttempt = undefined;
+        attempt.phase = 'finished';
+        removeWidget(attempt);
+    }
+    function failure(attempt) {
+        if (activeAttempt !== attempt) return;
+        finishAttempt(attempt);
         busy = false;
         show('error', 't_playback_failed', 'Verification or playback service is unavailable. Please try again.');
         button.dataset.i18n = 't_playback_resume';
         button.textContent = text('t_playback_resume', 'Verify and resume');
     }
-    async function receive(token) {
-        if (!busy || issuing) return;
-        issuing = true;
+    function verificationFailed(attempt) {
+        if (verifying(attempt)) failure(attempt);
+    }
+    async function receive(attempt, token) {
+        if (!verifying(attempt)) return;
+        // The single-use widget token has been handed to activation. Its later
+        // expiry/error is unrelated to the lifetime of a playback grant.
+        attempt.phase = 'activating';
+        removeWidget(attempt);
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 7000);
         try {
@@ -105,6 +127,7 @@ if (gate && player) {
             });
             if (!response.ok) throw Error('grant');
             const access = await response.json();
+            if (activeAttempt !== attempt) return;
             if (!Number.isSafeInteger(access.expiresAt) || access.expiresAt * 1000 <= Date.now()) throw Error('expiry');
             // A same-type source replacement can leave Vidstack's quality
             // auto-selector detached. Dispose the old provider before renewal.
@@ -160,7 +183,9 @@ if (gate && player) {
             player.preload = 'auto';
             player.startLoading();
             await ready;
+            if (activeAttempt !== attempt) return;
             restore();
+            attempt.phase = 'authorized';
             busy = false;
             player.inert = false;
             panel.style.display = 'none';
@@ -172,14 +197,18 @@ if (gate && player) {
             // Keep the normal Play control usable, without another grant/challenge.
             try { if (!saved.paused) await player.play(); }
             catch (error) {
+                if (activeAttempt !== attempt) return;
                 if (error.name === 'NotAllowedError') {
                     show('authorized', 't_playback_authorized', 'Access verified. Press Play to start.');
                     button.dataset.i18n = 't_playback_start';
                     button.textContent = text('t_playback_start', 'Play film');
                 } else stop();
             }
-        } catch { failure(); }
-        finally { issuing = false; clearTimeout(timeout); }
+        } catch { failure(attempt); }
+        finally {
+            clearTimeout(timeout);
+            if (attempt.phase === 'authorized') finishAttempt(attempt);
+        }
     }
     async function start() {
         if (busy) return;
@@ -189,11 +218,13 @@ if (gate && player) {
             try { await player.play(); } catch { stop(); }
             return;
         }
-        if (!gate.dataset.sitekey) { failure(); return; }
         if (expiry && gate.dataset.stage === 'authorized') remember();
+        const attempt = {phase: 'verifying', widget: undefined};
+        activeAttempt = attempt;
         busy = true;
         show('verifying', 't_playback_verifying', 'Verifying playback access…');
         try {
+            if (!gate.dataset.sitekey) throw Error('widget configuration');
             if (!window.turnstile) {
                 await new Promise((resolve, reject) => {
                     const script = document.createElement('script');
@@ -204,16 +235,22 @@ if (gate && player) {
                     document.head.append(script);
                 });
             }
-            if (widget === undefined) {
-                widget = window.turnstile.render('#playback-challenge', {
-                    sitekey: gate.dataset.sitekey, action: 'netfilmx-playback', execution: 'execute',
-                    appearance: 'interaction-only', retry: 'never', 'refresh-expired': 'manual',
-                    callback: receive, 'error-callback': failure, 'timeout-callback': failure,
-                    'expired-callback': failure, 'refresh-timeout': 'manual'
-                });
-            } else window.turnstile.reset(widget);
-            window.turnstile.execute(widget);
-        } catch { failure(); }
+            if (!verifying(attempt)) return;
+            // A new widget gives every explicit retry a fresh callback identity.
+            attempt.widget = window.turnstile.render('#playback-challenge', {
+                sitekey: gate.dataset.sitekey, action: 'netfilmx-playback', execution: 'execute',
+                appearance: 'interaction-only', retry: 'never', 'refresh-expired': 'manual',
+                callback: token => receive(attempt, token),
+                'error-callback': () => verificationFailed(attempt),
+                'timeout-callback': () => verificationFailed(attempt),
+                'expired-callback': () => verificationFailed(attempt), 'refresh-timeout': 'manual'
+            });
+            if (!verifying(attempt)) {
+                removeWidget(attempt);
+                return;
+            }
+            window.turnstile.execute(attempt.widget);
+        } catch { verificationFailed(attempt); }
     }
     button.addEventListener('click', start);
 }

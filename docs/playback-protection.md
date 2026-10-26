@@ -40,6 +40,12 @@ is a separate Cloudflare HTTP gateway, not that transcoding worker.
   7 s. Vidstack waits for `can-play`; renewal recreates the provider so Auto stays
   usable, then restores time, manual/Auto quality, language/Off and paused state.
   Browser autoplay rejection offers Play using the still-valid grant.
+- Each verification attempt owns a fresh widget and its callbacks. Once a token
+  is handed to activation, the widget is removed and its callbacks are retired.
+  Late success/error/timeout/expiry events cannot affect an issued grant or a
+  later attempt. A failure of the active verification still permits explicit
+  retry. Widget-token expiry and the film grant's expiry are separate lifetimes;
+  only actual grant expiry invokes playback renewal.
 
 This is access control and abuse resistance. It does not prevent an authorized
 viewer copying already downloaded media, or revoke previously downloaded public
@@ -123,6 +129,10 @@ billable CPU; real Free-plan CPU/quota acceptance remains an operator check.
 
 No private values belong in Git or reports. Existing PostgreSQL, keyring, proxy,
 JWT and false deployment flags retain their current contract.
+
+`Playback__Enabled=false` stops issuing new grants. It does not revoke an already
+issued grant: that remains valid until expiry or removal of its verification key
+in the Worker. A closed-maintenance/revocation plan must preserve this distinction.
 
 | Exact name | Consumer / meaning |
 | --- | --- |

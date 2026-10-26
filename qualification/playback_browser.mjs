@@ -37,7 +37,7 @@ try{
  if(binding.HostIp!=='127.0.0.1')throw Error('PG not loopback-only');
  const pgConnection=`Host=127.0.0.1;Port=${binding.HostPort};Database=playback_qualification;Username=fixture_admin;Password=local-fixture-only`;
  const hls=path.join(out,'hls');fs.mkdirSync(hls);
- command('ffmpeg',['-nostdin','-v','error','-f','lavfi','-i','testsrc2=size=320x180:rate=12','-f','lavfi','-i','sine=frequency=500:sample_rate=48000','-t','16',
+ command('ffmpeg',['-nostdin','-v','error','-f','lavfi','-i','testsrc2=size=320x180:rate=12','-f','lavfi','-i','anullsrc=channel_layout=stereo:sample_rate=48000','-t','16',
   '-filter_complex','[0:v]split=2[a][b];[a]scale=320:180[v0];[b]scale=160:90[v1]',
   '-map','[v0]','-map','1:a','-map','[v1]','-map','1:a','-c:v','libx264','-preset','ultrafast','-threads','1','-g','24','-keyint_min','24','-sc_threshold','0','-c:a','aac','-ac','2','-b:a','64k',
   '-f','hls','-hls_time','2','-hls_list_size','0','-hls_playlist_type','vod','-hls_flags','independent_segments','-var_stream_map','v:0,a:0 v:1,a:1','-hls_segment_filename',path.join(hls,'stream_%v_data%03d.ts'),'-master_pl_name','master.m3u8',path.join(hls,'stream_%v.m3u8')]);
@@ -80,9 +80,21 @@ try{
  if(controlled===bundle.outputFiles[0].text)throw Error('Fixture clock wrapper not generated');
  mf=new Miniflare({modules:true,script:controlled,compatibilityDate:'2026-07-30',r2Buckets:['MEDIA'],log:new Log(LogLevel.NONE),bindings:{APP_ORIGIN:app.appOrigin,GRANT_ISSUER:'qualification',GRANT_AUDIENCE:'qualification-media',GRANT_PUBLIC_KEYS:JSON.stringify(app.jwks)},ratelimits:{REQUEST_LIMIT:{namespace_id:'10',simple:{limit:1200,period:60}},GRANT_LIMIT:{namespace_id:'11',simple:{limit:180,period:60}}}});
  const bucket=await mf.getR2Bucket('MEDIA');for(const [key,body]of bytes)await bucket.put(key,body,{httpMetadata:{contentType:synthetic.objects[key].mime}});
- ready=true;result.fixture={durationSeconds:16,variants:2,subtitles:10,storedObjects:bytes.size,bytes:[...bytes.values()].reduce((n,b)=>n+b.length,0),appOrigin:app.appOrigin,mediaOrigin};
+ ready=true;result.fixture={durationSeconds:16,audio:'silent synthetic AAC; no listening acceptance',variants:2,subtitles:10,storedObjects:bytes.size,bytes:[...bytes.values()].reduce((n,b)=>n+b.length,0),appOrigin:app.appOrigin,mediaOrigin};
  const require=createRequire(path.join(root,'media-worker/package.json'));const playwright=require('playwright');
- const widget=`(()=>{const automatic=document.querySelector('.cf-turnstile');if(automatic){const input=document.createElement('input');input.type='hidden';input.name='cf-turnstile-response';input.value='mock-netfilmx-admin-login-'+crypto.randomUUID();automatic.append(input);}const widgets=new Map();window.turnstile={render:(selector,options)=>{const id=widgets.size;widgets.set(id,options);return id;},reset:()=>{},execute:id=>{const opts=widgets.get(id);setTimeout(()=>opts.callback('mock-'+opts.action+'-'+crypto.randomUUID()),0);}};})();`;
+ const widget=`(()=>{
+  const automatic=document.querySelector('.cf-turnstile');
+  if(automatic){const input=document.createElement('input');input.type='hidden';input.name='cf-turnstile-response';input.value='mock-netfilmx-admin-login-'+crypto.randomUUID();automatic.append(input);}
+  const widgets=new Map();let nextId=0,hold=false;
+  function emit(id,event){const record=widgets.get(id);if(!record)throw Error('Unknown fixture widget');const callback=record.options[event];if(callback)callback(event==='callback'?'mock-'+record.options.action+'-'+crypto.randomUUID():'fixture-event');}
+  // Keep removed callbacks reachable to simulate events already queued by the SDK.
+  window.__turnstileFixture={latest:()=>nextId-1,holdNext:()=>{hold=true;},emit,removed:id=>widgets.get(id)?.removed===true};
+  window.turnstile={
+   render:(selector,options)=>{const id=nextId++;widgets.set(id,{options,removed:false});return id;},
+   reset:()=>{},remove:id=>{widgets.get(id).removed=true;},
+   execute:id=>{if(hold){hold=false;return;}setTimeout(()=>emit(id,'callback'),0);}
+  };
+ })();`;
  for(const engine of ['chromium','firefox']){
   fs.writeFileSync(path.join(out,'clock.txt'),'0');await mf.dispatchFetch(mediaOrigin+'/__fixture_clock',{headers:{'X-Fixture-Seconds':'0'}});
   const launch={headless:true};if(engine==='firefox'&&process.argv[3]){launch.executablePath=path.resolve(process.argv[3]);if(process.argv[4])launch.env={...process.env,LD_LIBRARY_PATH:path.resolve(process.argv[4])};}
@@ -96,6 +108,7 @@ try{
    return route.abort();
   });
   const page=await context.newPage();currentPage=page;await page.clock.install();
+  let grantPosts=0;page.on('request',request=>{if(request.method()==='POST'&&request.url()===app.appOrigin+'/playback/grant')grantPosts++;});
   page.on('response',response=>{if(response.url().startsWith(mediaOrigin+'/'))entry.requests.push({url:redact(response.url()),status:response.status()});});
   page.on('pageerror',error=>entry.errors.push(redact(error.message)));
   await page.goto(app.appOrigin+'/');
@@ -122,7 +135,7 @@ try{
   await page.waitForFunction(()=>document.querySelector('#playback-gate').dataset.stage==='authorized');
   if(await page.locator('#playback-start').isVisible()) await page.locator('#playback-start').click();
   await page.waitForFunction(()=>document.querySelector('#main-video-player')?.currentTime>1,{},{timeout:20000});
-  await page.evaluate(()=>{const p=document.querySelector('#main-video-player');p.pause();p.currentTime=5;p.qualities[1].selected=true;});
+  await page.evaluate(()=>{const p=document.querySelector('#main-video-player');p.currentTime=5;p.qualities[1].selected=true;});
   await page.waitForFunction(()=>document.querySelector('#main-video-player')?.qualities?.auto===false);
   for(const language of ['pl','ru']){
    await page.evaluate(lang=>{const p=document.querySelector('#main-video-player');for(const t of p.textTracks.toArray())t.mode=t.language===lang?'showing':'disabled';},language);
@@ -130,14 +143,57 @@ try{
    await page.waitForFunction(()=>document.querySelector('#main-video-player').textTracks.selected?.cues.length>0);
   }
   await page.evaluate(()=>{const p=document.querySelector('#main-video-player');for(const t of p.textTracks.toArray())t.mode=t.language==='pl'?'showing':'disabled';});
+  const completedWidget=await page.evaluate(()=>window.__turnstileFixture.latest());
+  entry.widgetExpiryChecks=[];
+  for(const language of ['pl',null]){
+   await page.evaluate(lang=>{const p=document.querySelector('#main-video-player');for(const t of p.textTracks.toArray())t.mode=lang&&t.language===lang?'showing':'disabled';},language);
+   await page.waitForFunction(lang=>{const p=document.querySelector('#main-video-player'),v=p.querySelector('video');return !v.paused&&v.currentTime>5.1&&(p.textTracks.selected?.language||null)===lang;},language);
+   const beforeWidget=await page.evaluate(()=>{const p=document.querySelector('#main-video-player');window.__fixtureStablePlayer={provider:p.provider,source:JSON.stringify(p.src)};return{time:p.currentTime,height:p.qualities.selected?.height,auto:p.qualities.auto,language:p.textTracks.selected?.language||null,paused:p.paused,nativePaused:p.querySelector('video').paused,nativeTime:p.querySelector('video').currentTime};});
+   const postsBefore=grantPosts;
+   await page.evaluate(id=>{for(const event of ['expired-callback','error-callback','timeout-callback','callback'])window.__turnstileFixture.emit(id,event);},completedWidget);
+   await page.waitForTimeout(300);
+   const afterWidget=await page.evaluate(()=>{const p=document.querySelector('#main-video-player');return{stage:document.querySelector('#playback-gate').dataset.stage,overlay:document.querySelector('#playback-verification').style.display,time:p.currentTime,height:p.qualities.selected?.height,auto:p.qualities.auto,language:p.textTracks.selected?.language||null,paused:p.paused,nativePaused:p.querySelector('video').paused,nativeTime:p.querySelector('video').currentTime,sameProvider:p.provider===window.__fixtureStablePlayer.provider,sameSource:JSON.stringify(p.src)===window.__fixtureStablePlayer.source};});
+   entry.widgetExpiryChecks.push({before:beforeWidget,after:afterWidget,grantPostsBefore:postsBefore,grantPostsAfter:grantPosts});
+   if(afterWidget.stage!=='authorized'||afterWidget.overlay!=='none'||afterWidget.paused||afterWidget.nativePaused||afterWidget.nativeTime<=beforeWidget.nativeTime||afterWidget.time<beforeWidget.time||afterWidget.time>beforeWidget.time+2||afterWidget.height!==beforeWidget.height||afterWidget.auto!==beforeWidget.auto||afterWidget.language!==beforeWidget.language||!afterWidget.sameProvider||!afterWidget.sameSource||grantPosts!==postsBefore)throw Error('P1: completed widget callback disturbed a valid grant/player or issued another grant');
+  }
+  entry.completedWidgetRemoved=await page.evaluate(id=>window.__turnstileFixture.removed(id),completedWidget);
+  await page.evaluate(()=>{const p=document.querySelector('#main-video-player');p.pause();p.currentTime=5;for(const t of p.textTracks.toArray())t.mode=t.language==='pl'?'showing':'disabled';});
+  await page.waitForFunction(()=>document.querySelector('#main-video-player').textTracks.selected?.language==='pl');
   const before=await page.evaluate(()=>{const p=document.querySelector('#main-video-player');return{time:p.currentTime,height:p.qualities.selected?.height,language:p.textTracks.selected?.language};});
   fs.writeFileSync(path.join(out,'clock.txt'),'1801');await mf.dispatchFetch(mediaOrigin+'/__fixture_clock',{headers:{'X-Fixture-Seconds':'1801'}});
   await page.clock.fastForward(1801000);
   await page.waitForFunction(()=>document.querySelector('#playback-gate').dataset.stage==='retry');
+  const renewalPostsBefore=grantPosts;
+  let previousWidget=completedWidget;
+  entry.activeVerificationFailuresRetryable=[];
+  for(const event of ['expired-callback','error-callback','timeout-callback']){
+   await page.evaluate(()=>window.__turnstileFixture.holdNext());
+   await page.locator('#playback-start').click();
+   await page.waitForFunction(()=>document.querySelector('#playback-gate').dataset.stage==='verifying');
+   const currentWidget=await page.evaluate(()=>window.__turnstileFixture.latest());
+   if(currentWidget===previousWidget)throw Error('Verification retry reused callbacks from an old attempt');
+   await page.evaluate(id=>{for(const event of ['expired-callback','error-callback','timeout-callback','callback'])window.__turnstileFixture.emit(id,event);},previousWidget);
+   await page.waitForTimeout(100);
+   if(await page.locator('#playback-gate').getAttribute('data-stage')!=='verifying'||!await page.locator('#playback-start').isDisabled()||grantPosts!==renewalPostsBefore)throw Error('Stale widget callback affected the next active attempt');
+   await page.evaluate(({id,event})=>window.__turnstileFixture.emit(id,event),{id:currentWidget,event});
+   await page.waitForFunction(()=>document.querySelector('#playback-gate').dataset.stage==='error');
+   if(await page.locator('#playback-start').isDisabled()||grantPosts!==renewalPostsBefore)throw Error('Active verification failure is not safely retryable');
+   entry.activeVerificationFailuresRetryable.push(event);previousWidget=currentWidget;
+  }
+  await page.evaluate(()=>window.__turnstileFixture.holdNext());
   await page.locator('#playback-start').click();
+  await page.waitForFunction(()=>document.querySelector('#playback-gate').dataset.stage==='verifying');
+  await page.evaluate(previous=>{
+   const fixture=window.__turnstileFixture,current=fixture.latest();
+   fixture.emit(previous,'callback');fixture.emit(previous,'expired-callback');
+   fixture.emit(current,'callback');
+   // Duplicate success and token expiry during activation cannot cancel the POST.
+   for(const event of ['callback','expired-callback','error-callback','timeout-callback'])fixture.emit(current,event);
+  },previousWidget);
   await page.waitForFunction(()=>document.querySelector('#playback-gate').dataset.stage==='authorized');
   await page.waitForFunction(expected=>{const p=document.querySelector('#main-video-player');return Math.abs(p.currentTime-expected.time)<1.5&&p.qualities.selected?.height===expected.height&&p.textTracks.selected?.language===expected.language;},before,{timeout:20000});
-  entry.renewalPreserved=before;
+  if(grantPosts!==renewalPostsBefore+1)throw Error('Renewal did not issue exactly one fresh grant');
+  entry.staleCallbacksDuringNextAttempt=true;entry.renewalPreserved=before;
   await page.evaluate(()=>{const p=document.querySelector('#main-video-player');for(const t of p.textTracks.toArray())t.mode='disabled';p.qualities.autoSelect();p.currentTime=12;p.play();});
   await page.waitForFunction(()=>{const p=document.querySelector('#main-video-player');return p.qualities.auto&&!p.textTracks.selected;});
   await page.waitForFunction(()=>document.querySelector('#main-video-player').state.ended,{},{timeout:15000});
@@ -166,7 +222,7 @@ try{
   const p=document.querySelector('#main-video-player'),v=p?.querySelector('video');
   return {stage:document.querySelector('#playback-gate')?.dataset.stage,message:document.querySelector('#playback-status')?.textContent,
    paused:p?.paused,time:p?.currentTime,duration:p?.duration,canPlay:p?.canPlay,qualityCount:p?.qualities?.length,auto:p?.qualities?.auto,tracks:p?.textTracks?.toArray().map(t=>({language:t.language,mode:t.mode})),
-   video:v?{time:v.currentTime,ready:v.readyState,network:v.networkState,error:v.error?.code,frames:v.getVideoPlaybackQuality?.().totalVideoFrames}:null};
+   video:v?{time:v.currentTime,paused:v.paused,seeking:v.seeking,ready:v.readyState,network:v.networkState,error:v.error?.code,frames:v.getVideoPlaybackQuality?.().totalVideoFrames}:null};
  });await currentPage.screenshot({path:path.join(out,'failure.png')});}catch{}}
 }
 finally{

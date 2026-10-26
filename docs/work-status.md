@@ -1,6 +1,6 @@
 # NetFilmx candidate status
 
-Updated 2026-10-26. Current work is **NAB26-1** on
+Updated 2026-10-27. Current work is **NAB26-1** on
 `feature/playback-protection`, based on main
 `a5a0d90a332cc47931b5aff924f817ab6366918c`, in
 [draft PR #2](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/2).
@@ -9,7 +9,34 @@ candidate entries below are historical; this protection has not been deployed.
 Accepted R1, catalogue/media, credits, subtitles and earlier device observations
 remain preserved.
 
-## Current stage: NAB26-1 anonymous protected playback candidate
+## Current stage: NAB26-1 P1 widget lifecycle correction
+
+Review of `001d762b13b1d1bd4a5e4a2ddec96c825737dd3e` required P1 before
+acceptance: a completed widget's token expiry could cover a still-authorized
+player and lose its saved state on retry. Each verification now has a distinct
+attempt/widget identity. Token handoff retires/removes that widget; queued
+success/error/timeout/expiry callbacks cannot alter valid playback, activation
+or a later attempt. Active verification failure remains explicitly retryable;
+actual film-grant expiry still saves state and requires a fresh challenge.
+
+The extended real MVC/Vidstack fixture passed locally in Chromium and Firefox:
+valid-grant expiry with PL and Off keeps manual quality, source/provider and
+continuous native playback, with the POST count unchanged (1 to 1); old events
+during the next attempt are ignored; active expiry/error/timeout are retryable;
+real grant expiry/renewal retains 5 s / 180p / PL and issues exactly one new grant.
+The regression first reproduced P1 on the reviewed code. Synthetic AAC is now
+silent to avoid local test noise; this adds no listening acceptance.
+
+Current source and required CI are attached to [draft PR #2 head/commits](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/2/commits)
+and [checks](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/2/checks).
+Exact SHA, final CI readback and source/evidence hashes are retained in
+`artifacts/nab26-1-p1/report.md`, `checkpoint.json`, `provenance.json` and the
+browser results in this task worktree. Initial NAB26-1 proofs below and the
+coordinator's independent reproduction are retained as historical evidence.
+No media/schema/provider change or seven-film round; draft/disabled flags,
+Sintel uncertainty, native Safari/iOS and live-provider deferrals are unchanged.
+
+## Initial NAB26-1 candidate — historical evidence before P1 review
 
 Base is merged main `a5a0d90a332cc47931b5aff924f817ab6366918c`; PR #1 is merged.
 New work uses `feature/playback-protection` in a clean worktree; the old dirty
