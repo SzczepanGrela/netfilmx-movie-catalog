@@ -1,5 +1,10 @@
 # Immutable image delivery candidate
 
+NAB26-1, 2026-10-26: the first public launch at main `a5a0d90` is accepted.
+The next candidate adds [anonymous protected playback and admin-only access](playback-protection.md).
+Its separate coordinated cutover/closed rollback contract supersedes direct-public-media assumptions;
+historical launch/media results below retain their date and scope. No new production change is implied.
+
 Updated 2026-10-22 under the operator's clarified policy. Preparation, bootstrap
 and migration may interrupt service. Final Coolify operation still requires
 readiness-gated rolling releases and backups of necessary new data/keys/configuration.

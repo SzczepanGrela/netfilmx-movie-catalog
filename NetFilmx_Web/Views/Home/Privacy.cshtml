@@ -19,18 +19,18 @@
                 1. Gromadzenie i przetwarzanie danych
             </h3>
             <p style="color: var(--color-text-secondary); line-height: 1.7; font-size: 1rem; margin-bottom: 1.5rem;" data-i18n="t_sekcja_dane_opis">
-                Wszelkie dane kont (adresy e-mail, nazwy użytkowników) oraz hasła zabezpieczone są najnowocześniejszym algorytmem haszującym Argon2id. Nie udostępniamy Twoich danych podmiotom trzecim.
+                Oglądanie nie wymaga konta. Dostęp administratora korzysta z konta, haseł haszowanych Argon2id i ciasteczek sesji. Odtwarzanie oraz logowanie administratora korzystają z weryfikacji Cloudflare Turnstile.
             </p>
 
             <h3 style="color: white; font-size: 1.3rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.8rem;" data-i18n="t_sekcja_ciasteczka">
                 2. Pliki Cookies i pamięć lokalna
             </h3>
             <p style="color: var(--color-text-secondary); line-height: 1.7; font-size: 1rem; margin-bottom: 1.5rem;" data-i18n="t_sekcja_ciasteczka_opis">
-                Serwis wykorzystuje pliki cookies wyłącznie do utrzymania sesji uwierzytelniania (JWT/access token) oraz preferencji językowych użytkownika (PL/EN).
+                Ciasteczka obsługują sesję administratora, ochronę CSRF i preferencje języka. Słowniki językowe mogą być buforowane w pamięci przeglądarki. Granty odtwarzania są tymczasowe i nie są zapisywane w pamięci trwałej przeglądarki.
             </p>
 
             <div style="margin-top: 3rem; pt-3; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
-                <span style="color: var(--color-text-secondary); font-size: 0.85rem;">Ostatnia aktualizacja: Sierpień 2026</span>
+                <span style="color: var(--color-text-secondary); font-size: 0.85rem;">Ostatnia aktualizacja: Październik 2026</span>
                 <a asp-controller="Home" asp-action="Index" class="nfx-btn nfx-btn-primary" style="padding: 0.6rem 1.5rem; font-size: 0.9rem;" data-i18n="t_wroc_na_strone_glowna">
                     ← Powrót na stronę główną
                 </a>

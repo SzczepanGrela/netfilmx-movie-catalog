@@ -1,5 +1,12 @@
 # Local catalogue recovery qualification
 
+NAB26-1: current images use the guarded admin CLI, absent public signup and
+closed-provider form/refresh checks. Successful authenticated sessions are now
+qualified in the [isolated Siteverify/player fixture](playback-protection.md).
+The old registration/session descriptions below are historical evidence, not a
+production challenge bypass. Use the current `--database-only` mode for a bounded
+exact-image DB/key/form run; do not rerun accepted media qualification.
+
 This harness qualifies the first catalogue stage with uploads and worker off.
 It creates only local resources with a unique `netfilmx-catalogue-*` ownership
 label and refuses a non-Unix Docker endpoint. It neither contacts R2/VPS nor

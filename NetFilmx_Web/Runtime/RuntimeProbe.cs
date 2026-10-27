@@ -28,6 +28,8 @@ public static class RuntimeProbe
                     if (response.StatusCode != HttpStatusCode.OK || (await response.Content.ReadAsByteArrayAsync()).Length == 0)
                         throw new InvalidOperationException("A required catalogue page or asset is unavailable.");
                 }
+                using var signup = await client.GetAsync("/auth/register");
+                if (signup.StatusCode != HttpStatusCode.NotFound) throw new InvalidOperationException("Public signup must be absent.");
             }
             return 0;
         }

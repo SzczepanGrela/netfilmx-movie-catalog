@@ -57,6 +57,11 @@ jobs:
           npm audit --audit-level=low
           npm run vendor:check
           npm test
+      - name: Install, audit and bundle the media gateway (no deployment)
+        run: |
+          npm --prefix media-worker ci --ignore-scripts
+          npm --prefix media-worker audit --audit-level=low
+          npm --prefix media-worker run build
       - name: Test release client
         run: python3 -m unittest discover -s tests -v
       - name: Validate local qualification entry points
@@ -73,6 +78,7 @@ jobs:
           python3 qualification/hls_preview.py --help >/dev/null
           python3 qualification/publish_hls.py --help >/dev/null
           node qualification/hls_browser.cjs --help >/dev/null
+          node qualification/playback_browser.mjs --help >/dev/null
           python3 qualification/final_catalogue.py --help >/dev/null
       - name: Install native media tools
         run: |
@@ -83,19 +89,34 @@ jobs:
           dotnet restore "ST2 NetFilmx.sln" --locked-mode --force
           dotnet restore qualification/Subtitles/Subtitles.csproj --locked-mode
           dotnet restore qualification/HlsCatalogue/HlsCatalogue.csproj --locked-mode
+          dotnet restore qualification/PlaybackProtection/PlaybackProtection.csproj --locked-mode
       - name: Build and test
         env:
           NETFILMX_TEST_POSTGRES: Host=localhost;Database=netfilmx_test;Username=netfilmx_test;Password=local-ci-test
+          NETFILMX_GRANT_VECTORS: ${{ github.workspace }}/artifacts/playback/grant-vectors.json
         run: |
           dotnet build "ST2 NetFilmx.sln" --no-restore -c Release
           dotnet build qualification/Subtitles/Subtitles.csproj --no-restore -c Release
           dotnet build qualification/HlsCatalogue/HlsCatalogue.csproj --no-restore -c Release
+          dotnet build qualification/PlaybackProtection/PlaybackProtection.csproj --no-restore -c Release
           dotnet test "ST2 NetFilmx.sln" --no-build -c Release --logger "trx;LogFileName=tests.trx" --results-directory artifacts/test-results
+      - name: Test real workerd, cache/R2 spies and .NET grant interoperability
+        env:
+          NETFILMX_GRANT_VECTORS: ${{ github.workspace }}/artifacts/playback/grant-vectors.json
+        run: npm --prefix media-worker test
+      - name: Bounded protected player qualification (synthetic media, no provider credentials)
+        run: |
+          node media-worker/node_modules/playwright/cli.js install --with-deps chromium firefox
+          mkdir -p artifacts/playback
+          node qualification/playback_browser.mjs artifacts/playback/browser
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: test-results
-          path: artifacts/test-results/*.trx
+          path: |
+            artifacts/test-results/*.trx
+            artifacts/playback/browser/result.json
+            artifacts/playback/browser/*.png
           retention-days: 7
 
   container:

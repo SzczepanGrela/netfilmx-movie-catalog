@@ -14,6 +14,11 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 // Administrative operations exit before HTTP, Data Protection or workers.
+if (args.Length > 0 && args[0] == "admin")
+{
+    Environment.ExitCode = await NetFilmx_Web.AdminCommand.RunAsync(args[1..]);
+    return;
+}
 if (args.Length > 0 && args[0] == "catalogue")
 {
     Environment.ExitCode = await NetFilmx_Web.CatalogueCommand.RunAsync(args[1..]);
@@ -33,6 +38,12 @@ if (args is ["healthcheck"] or ["smokecheck"])
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDurableDataProtection();
 builder.Services.AddHttpSecurity(builder.Configuration);
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<NetFilmx_Web.Playback.PlaybackCatalogue>();
+builder.Services.AddSingleton<NetFilmx_Web.Playback.PlaybackGrantIssuer>();
+builder.Services.AddHttpClient<NetFilmx_Web.Playback.ITurnstileVerifier, NetFilmx_Web.Playback.TurnstileVerifier>(client =>
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("NetFilmxTurnstileVerifier/1.0"))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 1_048_576);
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
 {
@@ -56,6 +67,23 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
         // Extract token from cookie
         options.Events = new JwtBearerEvents
         {
+            OnTokenValidated = async context =>
+            {
+                // A retained JWT must not keep administrator access after role withdrawal.
+                if (context.Principal?.IsInRole("Admin") != true) return;
+                var claim = context.Principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(claim, System.Globalization.NumberStyles.None, CultureInfo.InvariantCulture, out var id))
+                { context.Fail("Administrator identity is invalid."); return; }
+                using var deadline = CancellationTokenSource.CreateLinkedTokenSource(context.HttpContext.RequestAborted);
+                deadline.CancelAfter(TimeSpan.FromSeconds(3));
+                try
+                {
+                    var db = context.HttpContext.RequestServices.GetRequiredService<NetFilmxDbContext>();
+                    if (!await db.Users.AsNoTracking().AnyAsync(u => u.Id == id && u.Role == NetFilmx_Storage.Entities.UserRole.Admin, deadline.Token))
+                        context.Fail("Administrator access was withdrawn.");
+                }
+                catch { context.Fail("Administrator access cannot be confirmed."); }
+            },
             OnMessageReceived = context =>
             {
                 if (context.Request.Cookies.ContainsKey("access_token"))
@@ -214,50 +242,24 @@ if (uploadsEnabled)
         throw new InvalidOperationException("Enabled uploads require complete R2 configuration.");
 }
 
-var seedDemoData = builder.Configuration.GetValue<bool>("Database:SeedDemoData");
-if (seedDemoData && !app.Environment.IsDevelopment())
-{
-    throw new InvalidOperationException("Demo data may only be seeded in Development.");
-}
-
-// Verify the schema before traffic or hosted workers; this path never migrates.
+if (builder.Configuration.GetValue<bool>("Database:SeedDemoData"))
+    throw new InvalidOperationException("Demo seeding is disabled. Use the explicit operator admin command.");
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<NetFilmxDbContext>();
     using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
     await ReleaseDatabase.EnsureReadyAsync(db, uploadsEnabled, deadline.Token);
-    if (seedDemoData)
-    {
-        try
-        {
-            // Demo accounts/catalogue are opt-in and never production bootstrap.
-            if (seedDemoData && !db.Users.Any())
-            {
-                var sqlFileName = isPostgreSql ? "InsertNetFilmxDb_PostgreSQL.sql" : "InsertNetFilmxDb_SQLite.sql";
-                var sqlFile = Path.Combine(AppContext.BaseDirectory, sqlFileName);
-                if (!File.Exists(sqlFile))
-                {
-                    sqlFile = Path.Combine(Directory.GetCurrentDirectory(), "..", "SQL", sqlFileName);
-                }
-
-                if (File.Exists(sqlFile))
-                {
-                    var sql = File.ReadAllText(sqlFile);
-                    db.Database.ExecuteSqlRaw(sql);
-                }
-            }
-        }
-        catch (Exception)
-        {
-            var logger = scope.ServiceProvider.GetService<ILogger<Program>>();
-            logger?.LogError("Development demo seeding failed.");
-            throw;
-        }
-    }
 }
 
 // Configure the HTTP request pipeline.
 app.UseForwardedHeaders();
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["Referrer-Policy"] = "no-referrer";
+    if (context.Request.Path.StartsWithSegments("/playback") || context.Request.Path.StartsWithSegments("/auth"))
+        context.Response.Headers.CacheControl = "no-store";
+    await next();
+});
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");

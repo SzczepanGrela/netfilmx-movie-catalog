@@ -1,5 +1,10 @@
 # First release and operational closeout
 
+NAB26-1, 2026-10-26: the first public launch at main `a5a0d90` is accepted.
+The next candidate adds [anonymous protected playback and admin-only access](playback-protection.md).
+Its separate coordinated cutover/closed rollback contract supersedes direct-public-media assumptions;
+historical launch/media results below retain their date and scope. No new production change is implied.
+
 Updated 2026-10-22 to the operator's clarified policy: interruptions during
 preparation, bootstrap and migration are acceptable. Final Coolify operation
 still requires rolling updates and backups of necessary data, keys and recovery

@@ -1,12 +1,107 @@
 # NetFilmx candidate status
 
-Updated 2026-10-22 on `codex/netfilmx-preparation`, originally based on `a39d3ad6e527bcf08430d311db2c0cf0528820c3`.
-Work continues in [draft PR #1](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/1).
-The application has not been deployed; the retained HLS media were published
-through the separately authorized one-time tool. Accepted R1, recovery/source reconciliation, credits,
-subtitle code at `f4aca03` and earlier desktop/Android observations are preserved.
+Updated 2026-10-27. Current work is **NAB26-1** on
+`feature/playback-protection`, based on main
+`a5a0d90a332cc47931b5aff924f817ab6366918c`, in
+[draft PR #2](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/2).
+PR #1 and the first public launch were accepted before this task. Earlier
+candidate entries below are historical; this protection has not been deployed.
+Accepted R1, catalogue/media, credits, subtitles and earlier device observations
+remain preserved.
 
-## Current stage: PostgreSQL 18 preparation (NP18-1)
+## Current stage: NAB26-1 P1 widget lifecycle correction
+
+Review of `001d762b13b1d1bd4a5e4a2ddec96c825737dd3e` required P1 before
+acceptance: a completed widget's token expiry could cover a still-authorized
+player and lose its saved state on retry. Each verification now has a distinct
+attempt/widget identity. Token handoff retires/removes that widget; queued
+success/error/timeout/expiry callbacks cannot alter valid playback, activation
+or a later attempt. Active verification failure remains explicitly retryable;
+actual film-grant expiry still saves state and requires a fresh challenge.
+
+The extended real MVC/Vidstack fixture passed locally in Chromium and Firefox:
+valid-grant expiry with PL and Off keeps manual quality, source/provider and
+continuous native playback, with the POST count unchanged (1 to 1); old events
+during the next attempt are ignored; active expiry/error/timeout are retryable;
+real grant expiry/renewal retains 5 s / 180p / PL and issues exactly one new grant.
+The regression first reproduced P1 on the reviewed code. Synthetic AAC is now
+silent to avoid local test noise; this adds no listening acceptance.
+
+Current source and required CI are attached to [draft PR #2 head/commits](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/2/commits)
+and [checks](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/2/checks).
+Exact SHA, final CI readback and source/evidence hashes are retained in
+`artifacts/nab26-1-p1/report.md`, `checkpoint.json`, `provenance.json` and the
+browser results in this task worktree. Initial NAB26-1 proofs below and the
+coordinator's independent reproduction are retained as historical evidence.
+No media/schema/provider change or seven-film round; draft/disabled flags,
+Sintel uncertainty, native Safari/iOS and live-provider deferrals are unchanged.
+
+## Initial NAB26-1 candidate — historical evidence before P1 review
+
+Base is merged main `a5a0d90a332cc47931b5aff924f817ab6366918c`; PR #1 is merged.
+New work uses `feature/playback-protection` in a clean worktree; the old dirty
+parent and candidate/evidence are retained. The October 24 first public launch
+is accepted in its dated scope. This new protection has not been deployed.
+
+Implemented: anonymous catalogue/watch, withdrawn public signup/wallet UI,
+retained data/schema, guarded operator admin CLI, admin-only login/refresh with
+Managed Turnstile and current-role checks; separate 30-minute RSA film/version
+grants; private read-only R2 Worker with authentication before every cache lookup,
+canonical shared byte cache, MIME/CORS/HEAD/conditional/Range and abuse limits.
+Player renewal retains position, manual/Auto quality and language/Off. The
+[release contract](playback-protection.md) lists exact configuration/secret
+consumers, allowlist generation, key rotation and coordinated closed cutover.
+
+Local source checks include backend rejection/session/admin regressions, 80
+Python tests, cross-runtime .NET/Worker vectors and 23 Worker tests including
+real workerd Cache/R2. A bounded actual MVC/Vidstack fixture passed Chromium
+151 and Firefox 153 with synthetic 16-second/two-quality HLS, ten sidecars,
+expiry/retry, seek/end, Auto/Off and admin creation/login/refresh/logout on local
+PG18. Widget/Siteverify are test-assembly simulations, not live bot acceptance.
+Native URI transport is tested separately; Safari/iOS remains untested.
+The warm-HEAD Node CPU proxy measured about 0.2 ms/request; production
+Cloudflare 10 ms CPU and shared 100000/day availability are not accepted by that.
+Exact implementation head: `10cb38ccb4781c82d4a7b91e67a54f11ab42cea8`.
+Later status-only documentation commits do not change that implementation.
+[CI/image/scan/quality gate](https://github.com/SzczepanGrela/netfilmx-movie-catalog/actions/runs/40394792961)
+and [dependency audits](https://github.com/SzczepanGrela/netfilmx-movie-catalog/actions/runs/40394792956)
+passed on that exact implementation head: **321 .NET tests, 80 Python tests,
+23 Worker tests and Chromium/Firefox**, plus image migration/import/admin/
+readiness/restart, security scan and SBOM. Publish/deploy were skipped.
+The [draft head checks](https://github.com/SzczepanGrela/netfilmx-movie-catalog/pull/2/checks)
+and restricted NAB26-1 report record checks of any later status-only head.
+The initial audit failure was a pre-existing dev-tool `undici` advisory; the
+lockfile-only patch to 8.12.3 passes audit and retains identical vendored files.
+
+Local exact app image source `cf71ddbc8e3404a6f87cc04b8a606ddd7d3aefac`,
+image `sha256:b788135513664fdd6a58fee5c3c4c66fe7278e67d8ef3270d7ba255e4c36f3d8`,
+passed explicit migration/import/repeat refusal, guarded admin provisioning,
+two-web readiness/shared keys/forms, same-volume PG18 recreation and a bounded
+new-PG/keyring restore. The catalogue remains 7 films / 1 series / 3 episode links /
+10 subtitles, with all 17 mappings retained. Production-provider authentication
+is closed in that image test; successful admin login/refresh/logout is proved in
+the isolated provider/browser fixture, not by a production bypass. Later changes
+are Worker path validation, dependency/test/status changes; final exact-image
+qualification also remains in required CI.
+
+Local evidence: `artifacts/nab26-1/image-run-01/results.json`,
+`artifacts/nab26-1/browser-08/result.json`, `tests/*.trx`,
+`worker-final-local.log`, `worker-cpu-node-current.json`,
+`preservation-after.json`, `report.md` and `checkpoint.md` under the same root.
+These ignored artifacts are retained locally; no secrets/private configuration
+are published. Parent HEAD/status and accepted manifest/publication-record hashes
+match the task baseline; no schema migration, R1 or publisher change.
+
+No app/Worker publication, deploy, provider configuration, media rewrite or
+original-film retest. Uploads/worker and deployment activation flags remain false.
+Sintel synchronization and prior manual/device deferrals are unchanged. Stage B
+rolling/new-state backups and stage C uploads remain separate. Coordinator must
+review the exact draft head and supply the actual widget/domain/binding/keys/
+limits and protected rollback or closed maintenance sequence before production.
+
+## Historical PostgreSQL 18 preparation and accepted release stages
+
+### PostgreSQL 18 preparation (NP18-1)
 
 The October 20 release plan at `052f439` was accepted by the coordinator.
 [PG18 selection and procedure](postgresql18.md) now align CI, fresh developer

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NetFilmx_Storage.Context;
 using NetFilmx_Storage.Entities;
+using NetFilmx_Service.Security;
 using NetFilmx_Tests.Integration.Fixtures;
 
 namespace NetFilmx_Tests.Integration;
@@ -28,8 +29,14 @@ public class AdminAccessTests : IClassFixture<TestWebApplicationFactory<Program>
     public async Task OrdinaryUsersCannotReadOrModifyAdminResources()
     {
         using var browser = new AuthBrowser(_factory);
-        using var register = await browser.RegisterAsync("ordinary" + Guid.NewGuid().ToString("N"));
-        Assert.Equal(HttpStatusCode.Redirect, register.StatusCode);
+        int ordinaryId;
+        using (var seedScope = _factory.Services.CreateScope())
+        {
+            var db = seedScope.ServiceProvider.GetRequiredService<NetFilmxDbContext>();
+            var user = new User("ordinary"+Guid.NewGuid().ToString("N"), "ordinary@example.test", "unused");
+            db.Users.Add(user); await db.SaveChangesAsync(); ordinaryId=user.Id;
+            browser.SetCookie("access_token", seedScope.ServiceProvider.GetRequiredService<IJwtTokenService>().GenerateAccessToken(user));
+        }
         foreach (var url in new[] { "/admin/video", "/admin/category", "/admin/series", "/admin/user", "/admin/comment", "/admin/tag" })
         {
             using var response = await browser.SendAsync(HttpMethod.Get, url);
@@ -37,23 +44,34 @@ public class AdminAccessTests : IClassFixture<TestWebApplicationFactory<Program>
         }
         using var write = await browser.SendAsync(HttpMethod.Post, "/admin/category/add", new() { ["Name"] = "forbidden" }, await browser.CsrfAsync());
         Assert.Equal(HttpStatusCode.Forbidden, write.StatusCode);
+        using var promotion = await browser.SendAsync(HttpMethod.Post, "/admin/user/edit", new() { ["Id"]=ordinaryId.ToString(), ["Role"]="Admin" }, await browser.CsrfAsync());
+        Assert.Equal(HttpStatusCode.Forbidden,promotion.StatusCode);
         using var scope = _factory.Services.CreateScope();
+        Assert.Equal(UserRole.User,(await scope.ServiceProvider.GetRequiredService<NetFilmxDbContext>().Users.SingleAsync(u=>u.Id==ordinaryId)).Role);
         Assert.False(await scope.ServiceProvider.GetRequiredService<NetFilmxDbContext>().Categories.AnyAsync(c => c.Name == "forbidden"));
+    }
+
+    [Fact]
+    public async Task WithdrawnAdminRoleRejectsPreviouslyIssuedAccessToken()
+    {
+        var name="withdrawn"+Guid.NewGuid().ToString("N");await _factory.CreateAdminAsync(name);
+        using var browser=new AuthBrowser(_factory);using var login=await browser.LoginAsync(name);
+        Assert.Equal(HttpStatusCode.Redirect,login.StatusCode);
+        using(var scope=_factory.Services.CreateScope())
+        {
+            var db=scope.ServiceProvider.GetRequiredService<NetFilmxDbContext>();
+            var user=await db.Users.SingleAsync(u=>u.Username==name);user.Role=UserRole.User;await db.SaveChangesAsync();
+        }
+        using var denied=await browser.SendAsync(HttpMethod.Get,"/admin/user");Assert.Equal(HttpStatusCode.Redirect,denied.StatusCode);
+        using var refresh=await browser.SendAsync(HttpMethod.Post,"/auth/refresh",csrf:await browser.CsrfAsync());
+        Assert.Equal(HttpStatusCode.Unauthorized,refresh.StatusCode);
     }
 
     [Fact]
     public async Task AdministratorCanUseForms_ButCannotWriteWithoutCsrf()
     {
         var name = "admin" + Guid.NewGuid().ToString("N");
-        using (var register = new AuthBrowser(_factory))
-        using (var response = await register.RegisterAsync(name)) Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
-        using (var scope = _factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<NetFilmxDbContext>();
-            var user = await db.Users.SingleAsync(u => u.Username == name);
-            user.Role = UserRole.Admin;
-            await db.SaveChangesAsync();
-        }
+        await _factory.CreateAdminAsync(name);
         using var browser = new AuthBrowser(_factory);
         using var login = await browser.LoginAsync(name);
         Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);

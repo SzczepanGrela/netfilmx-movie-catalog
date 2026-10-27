@@ -57,22 +57,13 @@ internal sealed class AuthBrowser : IDisposable
         return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString()!;
     }
 
-    public async Task<HttpResponseMessage> RegisterAsync(string name)
-    {
-        var token = await FormTokenAsync("/auth/register");
-        return await SendAsync(HttpMethod.Post, "/auth/register", new()
-        {
-            ["Username"] = name, ["Email"] = name[..Math.Min(name.Length, 30)] + "@example.test", ["Password"] = "Password123!",
-            ["__RequestVerificationToken"] = token
-        });
-    }
-
     public async Task<HttpResponseMessage> LoginAsync(string name, bool remember = false, string returnUrl = "/")
     {
         var token = await FormTokenAsync("/auth/login");
         return await SendAsync(HttpMethod.Post, "/auth/login?returnUrl=" + Uri.EscapeDataString(returnUrl), new()
         {
             ["Username"] = name, ["Password"] = "Password123!", ["RememberMe"] = remember.ToString(),
+            ["cf-turnstile-response"] = "mock-netfilmx-admin-login-"+Guid.NewGuid().ToString("N"),
             ["__RequestVerificationToken"] = token
         });
     }

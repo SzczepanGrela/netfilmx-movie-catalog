@@ -1,5 +1,10 @@
 # Local final-image catalogue qualification
 
+NAB26-1, 2026-10-26: the first public launch at main `a5a0d90` is accepted.
+The next candidate adds [anonymous protected playback and admin-only access](playback-protection.md).
+Its separate coordinated cutover/closed rollback contract supersedes direct-public-media assumptions;
+historical launch/media results below retain their date and scope. No new production change is implied.
+
 The October 18 operator authorization permits the accepted seventeen-reference
 manifest activation and local qualification. Publication/readback and NHP17-1
 are accepted prerequisites. No upload, encoding, full HTTP inventory download,

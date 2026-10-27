@@ -22,7 +22,7 @@ public static class HttpSecurity
             var permits = new Dictionary<string, int>
             {
                 ["Login"] = Positive(configuration, "Login", 10, 1000),
-                ["Register"] = Positive(configuration, "Register", 5, 1000),
+                ["Grant"] = Positive(configuration, "PlaybackGrant", 30, 1000),
                 ["Refresh"] = Positive(configuration, "Refresh", 30, 1000)
             };
             var writePermits = Positive(configuration, "Write", 60, 1000);
@@ -44,7 +44,7 @@ public static class HttpSecurity
                 return Window(user == null ? "ip:" + ClientAddress(context) : "user:" + user, writePermits);
             });
             var authenticationWork = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-                AuthAction(context) is "Login" or "Register"
+                AuthAction(context) is "Login"
                     ? RateLimitPartition.GetConcurrencyLimiter("password-work", _ => new() { PermitLimit = 2, QueueLimit = 0 })
                     : RateLimitPartition.GetNoLimiter("other-work"));
             var uploads = PartitionedRateLimiter.Create<HttpContext, string>(context =>
@@ -55,7 +55,11 @@ public static class HttpSecurity
                     ? RateLimitPartition.GetConcurrencyLimiter("upload-work", _ => new() { PermitLimit = 1, QueueLimit = 0 })
                     : RateLimitPartition.GetNoLimiter("other-work");
             });
-            options.GlobalLimiter = PartitionedRateLimiter.CreateChained(authentication, writes, authenticationWork, uploads);
+            var playbackWork = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                AuthAction(context) == "Grant"
+                    ? RateLimitPartition.GetConcurrencyLimiter("siteverify-work", _ => new() { PermitLimit = 4, QueueLimit = 0 })
+                    : RateLimitPartition.GetNoLimiter("other-work"));
+            options.GlobalLimiter = PartitionedRateLimiter.CreateChained(authentication, writes, authenticationWork, playbackWork, uploads);
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             options.OnRejected = async (context, token) =>
             {
@@ -101,8 +105,9 @@ public static class HttpSecurity
     private static string? AuthAction(HttpContext context)
     {
         var action = context.GetEndpoint()?.Metadata.GetMetadata<ControllerActionDescriptor>();
-        return !IsSafe(context) && action?.ControllerName == "Auth" && action.ActionName is "Login" or "Register" or "Refresh"
-            ? action.ActionName : null;
+        if (IsSafe(context) || action is null) return null;
+        if (action.ControllerName == "Playback" && action.ActionName == "Grant") return "Grant";
+        return action.ControllerName == "Auth" && action.ActionName is "Login" or "Refresh" ? action.ActionName : null;
     }
 
     private static string ClientAddress(HttpContext context)
