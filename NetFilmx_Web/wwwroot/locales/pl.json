@@ -115,11 +115,11 @@
   "t_wroc_do_serwisu": "Wróć do serwisu",
   "t_tagi": "Tagi",
   "t_uzytkownicy": "Użytkownicy",
-  "t_playback_verify": "Potwierdź dostęp, aby rozpocząć film. Konto nie jest potrzebne.",
   "t_playback_start": "Odtwórz film",
-  "t_playback_resume": "Potwierdź i wznów",
-  "t_playback_retry": "Odtwarzanie zatrzymane. Potwierdź dostęp, aby wznowić od tego miejsca.",
-  "t_playback_failed": "Weryfikacja lub odtwarzanie jest niedostępne. Spróbuj ponownie.",
-  "t_playback_verifying": "Weryfikowanie dostępu do filmu…",
-  "t_playback_authorized": "Dostęp potwierdzony. Naciśnij Odtwórz, aby rozpocząć."
+  "t_playback_resume": "Spróbuj ponownie",
+  "t_playback_retry": "Odtwarzanie zostało przerwane. Spróbuj ponownie, aby kontynuować od tego miejsca.",
+  "t_playback_failed": "Nie udało się wczytać filmu. Spróbuj ponownie.",
+  "t_playback_authorized": "Film jest gotowy do odtworzenia.",
+  "t_playback_loading": "Ładowanie filmu…",
+  "t_turnstile_privacy": "Ochrona przed automatycznymi nadużyciami działa w tle z użyciem Cloudflare Turnstile. Informacje o przetwarzaniu danych:"
 }

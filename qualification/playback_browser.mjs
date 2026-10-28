@@ -85,12 +85,14 @@ try{
  const widget=`(()=>{
   const automatic=document.querySelector('.cf-turnstile');
   if(automatic){const input=document.createElement('input');input.type='hidden';input.name='cf-turnstile-response';input.value='mock-netfilmx-admin-login-'+crypto.randomUUID();automatic.append(input);}
-  const widgets=new Map();let nextId=0,hold=false;
+  const widgets=new Map();let nextId=0,hold=!!window.__holdFirstChallenge,sdkReady=false;const readyCallbacks=[];
+  setTimeout(()=>{sdkReady=true;for(const callback of readyCallbacks)callback();},250);
   function emit(id,event){const record=widgets.get(id);if(!record)throw Error('Unknown fixture widget');const callback=record.options[event];if(callback)callback(event==='callback'?'mock-'+record.options.action+'-'+crypto.randomUUID():'fixture-event');}
   // Keep removed callbacks reachable to simulate events already queued by the SDK.
   window.__turnstileFixture={latest:()=>nextId-1,holdNext:()=>{hold=true;},emit,removed:id=>widgets.get(id)?.removed===true};
   window.turnstile={
-   render:(selector,options)=>{const id=nextId++;widgets.set(id,{options,removed:false});return id;},
+   ready:callback=>{if(sdkReady)callback();else readyCallbacks.push(callback);},
+   render:(selector,options)=>{if(!sdkReady)throw Error('SDK not ready');const id=nextId++;widgets.set(id,{options,removed:false});return id;},
    reset:()=>{},remove:id=>{widgets.get(id).removed=true;},
    execute:id=>{if(hold){hold=false;return;}setTimeout(()=>emit(id,'callback'),0);}
   };
@@ -109,7 +111,22 @@ try{
   });
   const page=await context.newPage();currentPage=page;await page.clock.install();
   let grantPosts=0;page.on('request',request=>{if(request.method()==='POST'&&request.url()===app.appOrigin+'/playback/grant')grantPosts++;});
-  page.on('response',response=>{if(response.url().startsWith(mediaOrigin+'/'))entry.requests.push({url:redact(response.url()),status:response.status()});});
+  page.on('response',response=>{
+   if(!response.url().startsWith(mediaOrigin+'/'))return;
+   const request={url:redact(response.url()),status:response.status()};
+   // Advancing the fixture clock can expire an already in-flight HLS prefetch.
+   // Accept only a 403 for that provably expired grant, never a general media
+   // failure or a denial while the grant is still valid. Do not retain the JWT.
+   if(response.status()===403){
+    try{
+     const token=new URL(response.url()).pathname.split('/')[2];
+     const claims=JSON.parse(Buffer.from(token.split('.')[1],'base64url'));
+     const now=Math.floor(Date.now()/1000)+Number(fs.readFileSync(path.join(out,'clock.txt')));
+     request.expiredGrant=Number.isSafeInteger(claims.exp)&&claims.exp<=now;
+    }catch{request.expiredGrant=false;}
+   }
+   entry.requests.push(request);
+  });
   page.on('pageerror',error=>entry.errors.push(redact(error.message)));
   await page.goto(app.appOrigin+'/');
   if((await page.locator('a[href*="register"]').count())!==0)throw Error('Public signup link');
@@ -130,10 +147,12 @@ try{
   entry.adminCreateLoginRefreshLogout=true;
   if((await context.cookies()).some(c=>c.name==='access_token'||c.name==='refresh_token'))throw Error('Viewer remains logged in');
   await page.goto(app.appOrigin+'/home/watch/'+app.videoId);
-  if(entry.requests.some(r=>r.url.includes('/g/')))throw Error('Protected media fetched before intent');
-  await page.locator('#playback-start').click();
   await page.waitForFunction(()=>document.querySelector('#playback-gate').dataset.stage==='authorized');
-  if(await page.locator('#playback-start').isVisible()) await page.locator('#playback-start').click();
+  if(grantPosts!==1)throw Error('Background access did not issue exactly one grant');
+  if(!await page.evaluate(()=>document.querySelector('#main-video-player').paused))throw Error('Autoplay without viewer intent');
+  if(await page.locator('#playback-verification').isVisible())throw Error('Verification overlay remains after background loading');
+  entry.backgroundAccessAndDelayedSdkReady=true;
+  await page.locator('media-play-button:visible').first().click();
   await page.waitForFunction(()=>document.querySelector('#main-video-player')?.currentTime>1,{},{timeout:20000});
   await page.evaluate(()=>{const p=document.querySelector('#main-video-player');p.currentTime=5;p.qualities[1].selected=true;});
   await page.waitForFunction(()=>document.querySelector('#main-video-player')?.qualities?.auto===false);
@@ -160,9 +179,14 @@ try{
   await page.evaluate(()=>{const p=document.querySelector('#main-video-player');p.pause();p.currentTime=5;for(const t of p.textTracks.toArray())t.mode=t.language==='pl'?'showing':'disabled';});
   await page.waitForFunction(()=>document.querySelector('#main-video-player').textTracks.selected?.language==='pl');
   const before=await page.evaluate(()=>{const p=document.querySelector('#main-video-player');return{time:p.currentTime,height:p.qualities.selected?.height,language:p.textTracks.selected?.language};});
+  await page.evaluate(()=>window.__turnstileFixture.holdNext());
   fs.writeFileSync(path.join(out,'clock.txt'),'1801');await mf.dispatchFetch(mediaOrigin+'/__fixture_clock',{headers:{'X-Fixture-Seconds':'1801'}});
   await page.clock.fastForward(1801000);
-  await page.waitForFunction(()=>document.querySelector('#playback-gate').dataset.stage==='retry');
+  await page.waitForFunction(()=>document.querySelector('#playback-gate').dataset.stage==='verifying');
+  const expiredAttempt=await page.evaluate(()=>window.__turnstileFixture.latest());
+  await page.evaluate(id=>window.__turnstileFixture.emit(id,'timeout-callback'),expiredAttempt);
+  await page.waitForFunction(()=>document.querySelector('#playback-gate').dataset.stage==='error');
+  entry.automaticRenewalFailureStops=true;
   const renewalPostsBefore=grantPosts;
   let previousWidget=completedWidget;
   entry.activeVerificationFailuresRetryable=[];
@@ -194,6 +218,15 @@ try{
   await page.waitForFunction(expected=>{const p=document.querySelector('#main-video-player');return Math.abs(p.currentTime-expected.time)<1.5&&p.qualities.selected?.height===expected.height&&p.textTracks.selected?.language===expected.language;},before,{timeout:20000});
   if(grantPosts!==renewalPostsBefore+1)throw Error('Renewal did not issue exactly one fresh grant');
   entry.staleCallbacksDuringNextAttempt=true;entry.renewalPreserved=before;
+  // Successful automatic renewal must retain paused state and not require a click.
+  await page.evaluate(()=>{const p=document.querySelector('#main-video-player');p.pause();p.currentTime=5;});
+  fs.writeFileSync(path.join(out,'clock.txt'),'3602');await mf.dispatchFetch(mediaOrigin+'/__fixture_clock',{headers:{'X-Fixture-Seconds':'3602'}});
+  const autoPostsBefore=grantPosts;
+  await page.clock.fastForward(1801000);
+  await page.waitForFunction(()=>document.querySelector('#playback-gate').dataset.stage==='authorized');
+  await page.waitForFunction(()=>{const p=document.querySelector('#main-video-player');return p.paused&&Math.abs(p.currentTime-5)<1.5&&p.textTracks.selected?.language==='pl';});
+  if(grantPosts!==autoPostsBefore+1)throw Error('Automatic renewal issued an unexpected number of grants');
+  entry.pausedAutomaticRenewal=true;
   await page.evaluate(()=>{const p=document.querySelector('#main-video-player');for(const t of p.textTracks.toArray())t.mode='disabled';p.qualities.autoSelect();p.currentTime=12;p.play();});
   await page.waitForFunction(()=>{const p=document.querySelector('#main-video-player');return p.qualities.auto&&!p.textTracks.selected;});
   await page.waitForFunction(()=>document.querySelector('#main-video-player').state.ended,{},{timeout:15000});
@@ -208,11 +241,31 @@ try{
   if((await http(new URL(segment,new URL(variant,access.url)),{headers:{Range:'bytes=0-9'}})).status!==206)throw Error('Native graph range');
   for(const track of access.subtitles)if((await http(track.url)).status!==200)throw Error('Subtitle sidecar');
   entry.nativeTransportGraphAndTenSidecars=true;
-  await page.goto(app.appOrigin+'/home/watch/'+app.plainId);await page.locator('#playback-start').click();
+  await page.addInitScript(()=>{window.__holdFirstChallenge=true;});
+  const plainPostsBefore=grantPosts;
+  await page.goto(app.appOrigin+'/home/watch/'+app.plainId);
+  await page.waitForFunction(()=>window.__turnstileFixture?.latest()>=0);
+  await page.locator('#playback-start').click();
+  if(!await page.locator('#playback-start').isDisabled())throw Error('Pending play intent is not reflected while loading');
+  await page.evaluate(()=>window.__turnstileFixture.emit(window.__turnstileFixture.latest(),'callback'));
+  await page.waitForFunction(()=>document.querySelector('#playback-gate').dataset.stage==='authorized');
+  if(await page.locator('#playback-start').isVisible())throw Error('A second Play click was required after background verification');
   await page.waitForFunction(()=>document.querySelector('#main-video-player')?.currentTime>0.5,{},{timeout:20000});
   if(await page.evaluate(()=>document.querySelector('#main-video-player').textTracks.length)!==0)throw Error('Plain film got subtitles');
-  entry.plainFilm=true;
-  if(entry.requests.some(r=>r.status>=400))throw Error('Media/CORS request failed');
+  if(grantPosts!==plainPostsBefore+1)throw Error('Click during background loading issued duplicate grants');
+  entry.plainFilm=true;entry.playIntentDuringBackgroundLoading=true;
+  // A provider that never answers must terminate once without a retry loop.
+  await page.goto(app.appOrigin+'/home/watch/'+app.plainId);
+  await page.waitForFunction(()=>window.__turnstileFixture?.latest()>=0);
+  const timeoutPosts=grantPosts;
+  await page.clock.fastForward(31000);
+  await page.waitForFunction(()=>document.querySelector('#playback-gate').dataset.stage==='error');
+  const failureCode=await page.locator('#playback-gate').getAttribute('data-error-code');
+  if(failureCode!=='challenge_timeout'||await page.locator('#playback-start').isDisabled())throw Error('Challenge deadline did not expose bounded retryable failure');
+  await page.clock.fastForward(61000);
+  if(grantPosts!==timeoutPosts||await page.evaluate(()=>window.__turnstileFixture.latest())!==0)throw Error('Automatic retry loop after challenge timeout');
+  entry.challengeDeadlineAndNoRetryLoop=true;
+  if(entry.requests.some(r=>r.status>=400&&!(r.status===403&&r.expiredGrant)))throw Error('Media/CORS request failed with a non-expired grant');
   entry.status='passed';await context.close();await browser.close();browser=null;
  }
  result.status='passed';

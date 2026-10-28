@@ -115,11 +115,11 @@
   "t_wroc_do_serwisu": "Back to Website",
   "t_tagi": "Tags",
   "t_uzytkownicy": "Users",
-  "t_playback_verify": "Verify access to start this film. No account is needed.",
   "t_playback_start": "Play film",
-  "t_playback_resume": "Verify and resume",
-  "t_playback_retry": "Playback stopped. Verify again to resume from this position.",
-  "t_playback_failed": "Verification or playback service is unavailable. Please try again.",
-  "t_playback_verifying": "Verifying playback access…",
-  "t_playback_authorized": "Access verified. Press Play to start."
+  "t_playback_resume": "Try again",
+  "t_playback_retry": "Playback stopped. Try again to continue from this position.",
+  "t_playback_failed": "This film could not be loaded. Please try again.",
+  "t_playback_authorized": "Ready to play.",
+  "t_playback_loading": "Loading film…",
+  "t_turnstile_privacy": "Protection against automated abuse runs in the background using Cloudflare Turnstile. Information about data processing:"
 }

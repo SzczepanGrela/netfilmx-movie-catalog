@@ -1,9 +1,12 @@
 # Anonymous playback and private media gateway (NAB26-1)
 
-Implementation candidate, 2026-10-26. Catalogue, film details, artwork and credits
+Implementation contract, updated 2026-10-29 for background verification. This
+document describes required configuration; it does not certify live provider
+acceptance. Catalogue, film details, artwork and credits
 remain anonymous. Public signup and the pretend wallet/purchase UI are withdrawn.
 Stored users/history, media and database schema remain intact. Administrator
-access uses the existing sessions/CSRF plus Managed Turnstile on login. Uploads
+access uses the existing sessions/CSRF plus Turnstile on login. This release
+requires the provider widget to use Invisible mode. Uploads
 and the application's transcoding worker remain disabled. The **media Worker**
 is a separate Cloudflare HTTP gateway, not that transcoding worker.
 
@@ -13,7 +16,7 @@ is a separate Cloudflare HTTP gateway, not that transcoding worker.
   same-origin antiforgery cookie. No viewer account. Maximum body 4096 B, form
   value 2048 characters, four form fields. Film authority comes from the stored
   approved playback key, never a supplied prefix, filename, price or role.
-- Managed widget action `netfilmx-playback`; admin login action
+- Invisible widget action `netfilmx-playback`; admin login action
   `netfilmx-admin-login`. The backend uses the fixed Siteverify HTTPS endpoint,
   validates success, exact configured hostname/action and challenge time (five
   minutes; at most 30 s future skew). Tokens are globally single-use at Siteverify;
@@ -33,13 +36,23 @@ is a separate Cloudflare HTTP gateway, not that transcoding worker.
   `/g/<grant>/<film>/<full-object-key>`. Relative HLS playlist/segment references
   retain this prefix; all ten Sintel VTTs receive it independently. Static
   manifests and catalogue responses contain no grant. Object bytes are unchanged.
-- Intent to play loads/runs the widget. Renewal requires another fresh validated
-  challenge; refresh/logout require none. Player state is kept in memory.
-  Expiry/network error pauses playback and offers explicit retry; no automatic
-  renewal loop. Provider readiness has a 30 s deadline, reset 3 s and grant API
-  7 s. Vidstack waits for `can-play`; renewal recreates the provider so Auto stays
-  usable, then restores time, manual/Auto quality, language/Off and paused state.
-  Browser autoplay rejection offers Play using the still-valid grant.
+- Opening a watch page starts Invisible Turnstile automatically in the background.
+  Script loading waits for `turnstile.ready`, with an eight-second SDK deadline
+  and a 30-second overall verification deadline. No separate verification prompt
+  or checkbox is shown. The normal Play action records intent while loading;
+  access preparation alone never starts audio/video playback.
+- Grant expiry starts one fresh background attempt, preserving time, manual/Auto
+  quality, language/Off and paused state. Provider/network failure stops and shows
+  a plain playback error with explicit retry; no automatic failure-retry loop.
+  Vidstack waits for `can-play`; renewal recreates the provider so Auto stays
+  usable. Browser autoplay restrictions may still require its normal Play action,
+  using the existing valid grant rather than issuing another challenge.
+- Diagnostics expose only `data-error-phase`, a bounded `data-error-code`
+  (SDK/challenge, CSRF, grant, media) and, when supplied, Cloudflare's six-digit
+  `data-provider-code` on the player wrapper. Retired callbacks cannot change it.
+  No token, response body or grant-bearing URL is logged. Error text stays about
+  playback and the next action. The existing privacy page links Cloudflare's
+  Turnstile Privacy Addendum; changing widget mode is a coordinator provider step.
 - Each verification attempt owns a fresh widget and its callbacks. Once a token
   is handed to activation, the widget is removed and its callbacks are retired.
   Late success/error/timeout/expiry events cannot affect an issued grant or a
