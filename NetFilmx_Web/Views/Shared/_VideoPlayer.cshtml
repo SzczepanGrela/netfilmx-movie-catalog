@@ -1,14 +1,14 @@
 @model NetFilmx_Service.Dtos.Video.VideoCardDto
 @inject Microsoft.Extensions.Configuration.IConfiguration Configuration
-<div id="playback-gate" data-video-id="@Model.Id" data-sitekey="@Configuration["Turnstile:SiteKey"]" data-stage="ready" style="width:100%; height:100%; position:relative;">
+<div id="playback-gate" data-video-id="@Model.Id" data-sitekey="@Configuration["Turnstile:SiteKey"]" data-stage="ready" aria-busy="true" style="width:100%; height:100%; position:relative;">
     <media-player id="main-video-player" inert tabindex="0" title="@Model.Title" view-type="video" stream-type="on-demand" preload="none" playsinline crossorigin="anonymous" style="width:100%; height:100%;">
         <media-provider></media-provider>
         <media-video-layout></media-video-layout>
     </media-player>
-    <div id="playback-verification" style="position:absolute; inset:0; display:flex; flex-direction:column; justify-content:safe center; overflow-y:auto; align-items:center; gap:1rem; padding:1rem; background:rgba(0,0,0,.9); z-index:20;">
-        <p id="playback-status" role="status" aria-live="polite" data-i18n="t_playback_verify">Verify access to start this film. No account is needed.</p>
+    <div id="playback-verification" style="position:absolute; inset:0; display:flex; flex-direction:column; justify-content:safe center; overflow-y:auto; align-items:center; gap:1rem; padding:1rem; background:rgba(0,0,0,.45); z-index:20;">
+        <p id="playback-status" role="status" aria-live="polite" data-i18n="t_playback_loading">Loading film…</p>
         <div id="playback-challenge"></div>
         <button id="playback-start" type="button" class="nfx-btn nfx-btn-primary" style="min-height:48px;" data-i18n="t_playback_start">Play film</button>
-        <noscript>JavaScript is required to verify playback access.</noscript>
+        <noscript>JavaScript is required to play this film.</noscript>
     </div>
 </div>

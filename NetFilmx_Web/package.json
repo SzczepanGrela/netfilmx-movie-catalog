@@ -5,7 +5,7 @@
   "scripts": {
     "vendor": "node scripts/vendor-browser-dependencies.mjs --write",
     "vendor:check": "node scripts/vendor-browser-dependencies.mjs --check",
-    "test": "node --test --test-isolation=none scripts/validation.test.mjs"
+    "test": "node --test --test-isolation=none scripts/*.test.mjs"
   },
   "dependencies": {
     "@vidstack/cdn": "1.15.7",
