@@ -85,13 +85,14 @@ try{
  const widget=`(()=>{
   const automatic=document.querySelector('.cf-turnstile');
   if(automatic){const input=document.createElement('input');input.type='hidden';input.name='cf-turnstile-response';input.value='mock-netfilmx-admin-login-'+crypto.randomUUID();automatic.append(input);}
-  const widgets=new Map();let nextId=0,hold=!!window.__holdFirstChallenge,sdkReady=false;const readyCallbacks=[];
-  setTimeout(()=>{sdkReady=true;for(const callback of readyCallbacks)callback();},250);
+  const widgets=new Map();let nextId=0,hold=!!window.__holdFirstChallenge,sdkReady=false;
+  const onload=new URL(document.currentScript.src).searchParams.get('onload');
+  setTimeout(()=>{sdkReady=true;if(onload)window[onload]();},250);
   function emit(id,event){const record=widgets.get(id);if(!record)throw Error('Unknown fixture widget');const callback=record.options[event];if(callback)callback(event==='callback'?'mock-'+record.options.action+'-'+crypto.randomUUID():'fixture-event');}
   // Keep removed callbacks reachable to simulate events already queued by the SDK.
   window.__turnstileFixture={latest:()=>nextId-1,holdNext:()=>{hold=true;},emit,removed:id=>widgets.get(id)?.removed===true};
   window.turnstile={
-   ready:callback=>{if(sdkReady)callback();else readyCallbacks.push(callback);},
+   ready:()=>{throw Error('3857: ready() requires a synchronous script');},
    render:(selector,options)=>{if(!sdkReady)throw Error('SDK not ready');const id=nextId++;widgets.set(id,{options,removed:false});return id;},
    reset:()=>{},remove:id=>{widgets.get(id).removed=true;},
    execute:id=>{if(hold){hold=false;return;}setTimeout(()=>emit(id,'callback'),0);}

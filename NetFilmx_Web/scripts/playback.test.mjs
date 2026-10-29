@@ -11,8 +11,8 @@ async function fixture({ ready = true, answer = true, status = 200, pendingPlay 
     <div id="playback-verification"><p id="playback-status"></p><div id="playback-challenge"></div><button id="playback-start">Play film</button></div>
   </div>`, { runScripts: 'outside-only', url: 'https://app.example.test/home/watch/1' });
   const w = dom.window, document = w.document, gate = document.querySelector('#playback-gate'), button = document.querySelector('button');
-  let now = 1800000000000, timerId = 0, calls = 0, plays = 0, sdkReady = ready, readyCallback;
-  const timers = new Map(), widgets = [];
+  let now = 1800000000000, timerId = 0, calls = 0, plays = 0, sdkReady = false;
+  const timers = new Map(), widgets = [], scripts = [];
   w.Date.now = () => now;
   w.setTimeout = (fn, delay) => { const id = ++timerId; timers.set(id, { fn, at: now + delay }); return id; };
   w.clearTimeout = id => timers.delete(id);
@@ -44,16 +44,34 @@ async function fixture({ ready = true, answer = true, status = 200, pendingPlay 
     return { ok: status === 200, status, json: async () => ({ url: 'https://media.example.test/g/private-fixture/sintel/master.m3u8', subtitles: [], expiresAt: Math.floor(now / 1000) + 1800 }) };
   };
   const emit = (index, name = 'callback', value = 'private-fixture-token') => widgets[index].options[name]?.(value);
-  w.turnstile = {
-    ready(callback) { if (sdkReady) callback(); else readyCallback = callback; },
+  const sdk = {
+    // The real provider rejects ready() when api.js is async/defer (3857).
+    ready() { throw Error('3857: ready() requires a synchronous script'); },
     render(selector, options) { assert.ok(sdkReady, 'render before SDK readiness'); widgets.push({ options }); return widgets.length - 1; },
     execute(id) { if (answer) queueMicrotask(() => emit(id)); },
     remove(id) { widgets[id].removed = true; }
   };
+  const providerReady = () => {
+    sdkReady = true;
+    const script = scripts.at(-1);
+    const callback = new URL(script.src).searchParams.get('onload');
+    w[callback]?.();
+  };
+  const append = document.head.append.bind(document.head);
+  document.head.append = script => {
+    append(script); scripts.push(script);
+    queueMicrotask(() => {
+      w.turnstile = sdk;
+      // Download completion can precede the provider's readiness callback.
+      script.dispatchEvent(new w.Event('load'));
+      if (ready) providerReady();
+    });
+  };
   w.eval(source); await flush();
-  return { dom, gate, button, widgets, player: document.querySelector('media-player'), emit,
+  return { dom, gate, button, widgets, scripts, player: document.querySelector('media-player'), emit,
     calls: () => calls, plays: () => plays,
-    ready: async () => { sdkReady = true; readyCallback(); await flush(); },
+    ready: async () => { providerReady(); await flush(); },
+    sdkError: async () => { scripts.at(-1).dispatchEvent(new w.Event('error')); await flush(); },
     advance: async ms => { now += ms; for (const [id, timer] of [...timers]) if (timer.at <= now) { timers.delete(id); timer.fn(); } await flush(); },
     status: value => { status = value; }, answer: value => { answer = value; }
   };
@@ -63,6 +81,8 @@ test('watch prepares access without a click, waits for SDK ready and never autop
   const f = await fixture({ ready: false });
   try {
     assert.equal(f.widgets.length, 0); assert.equal(f.calls(), 0);
+    assert.equal(f.gate.dataset.stage, 'verifying');
+    assert.equal(f.scripts.length, 1); assert.equal(f.scripts[0].async, true);
     await f.ready();
     assert.equal(f.gate.dataset.stage, 'authorized'); assert.equal(f.calls(), 1);
     assert.equal(f.player.paused, true); assert.equal(f.plays(), 0);
@@ -103,6 +123,44 @@ test('SDK readiness timeout is distinct from provider rejection and does not ren
     await f.advance(8001);
     assert.equal(f.gate.dataset.errorCode, 'sdk_timeout'); assert.equal(f.widgets.length, 0);
     await f.ready(); assert.equal(f.widgets.length, 0); assert.equal(f.calls(), 0);
+  } finally { f.dom.window.close(); }
+});
+
+test('retry shares a slow SDK load and a late callback activates only the current attempt', async () => {
+  const f = await fixture({ ready: false });
+  try {
+    await f.advance(8001);
+    f.button.click(); await flush();
+    assert.equal(f.scripts.length, 1); assert.equal(f.gate.dataset.stage, 'verifying');
+    await f.ready();
+    assert.equal(f.widgets.length, 1); assert.equal(f.calls(), 1); assert.equal(f.plays(), 1);
+    assert.equal(f.gate.dataset.stage, 'authorized');
+    const name = new URL(f.scripts[0].src).searchParams.get('onload');
+    assert.equal(f.dom.window[name], undefined);
+  } finally { f.dom.window.close(); }
+});
+
+test('a provider that finishes after timeout is reused only after explicit retry', async () => {
+  const f = await fixture({ ready: false });
+  try {
+    await f.advance(8001); await f.ready();
+    assert.equal(f.gate.dataset.stage, 'error'); assert.equal(f.calls(), 0);
+    f.button.click(); await flush();
+    assert.equal(f.scripts.length, 1); assert.equal(f.calls(), 1);
+    assert.equal(f.gate.dataset.stage, 'authorized');
+  } finally { f.dom.window.close(); }
+});
+
+test('a failed script load stays closed and permits one fresh download on explicit retry', async () => {
+  const f = await fixture({ ready: false });
+  try {
+    await f.sdkError();
+    assert.equal(f.gate.dataset.errorCode, 'sdk_load_failed'); assert.equal(f.calls(), 0);
+    assert.equal(f.scripts[0].isConnected, false);
+    f.button.click(); await flush();
+    assert.equal(f.scripts.length, 2);
+    await f.ready();
+    assert.equal(f.calls(), 1); assert.equal(f.gate.dataset.stage, 'authorized');
   } finally { f.dom.window.close(); }
 });
 
