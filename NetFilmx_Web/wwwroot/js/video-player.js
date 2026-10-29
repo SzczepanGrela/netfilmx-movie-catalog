@@ -245,34 +245,39 @@ if (gate && player) {
         }
     }
     function readySdk() {
-        if (sdkLoading) return sdkLoading;
-        sdkLoading = new Promise((resolve, reject) => {
-            let settled = false, script;
+        if (!sdkLoading) sdkLoading = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            const callback = 'netfilmxPlaybackSdkLoaded';
+            // Async api.js must use the provider's URL callback, not ready()
+            // (which throws 3857) or the earlier DOM script load event.
+            window[callback] = () => {
+                delete window[callback];
+                if (['render', 'execute', 'remove'].every(name => typeof window.turnstile?.[name] === 'function')) resolve();
+                else reject(Error('sdk_unavailable'));
+            };
+            script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=' + callback;
+            script.async = true;
+            script.onerror = () => {
+                delete window[callback];
+                script.remove();
+                reject(Error('sdk_load_failed'));
+            };
+            document.head.append(script);
+        }).catch(error => { sdkLoading = undefined; throw error; });
+        // A timed-out attempt stays retired. Keep a slow SDK load shared so an
+        // explicit retry never injects a second copy or races reinitialization.
+        return new Promise((resolve, reject) => {
+            let settled = false;
             const finish = error => {
                 if (settled) return;
                 settled = true;
                 clearTimeout(deadline);
-                if (error) { script?.remove(); reject(Error(error)); }
+                if (error) reject(error);
                 else resolve();
             };
-            const deadline = setTimeout(() => finish('sdk_timeout'), 8000);
-            const waitReady = () => {
-                // Script download is not the SDK readiness boundary.
-                if (typeof window.turnstile?.ready !== 'function') return finish('sdk_unavailable');
-                try { window.turnstile.ready(() => finish()); }
-                catch { finish('sdk_unavailable'); }
-            };
-            if (window.turnstile) waitReady();
-            else {
-                script = document.createElement('script');
-                script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-                script.async = true;
-                script.onload = waitReady;
-                script.onerror = () => finish('sdk_load_failed');
-                document.head.append(script);
-            }
-        }).catch(error => { sdkLoading = undefined; throw error; });
-        return sdkLoading;
+            const deadline = setTimeout(() => finish(Error('sdk_timeout')), 8000);
+            sdkLoading.then(() => finish(), finish);
+        });
     }
     async function start() {
         if (busy) return;

@@ -37,10 +37,14 @@ is a separate Cloudflare HTTP gateway, not that transcoding worker.
   retain this prefix; all ten Sintel VTTs receive it independently. Static
   manifests and catalogue responses contain no grant. Object bytes are unchanged.
 - Opening a watch page starts Invisible Turnstile automatically in the background.
-  Script loading waits for `turnstile.ready`, with an eight-second SDK deadline
+  Async script loading waits for the provider's URL `onload` callback (calling
+  `turnstile.ready()` with async/defer is unsupported), with an eight-second SDK deadline
   and a 30-second overall verification deadline. No separate verification prompt
   or checkbox is shown. The normal Play action records intent while loading;
   access preparation alone never starts audio/video playback.
+  A slow SDK load is shared across explicit retries; a late provider callback
+  cannot revive an expired attempt or inject another SDK instance. A failed
+  script download permits a fresh download only on explicit retry.
 - Grant expiry starts one fresh background attempt, preserving time, manual/Auto
   quality, language/Off and paused state. Provider/network failure stops and shows
   a plain playback error with explicit retry; no automatic failure-retry loop.
