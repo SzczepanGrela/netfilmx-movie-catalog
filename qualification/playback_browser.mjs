@@ -180,9 +180,12 @@ try{
   await page.waitForFunction(()=>document.querySelector('#main-video-player').textTracks.selected?.language==='pl');
   const before=await page.evaluate(()=>{const p=document.querySelector('#main-video-player');return{time:p.currentTime,height:p.qualities.selected?.height,language:p.textTracks.selected?.language};});
   await page.evaluate(()=>window.__turnstileFixture.holdNext());
-  fs.writeFileSync(path.join(out,'clock.txt'),'1801');await mf.dispatchFetch(mediaOrigin+'/__fixture_clock',{headers:{'X-Fixture-Seconds':'1801'}});
   await page.clock.fastForward(1801000);
   await page.waitForFunction(()=>document.querySelector('#playback-gate').dataset.stage==='verifying');
+  // Move all clocks across expiry while the new widget is held. Advancing only
+  // the gateway first would reject prefetch while the browser still believes
+  // the grant has another half hour left, exercising artificial clock skew.
+  fs.writeFileSync(path.join(out,'clock.txt'),'1801');await mf.dispatchFetch(mediaOrigin+'/__fixture_clock',{headers:{'X-Fixture-Seconds':'1801'}});
   const expiredAttempt=await page.evaluate(()=>window.__turnstileFixture.latest());
   await page.evaluate(id=>window.__turnstileFixture.emit(id,'timeout-callback'),expiredAttempt);
   await page.waitForFunction(()=>document.querySelector('#playback-gate').dataset.stage==='error');
@@ -220,9 +223,12 @@ try{
   entry.staleCallbacksDuringNextAttempt=true;entry.renewalPreserved=before;
   // Successful automatic renewal must retain paused state and not require a click.
   await page.evaluate(()=>{const p=document.querySelector('#main-video-player');p.pause();p.currentTime=5;});
-  fs.writeFileSync(path.join(out,'clock.txt'),'3602');await mf.dispatchFetch(mediaOrigin+'/__fixture_clock',{headers:{'X-Fixture-Seconds':'3602'}});
+  await page.evaluate(()=>window.__turnstileFixture.holdNext());
   const autoPostsBefore=grantPosts;
   await page.clock.fastForward(1801000);
+  await page.waitForFunction(()=>document.querySelector('#playback-gate').dataset.stage==='verifying');
+  fs.writeFileSync(path.join(out,'clock.txt'),'3602');await mf.dispatchFetch(mediaOrigin+'/__fixture_clock',{headers:{'X-Fixture-Seconds':'3602'}});
+  await page.evaluate(()=>window.__turnstileFixture.emit(window.__turnstileFixture.latest(),'callback'));
   await page.waitForFunction(()=>document.querySelector('#playback-gate').dataset.stage==='authorized');
   await page.waitForFunction(()=>{const p=document.querySelector('#main-video-player');return p.paused&&Math.abs(p.currentTime-5)<1.5&&p.textTracks.selected?.language==='pl';});
   if(grantPosts!==autoPostsBefore+1)throw Error('Automatic renewal issued an unexpected number of grants');
