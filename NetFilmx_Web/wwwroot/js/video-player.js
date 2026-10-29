@@ -227,7 +227,11 @@ if (gate && player) {
             try { if (!resume.paused) await player.play(); }
             catch (error) {
                 if (activeAttempt !== attempt) return;
-                if (error.name === 'NotAllowedError') {
+                if (error.name === 'AbortError' && player.paused) {
+                    // Pause can interrupt an asynchronous play() after the new
+                    // source is ready. It is viewer intent, not lost access.
+                    resume.paused = true;
+                } else if (error.name === 'NotAllowedError') {
                     show('authorized', 't_playback_authorized', 'Ready to play.');
                     button.dataset.i18n = 't_playback_start';
                     button.textContent = text('t_playback_start', 'Play film');
@@ -275,7 +279,8 @@ if (gate && player) {
         if (gate.dataset.stage === 'authorized' && expiry * 1000 > Date.now()) {
             panel.style.display = 'none';
             player.inert = false;
-            try { await player.play(); } catch { stop(false); }
+            try { await player.play(); }
+            catch (error) { if (!(error.name === 'AbortError' && player.paused)) stop(false); }
             return;
         }
         if (expiry && gate.dataset.stage === 'authorized') remember();

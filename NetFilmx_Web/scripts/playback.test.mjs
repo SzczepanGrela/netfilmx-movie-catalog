@@ -5,7 +5,7 @@ import { JSDOM } from 'jsdom';
 
 const source = await readFile(new URL('../wwwroot/js/video-player.js', import.meta.url), 'utf8');
 const flush = async () => { for (let i = 0; i < 40; i++) await Promise.resolve(); };
-async function fixture({ ready = true, answer = true, status = 200 } = {}) {
+async function fixture({ ready = true, answer = true, status = 200, pendingPlay = false } = {}) {
   const dom = new JSDOM(`<div id="playback-gate" data-video-id="1" data-sitekey="public-fixture" data-stage="ready">
     <media-player id="main-video-player"><media-provider></media-provider></media-player>
     <div id="playback-verification"><p id="playback-status"></p><div id="playback-challenge"></div><button id="playback-start">Play film</button></div>
@@ -27,8 +27,14 @@ async function fixture({ ready = true, answer = true, status = 200 } = {}) {
     }
     get src() { return this.source; }
     startLoading() { queueMicrotask(() => this.dispatchEvent(new w.Event('can-play'))); }
-    play() { plays++; this.paused = false; return Promise.resolve(); }
-    pause() { this.paused = true; }
+    play() {
+      plays++; this.paused = false;
+      return pendingPlay ? new Promise((resolve, reject) => { this.rejectPlay = reject; }) : Promise.resolve();
+    }
+    pause() {
+      this.paused = true;
+      if (this.rejectPlay) { this.rejectPlay(new w.DOMException('Play interrupted by pause', 'AbortError')); this.rejectPlay = null; }
+    }
   }
   w.customElements.define('media-player', Player);
   w.AbortController = AbortController;
@@ -135,5 +141,18 @@ test('actual grant expiry renews once in the background and preserves paused pos
     assert.equal(f.calls(), 2); assert.equal(f.player.currentTime, 37);
     assert.equal(f.player.paused, true); assert.equal(f.plays(), 0);
     assert.equal(f.gate.dataset.stage, 'authorized');
+  } finally { f.dom.window.close(); }
+});
+
+test('pausing a pending play does not replace a valid player with a retry gate', async () => {
+  const f = await fixture({ answer: false, pendingPlay: true });
+  try {
+    f.button.click(); f.emit(0); await flush();
+    assert.equal(f.gate.dataset.stage, 'authorized');
+    f.player.pause(); await flush();
+    assert.equal(f.gate.dataset.stage, 'authorized');
+    assert.equal(f.player.paused, true);
+    assert.equal(f.calls(), 1);
+    assert.equal(f.dom.window.document.querySelector('#playback-verification').style.display, 'none');
   } finally { f.dom.window.close(); }
 });
