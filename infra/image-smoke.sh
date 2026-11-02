@@ -31,7 +31,9 @@ cleanup() {
     if $network_created; then docker network rm "$network" >/dev/null 2>&1 || true; fi
 }
 trap cleanup EXIT
-docker network create --internal "$network" >/dev/null
+# Dedicated disposable network. Only the web port is published, on loopback;
+# an internal Docker network cannot expose that port to the host browser.
+docker network create "$network" >/dev/null
 network_created=true
 docker volume create --label netfilmx.test="$scope" "$keys" >/dev/null
 keys_created=true
@@ -86,6 +88,7 @@ printf '%s' 'ImageQualification123!' | docker run --rm --interactive --network "
 [[ "$(docker exec "$database" psql -X -qAt -U netfilmx_test -d netfilmx_test -c 'SELECT count(*) FROM "WalletTransactions";')" == 0 ]]
 initial_catalogue=$(snapshot)
 docker run --detach --name "$application" --network "$network" \
+    --publish 127.0.0.1::8080 \
     --cpus 1 --memory 512m --memory-swap 512m --cap-drop ALL --init \
     --mount "type=volume,source=$keys,target=/var/lib/netfilmx/keyring" \
     --env "ConnectionStrings__DefaultConnection=$connection" \
@@ -105,6 +108,11 @@ done
 [[ "$(docker exec "$application" id -g)" == 10001 ]]
 [[ "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")" == "$revision" ]]
 docker exec "$application" dotnet NetFilmx_Web.dll smokecheck
+# Exercise the HTTP-served browser dependency graph from this exact image.
+# Synthetic media stays local; no provider credentials or retained media reads.
+port=$(docker port "$application" 8080/tcp)
+[[ "$port" =~ ^127\.0\.0\.1:[0-9]+$ ]]
+node qualification/player-assets-browser.mjs "http://$port" "artifacts/image/player-$scope" "${3:-}"
 docker exec "$application" ffmpeg -nostdin -v error -f lavfi -i testsrc2=size=64x64:rate=1 \
     -t 1 -c:v libx264 -threads 1 -y /tmp/netfilmx-image-test.mp4
 docker exec "$application" ffprobe -v error -select_streams v:0 -show_entries stream=codec_name \
@@ -120,4 +128,4 @@ done
 [[ "$health" == healthy ]]
 docker exec "$application" dotnet NetFilmx_Web.dll smokecheck
 [[ "$(snapshot)" == "$initial_catalogue" ]]
-echo 'Exact image, catalogue, native media tools and restart smoke passed.'
+echo 'Exact image, browser player, catalogue, native media tools and restart smoke passed.'
