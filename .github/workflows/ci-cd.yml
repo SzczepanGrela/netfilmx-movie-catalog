@@ -128,12 +128,27 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: media-worker/package-lock.json
+      - name: Install exact-image browser qualification tools
+        run: |
+          npm --prefix media-worker ci --ignore-scripts
+          node media-worker/node_modules/playwright/cli.js install --with-deps chromium firefox
       - name: Build one image with its source revision
         run: |
           mkdir -p artifacts/image
           docker build --provenance=false --file infra/Dockerfile --build-arg "RELEASE_REVISION=${GITHUB_SHA}" --tag "netfilmx:test-${GITHUB_SHA}" .
-      - name: Qualify image, database, private keys, catalogue and restart
+      - name: Qualify image, browser player, database, private keys, catalogue and restart
         run: bash infra/image-smoke.sh "netfilmx:test-${GITHUB_SHA}" "$GITHUB_SHA"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: image-player-results
+          path: artifacts/image/player-*/result.json
+          retention-days: 7
       - name: Compile local recovery helper against the qualified image
         run: |
           docker build --file qualification/CatalogueRecovery/Dockerfile \

@@ -284,8 +284,17 @@ expiry/retry state and captions/Off. Native transport follows the actual signed
 playlist graph and ten sidecars by HTTPS; native Safari/iOS decoding is untested.
 
 CI retains exact-image migration/import/admin/readiness/restart qualification,
-plus the new bounded Chromium/Firefox fixture and Worker cross-runtime/spies/real
-Cache API. The image recovery harness checks guarded admin provisioning and
+plus the bounded Chromium/Firefox fixture and Worker cross-runtime/spies/real
+Cache API. `infra/image-smoke.sh` also runs `qualification/player-assets-browser.mjs`
+against the exact image's loopback HTTP port. It loads the real watch page, checks
+custom-element registration and executes the lazy HLS/caption libraries, including
+parsing a short Polish VTT sample. All application scripts, styles and library
+modules come from the container; external requests are blocked. Playback behavior
+remains covered by the separate synthetic-media fixture above. Provider access
+stays closed; these checks do not establish live Turnstile acceptance.
+The vendored `wwwroot/lib/**/dist` directories must ship in the image; only the
+generated `media-worker/dist` bundle is excluded from its build context.
+The image recovery harness checks guarded admin provisioning and
 closed-provider form/refresh denial; authenticated flows live in the provider
 fixture, without adding a production Siteverify bypass. Historical PG/media
 qualification remains dated evidence; this assignment repeats no real movie round.
