@@ -109,7 +109,7 @@ done
 [[ "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")" == "$revision" ]]
 docker exec "$application" dotnet NetFilmx_Web.dll smokecheck
 # Exercise the HTTP-served browser dependency graph from this exact image.
-# Synthetic media stays local; no provider credentials or retained media reads.
+# No provider credentials or retained media reads.
 port=$(docker port "$application" 8080/tcp)
 [[ "$port" =~ ^127\.0\.0\.1:[0-9]+$ ]]
 node qualification/player-assets-browser.mjs "http://$port" "artifacts/image/player-$scope" "${3:-}"

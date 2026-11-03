@@ -287,11 +287,11 @@ CI retains exact-image migration/import/admin/readiness/restart qualification,
 plus the bounded Chromium/Firefox fixture and Worker cross-runtime/spies/real
 Cache API. `infra/image-smoke.sh` also runs `qualification/player-assets-browser.mjs`
 against the exact image's loopback HTTP port. It loads the real watch page, checks
-custom-element registration, then exercises lazy HLS/icons/caption dependencies
-with a twelve-second synthetic clip, seek, quality selection and Polish/Off.
-Only the local fixture page and synthetic media are intercepted; application
-scripts, styles and library modules must come from the container. Provider
-access remains closed, and this check does not establish live Turnstile acceptance.
+custom-element registration and executes the lazy HLS/caption libraries, including
+parsing a short Polish VTT sample. All application scripts, styles and library
+modules come from the container; external requests are blocked. Playback behavior
+remains covered by the separate synthetic-media fixture above. Provider access
+stays closed; these checks do not establish live Turnstile acceptance.
 The vendored `wwwroot/lib/**/dist` directories must ship in the image; only the
 generated `media-worker/dist` bundle is excluded from its build context.
 The image recovery harness checks guarded admin provisioning and

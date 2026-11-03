@@ -137,8 +137,6 @@ jobs:
         run: |
           npm --prefix media-worker ci --ignore-scripts
           node media-worker/node_modules/playwright/cli.js install --with-deps chromium firefox
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg
       - name: Build one image with its source revision
         run: |
           mkdir -p artifacts/image
