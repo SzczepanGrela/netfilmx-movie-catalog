@@ -9,9 +9,12 @@ RUN dotnet publish "NetFilmx_Web/NetFilmx_Web.csproj" \
     -p:InformationalVersion="1.0.0+${RELEASE_REVISION}" -p:IncludeSourceRevisionInInformationalVersion=false
 
 # Stage 2: Runtime
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.13-noble@sha256:d5633778c754e89a386882eddf8dbee6942447a8a4b8267c19cf1e1158d0b0ac AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.14-noble@sha256:de0ee358cdd672f7017a003bed21e9ac9ed48a27c922a59b18175b6e82fa7fee AS runtime
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
+# Refresh APT security packages as well as media tools. Disable retries while
+# the base image's APT client may still be affected by CVE-2026-109518.
+RUN apt-get -o Acquire::Retries=0 update \
+    && apt-get -o Acquire::Retries=0 install -y --no-install-recommends apt libapt-pkg6.0t64 ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 RUN groupadd --gid 10001 appuser && useradd --uid 10001 --gid 10001 --no-create-home appuser
 COPY --from=build /app/publish .

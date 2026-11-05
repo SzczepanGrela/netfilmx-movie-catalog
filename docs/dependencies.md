@@ -1,16 +1,27 @@
 # Dependency maintenance
 
-Reviewed 2026-10-03 for the modernization candidate. These changes have not
-been deployed to the VPS. The original local checkout and production data are
-outside this preparation.
+Maintenance history begins with the 2026-10-03 modernization candidate.
+Source changes and image qualification do not establish a production rollout;
+the exact deployed revision/digest is recorded separately in release receipts.
 
 ## .NET packages
 
 October 15 image qualification found fixable HIGH/CRITICAL findings in the old
-10.0.12 shared runtime. The runtime image now pins ASP.NET **10.0.13** by verified
+10.0.12 shared runtime. That update pinned ASP.NET **10.0.13** by verified
 MCR manifest digest, following Microsoft's [October security release](https://github.com/dotnet/core/blob/main/release-notes/10.0/10.0.13/10.0.13.md).
 Build SDK and package locks remain at the versions described below. CI checks
 the new exact image with the same smoke test and unsuppressed vulnerability gate.
+
+November 5 image qualification subsequently identified
+[CVE-2026-111497](https://github.com/advisories/GHSA-p3jp-9v83-76w9) in
+10.0.13 and [CVE-2026-109518](https://ubuntu.com/security/CVE-2026-109518)
+in Noble's APT 2.8.3. The runtime now pins ASP.NET **10.0.14-noble** to its
+verified MCR manifest digest. The image explicitly refreshes `apt` and
+`libapt-pkg6.0t64` from the Noble repositories alongside `ffmpeg`; APT retries
+are disabled during these commands to avoid the vulnerable retry path before
+the package update completes. Noble's APT fix is 2.8.4ubuntu0.1 or later.
+SDK/package locks are unchanged. The resulting image must pass the same
+qualification and vulnerability gate, with no advisory suppression.
 
 All five projects target .NET 10. `global.json` pins SDK 10.0.401 without
 roll-forward. ASP.NET/EF Core packages and the local `dotnet-ef` tool
