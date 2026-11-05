@@ -116,6 +116,8 @@
   "t_tagi": "Tagi",
   "t_uzytkownicy": "Użytkownicy",
   "t_playback_start": "Odtwórz film",
+  "t_playback_continue": "Wznów",
+  "t_playback_replay": "Odtwórz ponownie",
   "t_playback_resume": "Spróbuj ponownie",
   "t_playback_retry": "Odtwarzanie zostało przerwane. Spróbuj ponownie, aby kontynuować od tego miejsca.",
   "t_playback_failed": "Nie udało się wczytać filmu. Spróbuj ponownie.",

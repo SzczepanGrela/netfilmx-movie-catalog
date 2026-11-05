@@ -207,6 +207,34 @@ a {
     box-shadow: 0 6px 20px rgba(123, 44, 191, 0.6);
 }
 
+/* One central playback action, including fullscreen. The verification panel
+   owns loading/error feedback; this control only belongs to ready/paused media. */
+#playback-start[hidden], #playback-toggle[hidden] { display: none !important; }
+.nfx-play-action {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 10;
+}
+#playback-toggle {
+    pointer-events: auto;
+    min-height: 48px;
+    width: auto;
+    max-width: calc(100% - 2rem);
+}
+#playback-toggle:focus-visible { outline: 3px solid white; outline-offset: 4px; }
+/* Vidstack's small layout already has a central Play. Use the same labelled
+   action on desktop and mobile, leaving its Pause and other controls intact. */
+#playback-gate[data-show-play="true"] .vds-video-layout[data-sm] .vds-play-button { visibility: hidden; }
+/* A paused, ready film needs Play rather than the provider's fading spinner. */
+#playback-gate[data-show-play="true"] .vds-buffering-indicator { display: none; }
+@media (prefers-reduced-motion: reduce) {
+    #playback-toggle { transition: none; transform: none; }
+}
+
 .nfx-btn-secondary {
     background-color: rgba(16, 26, 59, 0.7);
     color: white;

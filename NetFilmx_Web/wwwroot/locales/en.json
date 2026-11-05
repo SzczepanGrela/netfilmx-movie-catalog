@@ -116,6 +116,8 @@
   "t_tagi": "Tags",
   "t_uzytkownicy": "Users",
   "t_playback_start": "Play film",
+  "t_playback_continue": "Resume",
+  "t_playback_replay": "Play again",
   "t_playback_resume": "Try again",
   "t_playback_retry": "Playback stopped. Try again to continue from this position.",
   "t_playback_failed": "This film could not be loaded. Please try again.",

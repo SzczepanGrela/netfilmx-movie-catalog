@@ -40,8 +40,12 @@ is a separate Cloudflare HTTP gateway, not that transcoding worker.
   Async script loading waits for the provider's URL `onload` callback (calling
   `turnstile.ready()` with async/defer is unsupported), with an eight-second SDK deadline
   and a 30-second overall verification deadline. No separate verification prompt
-  or checkbox is shown. The normal Play action records intent while loading;
-  access preparation alone never starts audio/video playback.
+  or checkbox is shown. While preparing access/media, only the loading status
+  is visible; Play appears once media is ready. Access preparation alone never
+  starts audio/video playback. The central action is Play before the first start,
+  Resume on pause and Play again after ending, including mobile and fullscreen.
+  It disappears during playback, uses the current grant and leaves normal player
+  controls available. Failure shows an explicit Try again action instead.
   A slow SDK load is shared across explicit retries; a late provider callback
   cannot revive an expired attempt or inject another SDK instance. A failed
   script download permits a fresh download only on explicit retry.

@@ -5,12 +5,12 @@ import { JSDOM } from 'jsdom';
 
 const source = await readFile(new URL('../wwwroot/js/video-player.js', import.meta.url), 'utf8');
 const flush = async () => { for (let i = 0; i < 40; i++) await Promise.resolve(); };
-async function fixture({ ready = true, answer = true, status = 200, pendingPlay = false } = {}) {
+async function fixture({ ready = true, answer = true, status = 200, pendingPlay = false, blockedPlay = false, mediaReady = true } = {}) {
   const dom = new JSDOM(`<div id="playback-gate" data-video-id="1" data-sitekey="public-fixture" data-stage="ready">
-    <media-player id="main-video-player"><media-provider></media-provider></media-player>
+    <media-player id="main-video-player"><media-provider></media-provider><button id="playback-toggle" hidden>Play film</button></media-player>
     <div id="playback-verification"><p id="playback-status"></p><div id="playback-challenge"></div><button id="playback-start">Play film</button></div>
   </div>`, { runScripts: 'outside-only', url: 'https://app.example.test/home/watch/1' });
-  const w = dom.window, document = w.document, gate = document.querySelector('#playback-gate'), button = document.querySelector('button');
+  const w = dom.window, document = w.document, gate = document.querySelector('#playback-gate'), button = document.querySelector('#playback-start');
   let now = 1800000000000, timerId = 0, calls = 0, plays = 0, sdkReady = false;
   const timers = new Map(), widgets = [], scripts = [];
   w.Date.now = () => now;
@@ -26,13 +26,18 @@ async function fixture({ ready = true, answer = true, status = 200, pendingPlay 
       if (!value) queueMicrotask(() => this.dispatchEvent(new w.CustomEvent('provider-change', { detail: null })));
     }
     get src() { return this.source; }
-    startLoading() { queueMicrotask(() => this.dispatchEvent(new w.Event('can-play'))); }
+    startLoading() { if (mediaReady) queueMicrotask(() => this.dispatchEvent(new w.Event('can-play'))); }
     play() {
-      plays++; this.paused = false;
+      plays++;
+      if (blockedPlay) return Promise.reject(new w.DOMException('Autoplay blocked', 'NotAllowedError'));
+      this.paused = false; this.ended = false;
+      this.dispatchEvent(new w.Event('play'));
+      this.dispatchEvent(new w.Event('playing'));
       return pendingPlay ? new Promise((resolve, reject) => { this.rejectPlay = reject; }) : Promise.resolve();
     }
     pause() {
       this.paused = true;
+      this.dispatchEvent(new w.Event('pause'));
       if (this.rejectPlay) { this.rejectPlay(new w.DOMException('Play interrupted by pause', 'AbortError')); this.rejectPlay = null; }
     }
   }
@@ -68,7 +73,7 @@ async function fixture({ ready = true, answer = true, status = 200, pendingPlay 
     });
   };
   w.eval(source); await flush();
-  return { dom, gate, button, widgets, scripts, player: document.querySelector('media-player'), emit,
+  return { dom, gate, button, playButton: document.querySelector('#playback-toggle'), widgets, scripts, player: document.querySelector('media-player'), emit,
     calls: () => calls, plays: () => plays,
     ready: async () => { providerReady(); await flush(); },
     sdkError: async () => { scripts.at(-1).dispatchEvent(new w.Event('error')); await flush(); },
@@ -91,15 +96,46 @@ test('watch prepares access without a click, waits for SDK ready and never autop
   } finally { f.dom.window.close(); }
 });
 
-test('one normal Play during background loading is retained without a duplicate grant', async () => {
+test('loading offers no Play; ready Play and paused Resume use the same grant', async () => {
   const f = await fixture({ answer: false });
   try {
-    f.button.click(); assert.equal(f.button.disabled, true);
+    assert.equal(f.button.hidden, true); assert.equal(f.button.disabled, true);
+    assert.equal(f.playButton.hidden, true);
+    f.button.click(); assert.equal(f.plays(), 0);
     f.emit(0); await flush();
+    assert.equal(f.playButton.hidden, false); assert.equal(f.playButton.textContent, 'Play film');
+    assert.equal(f.player.paused, true); assert.equal(f.plays(), 0);
+    f.playButton.click(); await flush();
     assert.equal(f.calls(), 1); assert.equal(f.plays(), 1); assert.equal(f.player.paused, false);
+    assert.equal(f.playButton.hidden, true);
+    f.player.currentTime = 12; f.player.pause(); await flush();
+    assert.equal(f.playButton.hidden, false); assert.equal(f.playButton.textContent, 'Resume');
+    f.playButton.click(); await flush();
+    assert.equal(f.playButton.hidden, true); assert.equal(f.player.currentTime, 12);
     for (const event of ['callback', 'expired-callback', 'timeout-callback', 'error-callback']) f.emit(0, event);
     await flush();
-    assert.equal(f.gate.dataset.stage, 'authorized'); assert.equal(f.calls(), 1); assert.equal(f.plays(), 1);
+    assert.equal(f.gate.dataset.stage, 'authorized'); assert.equal(f.calls(), 1); assert.equal(f.plays(), 2);
+  } finally { f.dom.window.close(); }
+});
+
+test('grant alone does not offer Play before media is ready', async () => {
+  const f = await fixture({ mediaReady: false });
+  try {
+    assert.equal(f.calls(), 1); assert.equal(f.playButton.hidden, true); assert.equal(f.button.hidden, true);
+    f.player.dispatchEvent(new f.dom.window.Event('can-play')); await flush();
+    assert.equal(f.playButton.hidden, false); assert.equal(f.plays(), 0);
+  } finally { f.dom.window.close(); }
+});
+
+test('ending offers replay; autoplay denial keeps a normal Play without another challenge', async () => {
+  const f = await fixture({ blockedPlay: true });
+  try {
+    f.playButton.click(); await flush();
+    assert.equal(f.playButton.hidden, false); assert.equal(f.playButton.textContent, 'Play film');
+    assert.equal(f.gate.dataset.stage, 'authorized'); assert.equal(f.calls(), 1);
+    assert.equal(f.dom.window.document.querySelector('#playback-verification').style.display, 'none');
+    f.player.ended = true; f.player.dispatchEvent(new f.dom.window.Event('ended'));
+    assert.equal(f.playButton.hidden, false); assert.equal(f.playButton.textContent, 'Play again');
   } finally { f.dom.window.close(); }
 });
 
@@ -199,17 +235,19 @@ test('actual grant expiry renews once in the background and preserves paused pos
     assert.equal(f.calls(), 2); assert.equal(f.player.currentTime, 37);
     assert.equal(f.player.paused, true); assert.equal(f.plays(), 0);
     assert.equal(f.gate.dataset.stage, 'authorized');
+    assert.equal(f.playButton.hidden, false);
   } finally { f.dom.window.close(); }
 });
 
 test('pausing a pending play does not replace a valid player with a retry gate', async () => {
   const f = await fixture({ answer: false, pendingPlay: true });
   try {
-    f.button.click(); f.emit(0); await flush();
+    f.emit(0); await flush(); f.playButton.click(); await flush();
     assert.equal(f.gate.dataset.stage, 'authorized');
     f.player.pause(); await flush();
     assert.equal(f.gate.dataset.stage, 'authorized');
     assert.equal(f.player.paused, true);
+    assert.equal(f.playButton.hidden, false); assert.equal(f.playButton.textContent, 'Resume');
     assert.equal(f.calls(), 1);
     assert.equal(f.dom.window.document.querySelector('#playback-verification').style.display, 'none');
   } finally { f.dom.window.close(); }
