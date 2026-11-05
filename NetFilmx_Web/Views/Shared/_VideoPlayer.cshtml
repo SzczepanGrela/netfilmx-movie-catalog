@@ -4,12 +4,15 @@
     <media-player id="main-video-player" inert tabindex="0" title="@Model.Title" view-type="video" stream-type="on-demand" preload="none" playsinline crossorigin="anonymous" style="width:100%; height:100%;">
         <media-provider></media-provider>
         <media-video-layout></media-video-layout>
+        <div class="nfx-play-action">
+            <button id="playback-toggle" type="button" class="nfx-btn nfx-btn-primary" hidden data-i18n="t_playback_start">Play film</button>
+        </div>
     </media-player>
     @* The gate owns loading feedback until playback is ready; cover the player's buffering indicator underneath it. *@
     <div id="playback-verification" style="position:absolute; inset:0; display:flex; flex-direction:column; justify-content:safe center; overflow-y:auto; align-items:center; gap:1rem; padding:1rem; background:#000; z-index:20;">
         <p id="playback-status" role="status" aria-live="polite" data-i18n="t_playback_loading">Loading film…</p>
         <div id="playback-challenge"></div>
-        <button id="playback-start" type="button" class="nfx-btn nfx-btn-primary" style="min-height:48px;" data-i18n="t_playback_start">Play film</button>
+        <button id="playback-start" type="button" class="nfx-btn nfx-btn-primary" style="min-height:48px;" hidden disabled data-i18n="t_playback_resume">Try again</button>
         <noscript>JavaScript is required to play this film.</noscript>
     </div>
 </div>

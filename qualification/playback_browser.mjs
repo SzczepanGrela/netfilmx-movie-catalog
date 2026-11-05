@@ -153,8 +153,39 @@ try{
   if(!await page.evaluate(()=>document.querySelector('#main-video-player').paused))throw Error('Autoplay without viewer intent');
   if(await page.locator('#playback-verification').isVisible())throw Error('Verification overlay remains after background loading');
   entry.backgroundAccessAndDelayedSdkReady=true;
-  await page.locator('media-play-button:visible').first().click();
+  const centralPlay=page.locator('#playback-toggle');
+  if(!await centralPlay.isVisible()||await centralPlay.innerText()!=='Play film')throw Error('Ready player lacks a central Play');
+  if(await page.locator('.vds-buffering-indicator:visible').count())throw Error('Ready Play overlaps a buffering spinner');
+  await page.locator('#playback-gate').screenshot({path:path.join(out,engine+'-ready.png')});
+  await centralPlay.focus();await page.keyboard.press('Enter');
   await page.waitForFunction(()=>document.querySelector('#main-video-player')?.currentTime>1,{},{timeout:20000});
+  if(await centralPlay.isVisible())throw Error('Central Play overlaps running video');
+  // Real pause/resume at desktop and narrow widths: one central action, usable
+  // with a keyboard, no renewed verification, no seek or caption reset.
+  entry.centralPauseResume=[];
+  for(const width of [1280,375]){
+   await page.setViewportSize({width,height:900});
+   await page.evaluate(()=>document.querySelector('#main-video-player').pause());
+   await centralPlay.waitFor({state:'visible'});
+   if(await centralPlay.innerText()!=='Resume')throw Error('Paused player lacks Resume');
+   const pausedAt=await page.evaluate(()=>document.querySelector('#main-video-player').currentTime);
+   await page.locator('#playback-gate').screenshot({path:path.join(out,engine+'-paused-'+width+'.png')});
+   if(width===375&&await page.locator('.vds-video-layout[data-sm] .vds-play-button:visible').count())throw Error('Duplicate mobile central Play');
+   await centralPlay.focus();await page.keyboard.press('Space');
+   await page.waitForFunction(time=>document.querySelector('#main-video-player').currentTime>time+0.1,pausedAt);
+   if(await centralPlay.isVisible()||grantPosts!==1)throw Error('Resume disturbed existing playback access');
+   entry.centralPauseResume.push(width);
+  }
+  await page.setViewportSize({width:1280,height:900});
+  await page.locator('media-fullscreen-button:visible').first().click();
+  await page.waitForFunction(()=>document.querySelector('#main-video-player').state.fullscreen);
+  await page.evaluate(()=>document.querySelector('#main-video-player').pause());
+  await centralPlay.waitFor({state:'visible'});
+  await centralPlay.click();
+  await page.waitForFunction(()=>!document.querySelector('#main-video-player').paused);
+  if(grantPosts!==1)throw Error('Fullscreen Resume issued another grant');
+  await page.evaluate(()=>document.querySelector('#main-video-player').exitFullscreen());
+  entry.fullscreenPauseResume=true;
   await page.evaluate(()=>{const p=document.querySelector('#main-video-player');p.currentTime=5;p.qualities[1].selected=true;});
   await page.waitForFunction(()=>document.querySelector('#main-video-player')?.qualities?.auto===false);
   for(const language of ['pl','ru']){
@@ -237,6 +268,8 @@ try{
   await page.evaluate(()=>{const p=document.querySelector('#main-video-player');for(const t of p.textTracks.toArray())t.mode='disabled';p.qualities.autoSelect();p.currentTime=12;p.play();});
   await page.waitForFunction(()=>{const p=document.querySelector('#main-video-player');return p.qualities.auto&&!p.textTracks.selected;});
   await page.waitForFunction(()=>document.querySelector('#main-video-player').state.ended,{},{timeout:15000});
+  await centralPlay.waitFor({state:'visible'});
+  if(await centralPlay.innerText()!=='Play again')throw Error('Ended player lacks Replay');
   entry.seekQualityAutoOffAndEnding=true;
   await page.screenshot({path:path.join(out,engine+'.png')});
   // Retrieve one grant through the actual anonymous controller for graph-only native transport validation.
@@ -252,15 +285,16 @@ try{
   const plainPostsBefore=grantPosts;
   await page.goto(app.appOrigin+'/home/watch/'+app.plainId);
   await page.waitForFunction(()=>window.__turnstileFixture?.latest()>=0);
-  await page.locator('#playback-start').click();
-  if(!await page.locator('#playback-start').isDisabled())throw Error('Pending play intent is not reflected while loading');
+  if(await page.locator('#playback-start').isVisible()||await centralPlay.isVisible())throw Error('Loading shows a competing Play action');
+  await page.locator('#playback-gate').screenshot({path:path.join(out,engine+'-loading.png')});
   await page.evaluate(()=>window.__turnstileFixture.emit(window.__turnstileFixture.latest(),'callback'));
   await page.waitForFunction(()=>document.querySelector('#playback-gate').dataset.stage==='authorized');
-  if(await page.locator('#playback-start').isVisible())throw Error('A second Play click was required after background verification');
+  if(!await page.evaluate(()=>document.querySelector('#main-video-player').paused)||!await centralPlay.isVisible())throw Error('Ready film did not wait for normal Play');
+  await centralPlay.click();
   await page.waitForFunction(()=>document.querySelector('#main-video-player')?.currentTime>0.5,{},{timeout:20000});
   if(await page.evaluate(()=>document.querySelector('#main-video-player').textTracks.length)!==0)throw Error('Plain film got subtitles');
-  if(grantPosts!==plainPostsBefore+1)throw Error('Click during background loading issued duplicate grants');
-  entry.plainFilm=true;entry.playIntentDuringBackgroundLoading=true;
+  if(grantPosts!==plainPostsBefore+1)throw Error('Normal Play issued duplicate grants');
+  entry.plainFilm=true;entry.loadingAndReadyActionsSeparated=true;
   // A provider that never answers must terminate once without a retry loop.
   await page.goto(app.appOrigin+'/home/watch/'+app.plainId);
   await page.waitForFunction(()=>window.__turnstileFixture?.latest()>=0);

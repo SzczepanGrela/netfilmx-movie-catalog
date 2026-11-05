@@ -52,11 +52,24 @@ const gate = document.getElementById('playback-gate');
 if (gate && player) {
     const panel = document.getElementById('playback-verification');
     const button = document.getElementById('playback-start');
+    const playButton = document.getElementById('playback-toggle');
     const message = document.getElementById('playback-status');
     let activeAttempt, busy = false, expiry = 0, timer, sdkLoading;
-    let playRequested = false;
+    let hasPlayed = false;
     let resume = {time: 0, height: null, auto: true, language: null, paused: true};
     const text = (key, fallback) => { const value = window.NetFilmxI18n?.t?.(key); return value && value !== key ? value : fallback; };
+    function updatePlayButton() {
+        const visible = gate.dataset.stage === 'authorized' && !busy && player.paused;
+        gate.dataset.showPlay = String(visible);
+        playButton.hidden = !visible;
+        const ended = player.ended || player.state?.ended;
+        const key = ended ? 't_playback_replay' : hasPlayed ? 't_playback_continue' : 't_playback_start';
+        playButton.dataset.i18n = key;
+        playButton.textContent = text(key, ended ? 'Play again' : hasPlayed ? 'Resume' : 'Play film');
+        if (!visible && document.activeElement === playButton) player.focus({preventScroll: true});
+    }
+    for (const event of ['play', 'pause', 'ended']) player.addEventListener(event, updatePlayButton);
+    player.addEventListener('playing', () => { hasPlayed = true; updatePlayButton(); });
     function show(stage, key, fallback) {
         gate.dataset.stage = stage;
         panel.style.display = 'flex';
@@ -64,7 +77,9 @@ if (gate && player) {
         message.dataset.i18n = key;
         message.textContent = text(key, fallback);
         gate.setAttribute('aria-busy', String(busy));
-        button.disabled = busy && playRequested;
+        button.disabled = busy;
+        button.hidden = busy;
+        updatePlayButton();
     }
     function remember() {
         resume = {time: player.currentTime || 0, height: player.qualities?.selected?.height,
@@ -77,7 +92,6 @@ if (gate && player) {
         clearTimeout(timer);
         player.pause();
         player.inert = true;
-        playRequested = !resume.paused;
         show('retry', 't_playback_retry', 'Playback stopped. Try again to continue from this position.');
         button.dataset.i18n = 't_playback_resume';
         button.textContent = text('t_playback_resume', 'Try again');
@@ -220,6 +234,7 @@ if (gate && player) {
             panel.style.display = 'none';
             if (document.activeElement === button) player.focus({preventScroll: true});
             gate.dataset.stage = 'authorized';
+            updatePlayButton();
             clearTimeout(timer);
             timer = setTimeout(() => stop(true), Math.max(1, expiry * 1000 - Date.now()));
             // An asynchronous challenge can consume browser autoplay activation.
@@ -232,9 +247,10 @@ if (gate && player) {
                     // source is ready. It is viewer intent, not lost access.
                     resume.paused = true;
                 } else if (error.name === 'NotAllowedError') {
-                    show('authorized', 't_playback_authorized', 'Ready to play.');
-                    button.dataset.i18n = 't_playback_start';
-                    button.textContent = text('t_playback_start', 'Play film');
+                    // Access is ready. Keep the ordinary central Play control;
+                    // browser autoplay policy is not a verification failure.
+                    resume.paused = true;
+                    updatePlayButton();
                 } else stop(false);
             }
         } catch { failure(attempt, failureCode); }
@@ -285,10 +301,11 @@ if (gate && player) {
             panel.style.display = 'none';
             player.inert = false;
             try { await player.play(); }
-            catch (error) { if (!(error.name === 'AbortError' && player.paused)) stop(false); }
+            catch (error) { if (error.name !== 'NotAllowedError' && !(error.name === 'AbortError' && player.paused)) stop(false); }
+            finally { updatePlayButton(); }
             return;
         }
-        if (expiry && gate.dataset.stage === 'authorized') remember();
+        if (expiry && gate.dataset.stage === 'authorized') { remember(); resume.paused = false; }
         const attempt = {phase: 'verifying', widget: undefined, failurePhase: 'verification'};
         activeAttempt = attempt;
         busy = true;
@@ -296,8 +313,6 @@ if (gate && player) {
         delete gate.dataset.errorPhase;
         delete gate.dataset.providerCode;
         show('verifying', 't_playback_loading', 'Loading film…');
-        button.dataset.i18n = 't_playback_start';
-        button.textContent = text('t_playback_start', 'Play film');
         // One bounded attempt. Provider errors/timeouts require an explicit retry.
         attempt.deadline = setTimeout(() => verificationFailed(attempt, 'challenge_timeout'), 30000);
         try {
@@ -325,12 +340,12 @@ if (gate && player) {
         }
     }
     button.addEventListener('click', () => {
-        playRequested = true;
+        if (busy) return;
         resume.paused = false;
-        if (busy) { button.disabled = true; return; }
         start();
     });
-    // Prepare access silently on the watch page, but do not autoplay. A normal
-    // Play click during loading is remembered; no second verification click.
+    playButton.addEventListener('click', () => start());
+    // Prepare access silently. Loading, ready/paused and playing have distinct
+    // controls; the normal Play action uses the already prepared grant.
     start();
 }
