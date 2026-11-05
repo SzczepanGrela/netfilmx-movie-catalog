@@ -135,6 +135,11 @@ jobs:
           cache-dependency-path: media-worker/package-lock.json
       - name: Install exact-image browser qualification tools
         run: |
+          # The hosted runner's Azure mirror can stall browser dependency installs.
+          # Keep Ubuntu signature verification and use the official HTTPS archive.
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
+          fi
           npm --prefix media-worker ci --ignore-scripts
           node media-worker/node_modules/playwright/cli.js install --with-deps chromium firefox
       - name: Build one image with its source revision
