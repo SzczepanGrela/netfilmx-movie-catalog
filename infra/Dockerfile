@@ -9,7 +9,7 @@ RUN dotnet publish "NetFilmx_Web/NetFilmx_Web.csproj" \
     -p:InformationalVersion="1.0.0+${RELEASE_REVISION}" -p:IncludeSourceRevisionInInformationalVersion=false
 
 # Stage 2: Runtime
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.14-noble@sha256:de0ee358cdd672f7017a003bed21e9ac9ed48a27c922a59b18175b6e82fa7fee AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.15-noble@sha256:bfd912c83295ce66d4b706ebb8541b9f14259b0e76fbb88b2751f58ce2399d2e AS runtime
 WORKDIR /app
 # Refresh APT security packages as well as media tools. Disable retries while
 # the base image's APT client may still be affected by CVE-2026-109518.
