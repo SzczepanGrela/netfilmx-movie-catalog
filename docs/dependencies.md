@@ -15,13 +15,20 @@ the new exact image with the same smoke test and unsuppressed vulnerability gate
 November 5 image qualification subsequently identified
 [CVE-2026-111497](https://github.com/advisories/GHSA-p3jp-9v83-76w9) in
 10.0.13 and [CVE-2026-109518](https://ubuntu.com/security/CVE-2026-109518)
-in Noble's APT 2.8.3. The runtime now pins ASP.NET **10.0.14-noble** to its
+in Noble's APT 2.8.3. That release pinned ASP.NET **10.0.14-noble** to its
 verified MCR manifest digest. The image explicitly refreshes `apt` and
 `libapt-pkg6.0t64` from the Noble repositories alongside `ffmpeg`; APT retries
 are disabled during these commands to avoid the vulnerable retry path before
 the package update completes. Noble's APT fix is 2.8.4ubuntu0.1 or later.
 SDK/package locks are unchanged. The resulting image must pass the same
 qualification and vulnerability gate, with no advisory suppression.
+
+November 14 revalidation of the delayed player-control release found new fixable
+HIGH ASP.NET Core findings CVE-2026-114146, CVE-2026-114147 and CVE-2026-114149.
+The runtime now pins **10.0.15-noble**, verified against MCR's manifest bytes and
+digest header, following the [November security release](https://github.com/dotnet/core/blob/main/release-notes/10.0/10.0.15/10.0.15.md).
+The SDK, package locks and player changes are unchanged. Qualify and scan the
+new exact image before deployment; the previous scan remains dated evidence.
 
 All five projects target .NET 10. `global.json` pins SDK 10.0.401 without
 roll-forward. ASP.NET/EF Core packages and the local `dotnet-ef` tool
