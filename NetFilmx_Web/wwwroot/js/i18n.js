@@ -9,6 +9,10 @@
     const SUPPORTED_LANGS = ['en', 'pl'];
     const COOKIE_NAME = 'nfx_lang';
     const CACHE_KEY_PREFIX = 'nfx_dict_';
+    const dictionaryUrls = {
+        en: document.currentScript?.dataset.localeEn || '/locales/en.json',
+        pl: document.currentScript?.dataset.localePl || '/locales/pl.json'
+    };
 
     let currentLang = DEFAULT_LANG;
     let translations = {};
@@ -45,22 +49,26 @@
     }
 
     async function loadDictionary(lang) {
+        // The server versions each dictionary by content so existing tabs also
+        // receive new translations after a release, without clearing storage.
+        const dictionaryUrl = dictionaryUrls[lang];
+        const cacheKey = CACHE_KEY_PREFIX + dictionaryUrl;
         try {
-            const cached = sessionStorage.getItem(CACHE_KEY_PREFIX + lang);
+            const cached = sessionStorage.getItem(cacheKey);
             if (cached) {
                 return JSON.parse(cached);
             }
         } catch (e) { }
 
         try {
-            const response = await fetch(`/locales/${lang}.json?v=${Date.now()}`);
+            const response = await fetch(dictionaryUrl);
             if (!response.ok) {
                 console.warn(`[i18n] Could not load dictionary for '${lang}'. Status: ${response.status}`);
                 return {};
             }
             const dict = await response.json();
             try {
-                sessionStorage.setItem(CACHE_KEY_PREFIX + lang, JSON.stringify(dict));
+                sessionStorage.setItem(cacheKey, JSON.stringify(dict));
             } catch (e) { }
             return dict;
         } catch (err) {

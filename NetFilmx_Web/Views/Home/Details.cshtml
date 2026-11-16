@@ -93,8 +93,9 @@
             </div>
         </div>
 
+        @if (filmCredit is not null) { <partial name="_MediaCreditSummary" model="filmCredit" /> }
+
         <!-- Comments Section -->
-        @if (filmCredit is not null) { <partial name="_MediaCredit" model="filmCredit" /> }
         <div style="background: rgba(10, 17, 40, 0.6); backdrop-filter: blur(16px); border: 1px solid rgba(123, 44, 191, 0.2); border-radius: var(--border-radius); padding: 2rem; margin-bottom: 4rem;">
             <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.8rem;" data-i18n="t_komentarze">
                 Comments

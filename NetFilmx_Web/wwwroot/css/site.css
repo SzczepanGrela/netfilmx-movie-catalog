@@ -734,11 +734,40 @@ select option {
     color: var(--color-text-primary);
 }
 :root { scroll-padding-top: 6rem; }
-.media-credits-page { max-width: 70rem; margin: 0 auto; padding: 7rem 4% 3rem; }
-.media-credit { margin: 2rem 0; padding: 1.5rem; border: 1px solid var(--color-text-secondary); border-radius: var(--border-radius); background: var(--color-base); color: var(--color-text-primary); overflow-wrap: anywhere; line-height: 1.6; }
-.media-credit h2 { font-size: 1.35rem; }
-.media-credit h3 { font-size: 1.1rem; }
-.media-credit a { color: inherit; text-decoration: underline; text-underline-offset: .2em; }
-.media-credit a:focus-visible { outline: 3px solid currentColor; outline-offset: 4px; }
-.media-credit li { margin-bottom: 1rem; }
+:root { --color-divider: rgba(160, 168, 192, .2); }
+.watch-film-info { max-width: 65ch; overflow-wrap: anywhere; }
+.watch-film-info h1 { font-size: clamp(2rem, 5vw, 2.5rem); font-weight: 700; margin-bottom: .5rem; }
+.watch-film-description { color: var(--color-text-secondary); font-size: 1.1rem; line-height: 1.6; }
+.media-credit-summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .25rem 2rem; margin: 2rem 0; padding-top: 1rem; border-top: 1px solid var(--color-divider); color: var(--color-text-secondary); font-size: .9375rem; line-height: 1.6; overflow-wrap: anywhere; }
+.media-credit-summary p { flex: 1 1 24rem; min-width: 0; }
+.media-credit-summary p a { display: inline-flex; align-items: center; min-height: 44px; }
+.media-credit-details { display: inline-flex; align-items: center; gap: .75rem; min-height: 44px; color: var(--color-text-primary); }
+.media-credit-summary a, .media-credit a, .media-credits-index a { text-decoration: underline; text-underline-offset: .25em; text-decoration-color: var(--color-text-secondary); }
+.media-credit-summary a:hover, .media-credit a:hover, .media-credits-index a:hover { color: var(--color-text-primary); text-decoration-color: currentColor; }
+.media-credit-summary a:focus-visible, .media-credit a:focus-visible, .media-credits-index a:focus-visible { outline: 3px solid var(--color-text-primary); outline-offset: 4px; border-radius: 2px; }
+.media-credits-page { max-width: 70rem; margin: 0 auto; padding: 8rem 4% 3rem; }
+.media-credits-heading h1 { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.2; margin-bottom: 1rem; }
+.media-credits-heading p { max-width: 60ch; color: var(--color-text-secondary); line-height: 1.7; }
+.media-credits-index { margin: 2rem 0 3rem; }
+.media-credits-index h2 { font-size: 1rem; font-weight: 500; color: var(--color-text-secondary); margin-bottom: .5rem; }
+.media-credits-index ul { display: flex; flex-wrap: wrap; gap: .25rem 1.5rem; list-style: none; }
+.media-credits-index a { display: inline-flex; align-items: center; min-height: 44px; }
+.media-credit { padding: 2.5rem 0; border-top: 1px solid var(--color-divider); color: var(--color-text-primary); overflow-wrap: anywhere; line-height: 1.7; }
+.media-credit h2 { font-size: clamp(1.5rem, 4vw, 2rem); line-height: 1.25; margin-bottom: 2rem; }
+.media-credit-section { display: grid; grid-template-columns: 10rem minmax(0, 1fr); gap: .75rem 2rem; }
+.media-credit-section + .media-credit-section { margin-top: 2rem; }
+.media-credit h3 { font-size: 1rem; font-weight: 500; color: var(--color-text-secondary); }
+.media-credit h4 { font-size: 1rem; margin-bottom: .5rem; }
+.media-credit-body { max-width: 65ch; min-width: 0; }
+.media-credit-body p + p { margin-top: .5rem; }
+.media-credit-links { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1.5rem; }
+.media-credit-links a { display: inline-flex; align-items: center; min-height: 44px; }
+.media-credit-artwork { list-style: none; }
+.media-credit-artwork li + li { margin-top: 1.5rem; }
+.media-credit-note { color: var(--color-text-secondary); }
 .media-credit-pending { border-left: 3px solid currentColor; padding-left: 1rem; font-weight: 600; }
+@media (max-width: 640px) {
+    .media-credit-section { grid-template-columns: minmax(0, 1fr); }
+    .media-credit-summary { align-items: flex-start; }
+    .media-credit h2 { margin-bottom: 1.5rem; }
+}
