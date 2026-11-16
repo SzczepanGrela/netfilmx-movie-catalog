@@ -14,7 +14,7 @@ public class MediaCreditsTests
         response.EnsureSuccessStatusCode();
         var html = await response.Content.ReadAsStringAsync();
         Assert.Equal(7, Regex.Matches(html, "<section class=\"media-credit\"").Count);
-        Assert.Equal(13, Regex.Matches(html, "<strong>(Poster|Backdrop):</strong>").Count);
+        Assert.Equal(13, Regex.Matches(html, "<h4 data-i18n=\"t_credit_(poster|backdrop)\"").Count);
         Assert.Equal(2, Regex.Matches(html, "Music: Torin Borrowdale").Count);
         Assert.Contains("Sound design: Sander Houtman", html);
         Assert.Contains("caminandes_gran_dillama.mp4.zip", html);

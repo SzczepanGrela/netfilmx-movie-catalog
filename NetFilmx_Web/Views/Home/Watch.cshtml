@@ -57,36 +57,31 @@
         <p id="subtitle-status" role="status" hidden data-i18n="t_subtitle_unavailable">A subtitle track could not be loaded. Try another language or retry playback.</p>
 
         <!-- Film information -->
-        @if (filmCredit is not null) { <partial name="_MediaCredit" model="filmCredit" /> }
-        <div style="display: flex; flex-wrap: wrap; gap: 2rem; align-items: flex-start; justify-content: space-between;">
-            
-            <div style="flex: 1; min-width: 300px;">
-                <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem;">@Model.Video.Title</h1>
-                <div class="nfx-hero-meta" style="margin-bottom: 1.5rem;">
-                    @if (!string.IsNullOrEmpty(Model.Video.AgeRating))
-                    {
-                        <span class="nfx-badge">@Model.Video.AgeRating</span>
-                    }
-                    @if (!string.IsNullOrEmpty(Model.Video.QualityBadge))
-                    {
-                        <span class="nfx-badge">@Model.Video.QualityBadge</span>
-                    }
-                    @if (Model.Video.ReleaseYear.HasValue)
-                    {
-                        <span>@Model.Video.ReleaseYear.Value</span>
-                    }
-                    @if (Model.Video.DurationMinutes.HasValue)
-                    {
-                        <span>• @Model.Video.DurationMinutes.Value min</span>
-                    }
-                </div>
-                <p style="color: var(--color-text-secondary); font-size: 1.1rem; line-height: 1.6;">
-                    @Model.Video.Description
-                </p>
+        <div class="watch-film-info">
+            <h1>@Model.Video.Title</h1>
+            <div class="nfx-hero-meta" style="margin-bottom: 1.5rem;">
+                @if (!string.IsNullOrEmpty(Model.Video.AgeRating))
+                {
+                    <span class="nfx-badge">@Model.Video.AgeRating</span>
+                }
+                @if (!string.IsNullOrEmpty(Model.Video.QualityBadge))
+                {
+                    <span class="nfx-badge">@Model.Video.QualityBadge</span>
+                }
+                @if (Model.Video.ReleaseYear.HasValue)
+                {
+                    <span>@Model.Video.ReleaseYear.Value</span>
+                }
+                @if (Model.Video.DurationMinutes.HasValue)
+                {
+                    <span>• @Model.Video.DurationMinutes.Value min</span>
+                }
             </div>
-
-
+            <p class="watch-film-description">
+                @Model.Video.Description
+            </p>
         </div>
+        @if (filmCredit is not null) { <partial name="_MediaCreditSummary" model="filmCredit" /> }
 
     </div>
 </div>

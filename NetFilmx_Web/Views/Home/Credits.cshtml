@@ -1,7 +1,18 @@
 @model IReadOnlyList<NetFilmx_Web.Services.FilmCredit>
 @{ ViewData["Title"] = "Media credits"; }
 <div class="media-credits-page">
-    <h1 data-i18n="t_media_credits">Creators and licences</h1>
-    <p data-i18n="t_credit_intro">Film and artwork attribution for the retained catalogue, with licence sources and changes listed below.</p>
+    <header class="media-credits-heading">
+        <h1 data-i18n="t_media_credits">Creators and licences</h1>
+        <p data-i18n="t_credit_intro">Film and artwork attribution, licence sources and changes to the published material.</p>
+    </header>
+    <nav class="media-credits-index" aria-labelledby="credits-index-title">
+        <h2 id="credits-index-title" data-i18n="t_credit_choose_film">Choose a film</h2>
+        <ul>
+            @foreach (var credit in Model)
+            {
+                <li><a href="#credit-@credit.Slug">@credit.Title</a></li>
+            }
+        </ul>
+    </nav>
     @foreach (var credit in Model) { <partial name="_MediaCredit" model="credit" /> }
 </div>

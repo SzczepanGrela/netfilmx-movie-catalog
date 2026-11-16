@@ -1,0 +1,14 @@
+@model NetFilmx_Web.Services.FilmCredit
+<aside class="media-credit-summary">
+    <p>
+        <span>@Model.Creator</span>
+        @if (Model.LicenseUrl is not null)
+        {
+            <span aria-hidden="true"> · </span><a href="@Model.LicenseUrl" rel="noreferrer">@Model.License</a>
+        }
+    </p>
+    <a class="media-credit-details" asp-controller="Home" asp-action="Credits" asp-fragment="credit-@Model.Slug">
+        <span data-i18n="t_media_credits">Creators and licences</span>
+        <span aria-hidden="true">→</span>
+    </a>
+</aside>
