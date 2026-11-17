@@ -248,8 +248,16 @@ def load_contract(path: Path) -> Mapping[str, object]:
     }
     if any(key not in payload or payload[key] != value for key, value in required.items()):
         raise ReleaseError("Private Coolify contract is incomplete or has an invalid release/health contract")
+    # `domains` is a write-side alias for fqdn, not a GET response field.
+    # `custom_labels` requires read:sensitive, which also exposes unrelated
+    # application/server secrets. This release path uses Coolify-managed labels.
+    if "domains" in payload or "custom_labels" in payload:
+        raise ReleaseError(
+            "Recreate the private contract using fqdn and Coolify-managed labels; "
+            "domains/custom_labels are not part of the read-scope API contract"
+        )
     scoped_fields = {
-        "fqdn", "domains", "redirect", "custom_labels", "custom_network_aliases",
+        "fqdn", "redirect", "custom_network_aliases",
         "destination_type", "destination_id", "max_restart_count", "limits_memory",
         "limits_memory_swap", "limits_memory_swappiness", "limits_memory_reservation",
         "limits_cpus", "limits_cpu_shares", "custom_docker_run_options",
@@ -263,6 +271,8 @@ def load_contract(path: Path) -> Mapping[str, object]:
         "is_force_https_enabled", "stop_grace_period",
     }.issubset(settings):
         raise ReleaseError("Private Coolify contract is missing scoped runtime/settings fields")
+    if settings["is_container_label_readonly_enabled"] is not True:
+        raise ReleaseError("This release path requires Coolify-managed container labels")
     return payload
 
 

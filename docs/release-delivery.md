@@ -89,6 +89,19 @@ it is not required for the uploads-disabled catalogue launch.
 The client compares API application fields; it cannot prove mount contents,
 worker flags, kernel restrictions or deployment-environment protections.
 
+The private contract uses the GET response's `fqdn`, `redirect`, ports and
+settings, with `settings.is_container_label_readonly_enabled` exactly `true`.
+It supports Coolify-generated labels only. Do not include `domains` (a write-side
+alias for `fqdn`) or `custom_labels` (hidden from ordinary read access). Old
+contracts containing either field must be regenerated and reviewed before use;
+missing fields are not silently accepted. The CI token needs `read`, `write`
+and `deploy`, without `read:sensitive` or `root`. Reading custom labels using
+`read:sensitive` would also expose unrelated application/server secrets.
+The ordinary API contract checks the managed-label mode and routing inputs,
+not the generated labels themselves. Inspect effective proxy labels during
+operator acceptance and retain public routing/revision probes during release.
+Neither runtime settings nor token scopes are changed by this client update.
+
 `infra.coolify_release` validates attested digest/revision at workflow preflight,
 then checks a healthy baseline, saved immutable rollback image, public
 revision, private settings and absence of an active release. It patches only
