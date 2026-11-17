@@ -32,7 +32,6 @@ def sample_contract() -> dict[str, object]:
         "build_pack": "dockerimage",
         "docker_registry_image_name": "ghcr.io/szczepangrela/netfilmx-movie-catalog",
         "fqdn": "https://catalogue.example.test:8080",
-        "domains": None,
         "redirect": "both",
         "ports_exposes": "8080",
         "ports_mappings": None,
@@ -43,7 +42,6 @@ def sample_contract() -> dict[str, object]:
         "health_check_timeout": 5,
         "health_check_retries": 10,
         "health_check_start_period": 10,
-        "custom_labels": None,
         "custom_network_aliases": None,
         "destination_type": "App\\Models\\StandaloneDocker",
         "destination_id": 42,
@@ -134,6 +132,52 @@ class TestCoolifyRelease(unittest.TestCase):
         sample = sample_contract()
         mismatches = release._compare_contract(loaded, sample)
         self.assertEqual(mismatches, [])
+
+    def test_read_scope_api_response_accepts_managed_label_contract(self):
+        # Current GET /applications/{uuid} has fqdn/settings but does not
+        # serialize the write-side domains alias or sensitive custom_labels.
+        response = sample_contract() | {
+            "uuid": APPLICATION_UUID, "status": "running:healthy",
+            "docker_registry_image_tag": release.digest_to_tag(OLD_DIGEST),
+        }
+        self.assertNotIn("domains", response)
+        self.assertNotIn("custom_labels", response)
+        release.verify_application(
+            response, release.load_contract(self.contract_path), APPLICATION_UUID,
+            expected_tag=release.digest_to_tag(OLD_DIGEST),
+        )
+
+    def test_legacy_write_or_sensitive_fields_require_contract_migration(self):
+        for field in ("domains", "custom_labels"):
+            with self.subTest(field=field):
+                self.contract_path.write_text(json.dumps(sample_contract() | {field: None}))
+                with self.assertRaisesRegex(release.ReleaseError, "Recreate the private contract"):
+                    release.load_contract(self.contract_path)
+
+    def test_manually_managed_labels_are_not_supported(self):
+        contract = sample_contract()
+        contract["settings"]["is_container_label_readonly_enabled"] = False
+        self.contract_path.write_text(json.dumps(contract))
+        with self.assertRaisesRegex(release.ReleaseError, "requires Coolify-managed"):
+            release.load_contract(self.contract_path)
+
+    def test_read_scope_contract_still_rejects_routing_and_label_mode_drift(self):
+        contract = release.load_contract(self.contract_path)
+        changes = [
+            {"fqdn": "https://other.example.test"},
+            {"redirect": "www"},
+            {"ports_exposes": "80"},
+            {"settings": contract["settings"] | {"is_container_label_readonly_enabled": False}},
+        ]
+        for change in changes:
+            with self.subTest(change=change):
+                response = contract | {"uuid": APPLICATION_UUID, "status": "running:healthy"} | change
+                with self.assertRaisesRegex(release.ReleaseError, "configuration drift"):
+                    release.verify_application(response, contract, APPLICATION_UUID)
+        response = contract | {"uuid": APPLICATION_UUID, "status": "running:healthy"}
+        del response["fqdn"]
+        with self.assertRaisesRegex(release.ReleaseError, "configuration drift: fqdn"):
+            release.verify_application(response, contract, APPLICATION_UUID)
 
     def test_digest_and_tag_conversion(self):
         digest = f"sha256:{'a' * 64}"
